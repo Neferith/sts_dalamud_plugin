@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Text;
 using Dalamud.Game.Command;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
@@ -7,6 +8,8 @@ using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using Dalamud.Interface.Windowing;
+using FFXIVClientStructs.FFXIV.Client.UI;
+using FFXIVClientStructs.FFXIV.Client.System.String;
 using STSPlugin.Windows;
 
 namespace STSPlugin;
@@ -67,8 +70,11 @@ public sealed class Plugin : IDalamudPlugin
             case "roll":
             case "r":
                 Engine.Roll();
+                // Affichage local coloré (visible que par toi)
+                PrintStyledLocal();
+                // Broadcast dans le canal (visible par tout le monde)
                 if (Configuration.EchoToChat)
-                    PrintDiceResult();
+                    SendToChannel(Configuration.ChatChannel, BuildPlainMessage());
                 mainWindow.IsOpen = true;
                 break;
 
@@ -83,37 +89,33 @@ public sealed class Plugin : IDalamudPlugin
     }
 
     /// <summary>
-    /// Affiche le résultat dans le chat avec le même style que les jets de dés natifs du jeu.
+    /// Affichage local uniquement, avec couleurs SeString.
     /// </summary>
-    private void PrintDiceResult()
+    private void PrintStyledLocal()
     {
         var palier = Engine.EffectivePalier;
         var n = Engine.Successes;
         var rank = Engine.Rank;
         var player = ClientState.LocalPlayer?.Name.ToString() ?? "???";
 
-        // Couleurs UI FFXIV (IDs de la palette interne du jeu)
-        const ushort ColGreen = 43;   // succès
-        const ushort ColGrey = 4;    // échec
-        const ushort ColRed = 17;   // échec total
-        const ushort ColGold = 559;  // label rang / palier
-        const ushort ColWhite = 1;    // texte neutre
+        const ushort ColGreen = 43;
+        const ushort ColGrey = 4;
+        const ushort ColRed = 17;
+        const ushort ColGold = 559;
+        const ushort ColWhite = 1;
 
         var sb = new SeStringBuilder();
 
-        // Nom du joueur (comme le jeu le fait pour /random)
         sb.AddUiForeground(ColWhite);
         sb.AddText(player);
         sb.AddUiForegroundOff();
         sb.AddText(" ");
 
-        // Rang + palier
         sb.AddUiForeground(ColGold);
         sb.AddText($"[{rank.Label} · palier {palier}+]");
         sb.AddUiForegroundOff();
         sb.AddText("  ");
 
-        // Dés un par un, colorés selon succès/échec
         for (var i = 0; i < Engine.CurrentDice.Length; i++)
         {
             var val = Engine.CurrentDice[i];
@@ -126,13 +128,11 @@ public sealed class Plugin : IDalamudPlugin
 
         sb.AddText("  →  ");
 
-        // Résultat final
         ushort resCol = n == 0 ? ColRed : n >= 2 ? ColGreen : ColWhite;
         sb.AddUiForeground(resCol);
         sb.AddText(n == 0 ? "Échec total" : n == 1 ? "1 succès" : $"{n} succès");
         sb.AddUiForegroundOff();
 
-        // Rerolls restants si utile
         var rrLeft = Engine.RerollsLeft;
         if (rrLeft > 0)
         {
@@ -141,13 +141,50 @@ public sealed class Plugin : IDalamudPlugin
             sb.AddUiForegroundOff();
         }
 
-        // XivChatType.Dice = type natif des jets de dés du jeu
         ChatGui.Print(new XivChatEntry
         {
-            Type = XivChatType.SystemMessage,// (XivChatType)2122,
+            Type = XivChatType.SystemMessage,
             Name = SeString.Empty,
             Message = sb.Build(),
         });
+    }
+
+    /// <summary>
+    /// Construit le message texte brut pour le canal (le serveur n'accepte pas les SeString).
+    /// </summary>
+    private string BuildPlainMessage()
+    {
+        var palier = Engine.EffectivePalier;
+        var n = Engine.Successes;
+        var rank = Engine.Rank;
+        var dice = string.Join(" · ", Engine.CurrentDice.Select(StsEngine.DispDie));
+        var res = n == 0 ? "Échec total" : n == 1 ? "1 succès" : $"{n} succès";
+        var mod = Engine.Modifier != 0 ? $" modif {(Engine.Modifier > 0 ? "+" : "")}{Engine.Modifier}" : "";
+
+        return $"[STS] {rank.Label}{mod} · {dice} · palier {palier}+ → {res}";
+    }
+
+    /// <summary>
+    /// Envoie un message texte brut dans un canal via la chatbox native.
+    /// </summary>
+    private static unsafe void SendToChannel(string channel, string message)
+    {
+        var uiModule = UIModule.Instance();
+        if (uiModule == null)
+        {
+            Log.Warning("[STS] UIModule introuvable.");
+            return;
+        }
+
+        var fullMessage = $"/{channel} {message}";
+        var bytes = Encoding.UTF8.GetBytes(fullMessage);
+        var utf8String = new Utf8String();
+
+        fixed (byte* ptr = bytes)
+            utf8String.SetString(ptr);
+
+        uiModule->ProcessChatBoxEntry(&utf8String);
+        utf8String.Dtor();
     }
 
     private void DrawUi() => windowSystem.Draw();
