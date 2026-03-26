@@ -1,0 +1,19 @@
+[
+  {
+    "Author": "Vivien",
+    "Name": "STSPlugin",
+    "Description": "Outil de jets de dés pour le Système Très Simple.",
+    "InternalName": "STSPlugin",
+    "AssemblyVersion": "1.0.0.0",
+    "RepoUrl": "https://github.com/Neferith/sts_dalamud_plugin",
+    "ApplicableVersion": "any",
+    "DalamudApiLevel": 12,
+    "DownloadLinkInstall": "https://github.com/Neferith/sts_dalamud_plugin/releases/latest/download/latest.zip",
+    "DownloadLinkUpdate": "https://github.com/Neferith/sts_dalamud_plugin/releases/latest/download/latest.zip"
+  }
+]
+```
+
+Tu peux héberger ce fichier directement dans le repo sur la branche `main`, et donner aux membres de la guilde l'URL raw :
+```
+https://raw.githubusercontent.com/toi/sts-dalamud-plugin/main/repo.json

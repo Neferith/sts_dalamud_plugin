@@ -1,0 +1,25 @@
+name: Build
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.x'
+      - run: dotnet build --configuration Release
+      - uses: actions/upload-artifact@v3
+        with:
+          name: plugin
+          path: STSPlugin/bin/Release/net8.0-windows/STSPlugin/
+      - name: Create release zip
+        run: Compress-Archive -Path STSPlugin/bin/Release/net8.0-windows/STSPlugin/* -DestinationPath latest.zip
+      - uses: softprops/action-gh-release@v1
+        with:
+          files: latest.zip
