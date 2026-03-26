@@ -1,11 +1,12 @@
-using System.Text;
+using System.Linq;
 using Dalamud.Game.Command;
+using Dalamud.Game.Text;
+using Dalamud.Game.Text.SeStringHandling;
+using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using Dalamud.Interface.Windowing;
-using FFXIVClientStructs.FFXIV.Client.UI;
-using FFXIVClientStructs.FFXIV.Client.System.String;
 using STSPlugin.Windows;
 
 namespace STSPlugin;
@@ -17,6 +18,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
     [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
     [PluginService] internal static IChatGui ChatGui { get; private set; } = null!;
+    [PluginService] internal static IClientState ClientState { get; private set; } = null!;
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
 
     public Configuration Configuration { get; init; }
@@ -66,7 +68,7 @@ public sealed class Plugin : IDalamudPlugin
             case "r":
                 Engine.Roll();
                 if (Configuration.EchoToChat)
-                    SendToChannel(Configuration.ChatChannel, Engine.ChatSummary());
+                    PrintDiceResult();
                 mainWindow.IsOpen = true;
                 break;
 
@@ -81,30 +83,71 @@ public sealed class Plugin : IDalamudPlugin
     }
 
     /// <summary>
-    /// Envoie un message dans un canal de chat via la fonction native du jeu.
-    /// Fonctionne comme si le joueur tapait "/{channel} {message}" dans la chatbox.
+    /// Affiche le résultat dans le chat avec le même style que les jets de dés natifs du jeu.
     /// </summary>
-    private static unsafe void SendToChannel(string channel, string message)
+    private void PrintDiceResult()
     {
-        var fullMessage = $"/{channel} {message}";
+        var palier = Engine.EffectivePalier;
+        var n = Engine.Successes;
+        var rank = Engine.Rank;
+        var player = ClientState.LocalPlayer?.Name.ToString() ?? "???";
 
-        var uiModule = UIModule.Instance();
-        if (uiModule == null)
+        // Couleurs UI FFXIV (IDs de la palette interne du jeu)
+        const ushort ColGreen = 43;   // succès
+        const ushort ColGrey = 4;    // échec
+        const ushort ColRed = 17;   // échec total
+        const ushort ColGold = 559;  // label rang / palier
+        const ushort ColWhite = 1;    // texte neutre
+
+        var sb = new SeStringBuilder();
+
+        // Nom du joueur (comme le jeu le fait pour /random)
+        sb.AddUiForeground(ColWhite);
+        sb.AddText(player);
+        sb.AddUiForegroundOff();
+        sb.AddText(" ");
+
+        // Rang + palier
+        sb.AddUiForeground(ColGold);
+        sb.AddText($"[{rank.Label} · palier {palier}+]");
+        sb.AddUiForegroundOff();
+        sb.AddText("  ");
+
+        // Dés un par un, colorés selon succès/échec
+        for (var i = 0; i < Engine.CurrentDice.Length; i++)
         {
-            Log.Warning("[STS] UIModule introuvable, impossible d'envoyer dans le chat.");
-            return;
+            var val = Engine.CurrentDice[i];
+            var suc = val >= palier;
+            if (i > 0) sb.AddText(" · ");
+            sb.AddUiForeground(suc ? ColGreen : ColGrey);
+            sb.AddText(StsEngine.DispDie(val));
+            sb.AddUiForegroundOff();
         }
 
-        // Encoder en UTF-8 et passer à la chatbox native
-        var bytes = Encoding.UTF8.GetBytes(fullMessage);
-        var utf8String = new Utf8String();
-        fixed (byte* ptr = bytes)
+        sb.AddText("  →  ");
+
+        // Résultat final
+        ushort resCol = n == 0 ? ColRed : n >= 2 ? ColGreen : ColWhite;
+        sb.AddUiForeground(resCol);
+        sb.AddText(n == 0 ? "Échec total" : n == 1 ? "1 succès" : $"{n} succès");
+        sb.AddUiForegroundOff();
+
+        // Rerolls restants si utile
+        var rrLeft = Engine.RerollsLeft;
+        if (rrLeft > 0)
         {
-            utf8String.SetString(ptr);
+            sb.AddUiForeground(ColGrey);
+            sb.AddText($"  ({rrLeft} reroll{(rrLeft > 1 ? "s" : "")} restant{(rrLeft > 1 ? "s" : "")})");
+            sb.AddUiForegroundOff();
         }
 
-        uiModule->ProcessChatBoxEntry(&utf8String);
-        utf8String.Dtor();
+        // XivChatType.Dice = type natif des jets de dés du jeu
+        ChatGui.Print(new XivChatEntry
+        {
+            Type = XivChatType.SystemMessage,// (XivChatType)2122,
+            Name = SeString.Empty,
+            Message = sb.Build(),
+        });
     }
 
     private void DrawUi() => windowSystem.Draw();
