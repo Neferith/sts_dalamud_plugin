@@ -7,7 +7,7 @@
     "AssemblyVersion": "1.0.0.0",
     "RepoUrl": "https://github.com/Neferith/sts_dalamud_plugin",
     "ApplicableVersion": "any",
-    "DalamudApiLevel": 12,
+    "DalamudApiLevel": 14,
     "DownloadLinkInstall": "https://github.com/Neferith/sts_dalamud_plugin/releases/latest/download/latest.zip",
     "DownloadLinkUpdate": "https://github.com/Neferith/sts_dalamud_plugin/releases/latest/download/latest.zip"
   }
