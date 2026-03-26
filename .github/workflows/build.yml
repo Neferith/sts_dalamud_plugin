@@ -10,12 +10,22 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v3
+
+      - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.x'
-      - run: dotnet build --configuration Release -p:Platform=x64
-      - name: Create release zip
+
+      - name: Download Dalamud
+        run: |
+          Invoke-WebRequest -Uri "https://goatcorp.github.io/dalamud-distrib/latest.zip" -OutFile dalamud.zip
+          Expand-Archive -Path dalamud.zip -DestinationPath "$env:AppData\XIVLauncher\addon\Hooks\dev" -Force
+
+      - name: Build
+        run: dotnet build --configuration Release -p:Platform=x64
+
+      - name: Create zip
         run: Compress-Archive -Path STSPlugin/bin/x64/Release/* -DestinationPath latest.zip
-      - uses: softprops/action-gh-release@v1
+
+      - uses: softprops/action-gh-release@v2
         with:
           files: latest.zip
