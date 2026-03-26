@@ -13,13 +13,9 @@ jobs:
       - uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '8.x'
-      - run: dotnet build --configuration Release
-      - uses: actions/upload-artifact@v3
-        with:
-          name: plugin
-          path: STSPlugin/bin/Release/net8.0-windows/STSPlugin/
+      - run: dotnet build --configuration Release --platform x64
       - name: Create release zip
-        run: Compress-Archive -Path STSPlugin/bin/Release/net8.0-windows/STSPlugin/* -DestinationPath latest.zip
+        run: Compress-Archive -Path STSPlugin/bin/x64/Release/* -DestinationPath latest.zip
       - uses: softprops/action-gh-release@v1
         with:
           files: latest.zip
