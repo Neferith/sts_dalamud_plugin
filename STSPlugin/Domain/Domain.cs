@@ -32,6 +32,39 @@ public enum RollMode
 }
 
 /// <summary>
+/// Source des valeurs de dés utilisées lors d'un jet.
+/// </summary>
+public enum RollSource
+{
+    /// <summary>
+    /// Les dés sont générés en interne par le plugin (Random .NET).
+    /// Rapide, mais non vérifiable par les autres joueurs.
+    /// </summary>
+    Internal,
+
+    /// <summary>
+    /// Les dés proviennent de la commande /random du jeu (0–999).
+    /// Le résultat est visible dans le chat pour tous — infalsifiable.
+    /// </summary>
+    GameRandom
+}
+
+/// <summary>
+/// État de l'engine vis-à-vis du mode GameRandom.
+/// </summary>
+public enum EngineState
+{
+    /// <summary>Aucun jet en attente. L'engine ignore les messages /random du chat.</summary>
+    Idle,
+
+    /// <summary>
+    /// Un jet a été initié en mode GameRandom.
+    /// L'engine attend le résultat /random intercepté depuis le chat.
+    /// </summary>
+    WaitingDice
+}
+
+/// <summary>
 /// Données immuables associées à un rang.
 /// </summary>
 /// <param name="Label">Nom affiché du rang.</param>
