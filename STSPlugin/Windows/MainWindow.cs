@@ -1,11 +1,9 @@
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Windowing;
-
+using STSPlugin.Domain;
 using System;
 using System.Linq;
 using System.Numerics;
-
-using STSPlugin.Domain;
 
 namespace STSPlugin.Windows;
 
@@ -15,7 +13,7 @@ public class MainWindow : Window, IDisposable
     private StsEngine Engine => plugin.Engine;
 
     // Couleurs
-    private static readonly Vector4 ColSuccess = new(0.06f, 0.43f, 0.34f, 1f); // vert foncé
+    private static readonly Vector4 ColSuccess = new(0.06f, 0.43f, 0.34f, 1f);
     private static readonly Vector4 ColSuccessBg = new(0.06f, 0.43f, 0.34f, 0.15f);
     private static readonly Vector4 ColFail = new(0.55f, 0.55f, 0.55f, 1f);
     private static readonly Vector4 ColFailBg = new(0.55f, 0.55f, 0.55f, 0.08f);
@@ -24,6 +22,10 @@ public class MainWindow : Window, IDisposable
     private static readonly Vector4 ColInfo = new(0.09f, 0.37f, 0.65f, 1f);
     private static readonly Vector4 ColWarn = new(0.52f, 0.31f, 0.04f, 1f);
     private static readonly Vector4 ColActive = new(0.20f, 0.20f, 0.20f, 0.40f);
+
+    // État onglet personnages
+    private string _newCharName = string.Empty;
+    private Guid? _selectedId = null;
 
     public MainWindow(Plugin plugin)
         : base("STS — Système Très Simple##sts_main",
@@ -35,14 +37,46 @@ public class MainWindow : Window, IDisposable
             MinimumSize = new Vector2(330, 420),
             MaximumSize = new Vector2(520, 860),
         };
-        Size = new Vector2(370, 520);
+        Size = new Vector2(370, 560);
     }
 
     public void Dispose() { }
 
     public override void Draw()
     {
-        DrawRankTabs();
+        if (!ImGui.BeginTabBar("##sts_main_tabs")) return;
+
+        if (ImGui.BeginTabItem("Dés##tab_dice"))
+        {
+            ImGui.Spacing();
+            DrawDiceTab();
+            ImGui.EndTabItem();
+        }
+
+        if (ImGui.BeginTabItem("Personnages##tab_chars"))
+        {
+            ImGui.Spacing();
+            DrawCharacterTab();
+            ImGui.EndTabItem();
+        }
+
+        ImGui.EndTabBar();
+    }
+
+    // ================================================================== Onglet Dés
+
+    private void DrawDiceTab()
+    {
+        var active = plugin.GetActiveCharacter.Execute();
+
+        if (active is null)
+        {
+            ImGui.TextColored(ColMuted, "Aucun personnage actif.");
+            ImGui.TextColored(ColMuted, "Sélectionnez-en un dans l'onglet Personnages.");
+            return;
+        }
+
+        DrawActiveCharacterHeader(active);
         ImGui.Spacing();
         DrawStats();
         ImGui.Spacing();
@@ -67,28 +101,21 @@ public class MainWindow : Window, IDisposable
         DrawHistory();
     }
 
-    // ------------------------------------------------------------------ Rang
+    // ------------------------------------------------------------------ En-tête personnage actif
 
-    private void DrawRankTabs()
+    private void DrawActiveCharacterHeader(Domain.Character active)
     {
-        if (!ImGui.BeginTabBar("##sts_ranks")) return;
+        var rank = Rank.Get(active.Rank);
 
-        foreach (var rankKey in Enum.GetValues<RankKey>())
-        {
-            var rank = Rank.Get(rankKey);
+        ImGui.PushStyleColor(ImGuiCol.Text, ColSuccess);
+        ImGui.Text("●");
+        ImGui.PopStyleColor();
+        ImGui.SameLine();
 
-            if (ImGui.BeginTabItem(rank.Label + "##rt_" + rankKey))
-            {
-                if (Engine.CurrentRank != rank)
-                {
-                    Engine.ChangeRank(rankKey);
-                    plugin.SaveRank(rankKey);
-                }
-                ImGui.EndTabItem();
-            }
-        }
+        ImGui.Text(active.Name);
+        ImGui.SameLine();
 
-        ImGui.EndTabBar();
+        ImGui.TextColored(ColMuted, $"— {rank.Label}");
     }
 
     // ------------------------------------------------------------------ Stats
@@ -100,19 +127,16 @@ public class MainWindow : Window, IDisposable
 
         ImGui.BeginGroup();
 
-        // Palier
         ImGui.TextColored(ColMuted, "Palier");
         ImGui.SameLine();
         ImGui.Text($"{Engine.EffectivePalier}+");
         ImGui.SameLine(); ImGui.Spacing(); ImGui.SameLine();
 
-        // Rerolls
         ImGui.TextColored(ColMuted, "Rerolls");
         ImGui.SameLine();
         ImGui.TextColored(rrLeft > 0 ? ColInfo : ColFail, $"{rrLeft}/{rank.Rerolls}");
         ImGui.SameLine(); ImGui.Spacing(); ImGui.SameLine();
 
-        // Traits
         ImGui.TextColored(ColMuted, "Traits");
         ImGui.SameLine();
         ImGui.Text($"{rank.Traits}");
@@ -189,10 +213,8 @@ public class MainWindow : Window, IDisposable
     {
         if (Engine.LastResult is not { } result) return;
 
-        // Set principal
         DrawDiceSet(result.Chosen, result.Palier, chosen: true);
 
-        // Set rejeté (avantage / désavantage)
         if (result.Rejected is { } rejected)
         {
             ImGui.SameLine();
@@ -240,7 +262,7 @@ public class MainWindow : Window, IDisposable
         {
             ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.3f, 0.3f, 0.3f, 0.3f));
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.3f, 0.3f, 0.3f, 0.3f));
-            ImGui.Button($"↺ Reroll (0 restant)##reroll", new Vector2(avail, 0));
+            ImGui.Button("↺ Reroll (0 restant)##reroll", new Vector2(avail, 0));
             ImGui.PopStyleColor(2);
         }
         else
@@ -265,14 +287,12 @@ public class MainWindow : Window, IDisposable
                 : result.Successes >= 2 ? ColSuccess
                 : ImGui.GetStyle().Colors[(int)ImGuiCol.Text];
 
-        // Tag mode si avantage/désavantage
         if (Engine.Mode != RollMode.Normal)
         {
             var tag = Engine.Mode == RollMode.Avantage ? "Avantage" : "Désavantage";
             ImGui.TextColored(ColMuted, tag + " — meilleur set retenu");
         }
 
-        // Gros chiffre
         ImGui.TextColored(col, result.Successes.ToString());
         ImGui.SameLine();
 
@@ -313,14 +333,166 @@ public class MainWindow : Window, IDisposable
 
             ImGui.TextColored(ColMuted, entry.RankLabel);
             ImGui.SameLine();
-
             ImGui.Text(entry.Dice.ToDisplayString());
             ImGui.SameLine();
-
             ImGui.TextColored(ColMuted, $"({entry.Palier}+)");
             ImGui.SameLine();
-
             ImGui.TextColored(col, $"{entry.Successes} ✓");
         }
+    }
+
+    // ================================================================== Onglet Personnages
+
+    private void DrawCharacterTab()
+    {
+        var characters = plugin.GetAllCharacters.Execute();
+        var activeId = plugin.Configuration.ActiveCharacterId;
+
+        // ---- Liste des personnages ----
+        ImGui.TextColored(ColMuted, "PERSONNAGES");
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        if (characters.Count == 0)
+        {
+            ImGui.TextColored(ColMuted, "Aucun personnage. Créez-en un ci-dessous.");
+            ImGui.Spacing();
+        }
+        else
+        {
+            foreach (var character in characters)
+            {
+                var isActive = character.Id == activeId;
+                var isSelected = character.Id == _selectedId;
+
+                // Indicateur actif
+                if (isActive)
+                {
+                    ImGui.PushStyleColor(ImGuiCol.Text, ColSuccess);
+                    ImGui.Text("●");
+                    ImGui.PopStyleColor();
+                }
+                else
+                {
+                    ImGui.TextColored(ColMuted, "○");
+                }
+                ImGui.SameLine();
+
+                // Sélection
+                if (ImGui.Selectable(
+                    $"{character.Name}  [{Rank.Get(character.Rank).Label}]##{character.Id}",
+                    isSelected))
+                {
+                    _selectedId = isSelected ? null : character.Id;
+                }
+
+                // Double-clic → activer
+                if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
+                {
+                    plugin.SetActiveCharacter.Execute(character.Id);
+                    _selectedId = character.Id;
+                }
+            }
+        }
+
+        ImGui.Spacing();
+
+        // ---- Actions sur la sélection ----
+        if (_selectedId is { } selectedId && characters.Any(c => c.Id == selectedId))
+        {
+            var selected = characters.First(c => c.Id == selectedId);
+            var isActive = selected.Id == activeId;
+
+            ImGui.Separator();
+            ImGui.Spacing();
+            ImGui.TextColored(ColMuted, $"Sélectionné : {selected.Name}");
+            ImGui.Spacing();
+
+            // Changer le rang
+            ImGui.TextColored(ColMuted, "Rang :");
+            ImGui.SameLine();
+            foreach (var rankKey in Enum.GetValues<RankKey>())
+            {
+                var rank = Rank.Get(rankKey);
+                var current = selected.Rank == rankKey;
+                if (current)
+                {
+                    ImGui.PushStyleColor(ImGuiCol.Button, ColActive);
+                    ImGui.PushStyleColor(ImGuiCol.ButtonHovered, ColActive);
+                }
+                if (ImGui.Button(rank.Label + "##cr_" + rankKey))
+                {
+                    selected.Rank = rankKey;
+                    plugin.UpdateCharacter.Execute(selected);
+                    // Si c'est le personnage actif, synchroniser l'engine
+                    if (isActive)
+                        Engine.ChangeRank(rankKey);
+                }
+                if (current) ImGui.PopStyleColor(2);
+                ImGui.SameLine();
+            }
+            ImGui.NewLine();
+            ImGui.Spacing();
+
+            // Activer / Désactiver
+            var avail = ImGui.GetContentRegionAvail().X;
+            if (!isActive)
+            {
+                ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.09f, 0.37f, 0.65f, 0.25f));
+                ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.09f, 0.37f, 0.65f, 0.40f));
+                ImGui.PushStyleColor(ImGuiCol.Text, ColInfo);
+                if (ImGui.Button("Activer ce personnage##activate", new Vector2(avail, 0)))
+                    plugin.SetActiveCharacter.Execute(selectedId);
+                ImGui.PopStyleColor(3);
+            }
+            else
+            {
+                ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.52f, 0.31f, 0.04f, 0.20f));
+                ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.52f, 0.31f, 0.04f, 0.35f));
+                ImGui.PushStyleColor(ImGuiCol.Text, ColWarn);
+                if (ImGui.Button("Désactiver##deactivate", new Vector2(avail, 0)))
+                    plugin.SetActiveCharacter.Execute(null);
+                ImGui.PopStyleColor(3);
+            }
+
+            ImGui.Spacing();
+
+            // Supprimer
+            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.64f, 0.17f, 0.17f, 0.20f));
+            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.64f, 0.17f, 0.17f, 0.40f));
+            ImGui.PushStyleColor(ImGuiCol.Text, ColDanger);
+            if (ImGui.Button($"Supprimer {selected.Name}##delete", new Vector2(avail, 0)))
+            {
+                plugin.DeleteCharacter.Execute(selectedId);
+                _selectedId = null;
+            }
+            ImGui.PopStyleColor(3);
+
+            ImGui.Spacing();
+        }
+
+        // ---- Créer un nouveau personnage ----
+        ImGui.Separator();
+        ImGui.Spacing();
+        ImGui.TextColored(ColMuted, "NOUVEAU PERSONNAGE");
+        ImGui.Spacing();
+
+        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - 90);
+        ImGui.InputText("##newname", ref _newCharName, 64);
+        ImGui.SameLine();
+
+        var canCreate = !string.IsNullOrWhiteSpace(_newCharName);
+        if (!canCreate)
+        {
+            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.3f, 0.3f, 0.3f, 0.3f));
+            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.3f, 0.3f, 0.3f, 0.3f));
+        }
+        if (ImGui.Button("Créer##create") && canCreate)
+        {
+            var created = plugin.CreateCharacter.Execute(_newCharName, RankKey.Novice);
+            _selectedId = created.Id;
+            _newCharName = string.Empty;
+        }
+        if (!canCreate) ImGui.PopStyleColor(2);
     }
 }

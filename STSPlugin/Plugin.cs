@@ -5,13 +5,14 @@ using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
-using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.System.String;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using STSPlugin.Domain;
+using STSPlugin.Repository;
 using STSPlugin.UseCases;
 using STSPlugin.Windows;
 using System;
+using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -32,6 +33,15 @@ public sealed class Plugin : IDalamudPlugin
 
     public Configuration Configuration { get; init; }
     public StsEngine Engine { get; init; }
+    public CharacterRepository CharacterRepository { get; init; }
+
+    // --- use cases personnages ---
+    public GetAllCharactersUseCase GetAllCharacters { get; init; }
+    public GetActiveCharacterUseCase GetActiveCharacter { get; init; }
+    public CreateCharacterUseCase CreateCharacter { get; init; }
+    public UpdateCharacterUseCase UpdateCharacter { get; init; }
+    public DeleteCharacterUseCase DeleteCharacter { get; init; }
+    public SetActiveCharacterUseCase SetActiveCharacter { get; init; }
 
     private readonly WindowSystem windowSystem = new("STSPlugin");
     private readonly MainWindow mainWindow;
@@ -40,15 +50,35 @@ public sealed class Plugin : IDalamudPlugin
     public Plugin()
     {
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+
+        // --- Engine ---
         Engine = new StsEngine(
             new DefaultComputePalierUseCase(),
             new DefaultResolveDiceSetUseCase(),
             new DefaultPickDiceSetUseCase(),
             new DefaultCheckRerollUseCase()
         );
-        if (Enum.TryParse<RankKey>(Configuration.LastRank, out var rankKey))
+
+        // --- Repository personnages ---
+        var charactersDir = Path.Combine(PluginInterface.GetPluginConfigDirectory(), "characters");
+        CharacterRepository = new DefaultCharacterRepository(charactersDir);
+
+        // --- Use cases personnages ---
+        GetAllCharacters = new DefaultGetAllCharactersUseCase(CharacterRepository);
+        GetActiveCharacter = new DefaultGetActiveCharacterUseCase(CharacterRepository, Configuration);
+        CreateCharacter = new DefaultCreateCharacterUseCase(CharacterRepository);
+        UpdateCharacter = new DefaultUpdateCharacterUseCase(CharacterRepository);
+        DeleteCharacter = new DefaultDeleteCharacterUseCase(CharacterRepository, Configuration);
+        SetActiveCharacter = new DefaultSetActiveCharacterUseCase(CharacterRepository, Configuration, Engine);
+
+        // --- Appliquer le personnage actif au démarrage ---
+        var active = GetActiveCharacter.Execute();
+        if (active != null)
+            Engine.ChangeRank(active.Rank);
+        else if (Enum.TryParse<RankKey>(Configuration.LastRank, out var rankKey))
             Engine.ChangeRank(rankKey);
 
+        // --- Windows ---
         mainWindow = new MainWindow(this);
         configWindow = new ConfigWindow(this);
 
@@ -71,7 +101,6 @@ public sealed class Plugin : IDalamudPlugin
     public void Dispose()
     {
         ChatGui.ChatMessage -= OnChatMessage;
-        // Dispose
         ChatGui.ChatMessageUnhandled -= OnChatMessageUnhandled;
 
         PluginInterface.UiBuilder.Draw -= DrawUi;
@@ -81,8 +110,6 @@ public sealed class Plugin : IDalamudPlugin
         CommandManager.RemoveHandler(CmdMain);
         windowSystem.RemoveAllWindows();
     }
-
- 
 
     private void OnCommand(string command, string args)
     {
@@ -116,13 +143,11 @@ public sealed class Plugin : IDalamudPlugin
 
         if (Configuration.RollSource == RollSource.GameRandom)
         {
-            // Mode /random : on attend l'interception du résultat dans le chat
             Engine.BeginRoll();
             SendRaw("/random");
         }
         else
         {
-            // Mode interne : résultat immédiat
             Engine.Roll();
             OnRollComplete();
         }
@@ -147,14 +172,9 @@ public sealed class Plugin : IDalamudPlugin
 
     // ------------------------------------------------------------------ Interception /random
 
-    /// <summary>
-    /// Écoute le chat pour intercepter les résultats /random du jeu (mode GameRandom uniquement).
-    /// </summary>
     private void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
     {
-        // Log TOUT pendant le debug, pas seulement quand on attend
         Log.Debug($"[STS] Chat reçu — type: {(int)type} ({type}), sender: '{sender.TextValue}', message: '{message.TextValue}'");
-
     }
 
     private void OnChatMessageUnhandled(XivChatType type, int timestamp, SeString sender, SeString message)
@@ -177,17 +197,8 @@ public sealed class Plugin : IDalamudPlugin
             OnRollComplete();
     }
 
-    // Constructeur
-
-
-
-
-
     // ------------------------------------------------------------------ Résultat
 
-    /// <summary>
-    /// Appelé une fois le jet résolu, quelle que soit la source.
-    /// </summary>
     private void OnRollComplete()
     {
         PrintStyledLocal();
@@ -197,9 +208,6 @@ public sealed class Plugin : IDalamudPlugin
 
     // ------------------------------------------------------------------ Affichage
 
-    /// <summary>
-    /// Affichage local uniquement, avec couleurs SeString.
-    /// </summary>
     private void PrintStyledLocal()
     {
         if (Engine.LastResult is not { } result) return;
@@ -258,9 +266,6 @@ public sealed class Plugin : IDalamudPlugin
         });
     }
 
-    /// <summary>
-    /// Construit le message texte brut pour le canal (le serveur n'accepte pas les SeString).
-    /// </summary>
     private string BuildPlainMessage()
     {
         if (Engine.LastResult is not { } result) return string.Empty;
@@ -289,9 +294,6 @@ public sealed class Plugin : IDalamudPlugin
 
     // ------------------------------------------------------------------ Chat natif
 
-    /// <summary>
-    /// Envoie un message texte brut dans un canal via la chatbox native.
-    /// </summary>
     private static unsafe void SendToChannel(string channel, string message)
     {
         var uiModule = UIModule.Instance();
@@ -304,9 +306,6 @@ public sealed class Plugin : IDalamudPlugin
         utf8String.Dtor();
     }
 
-    /// <summary>
-    /// Envoie une commande brute via la chatbox native (ex : /random).
-    /// </summary>
     private static unsafe void SendRaw(string command)
     {
         var uiModule = UIModule.Instance();

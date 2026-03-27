@@ -101,7 +101,6 @@ public class StsEngine
     /// </summary>
     public void Roll()
     {
-        _session.RerollsUsed = 0;
         _session.LastResult = ResolveNewRoll(previousRejected: null);
         PushHistory(_session.LastResult);
     }
@@ -129,7 +128,6 @@ public class StsEngine
     /// </summary>
     public void BeginRoll()
     {
-        _session.RerollsUsed = 0;
         _pendingRejected = null;
         State = EngineState.WaitingDice;
     }

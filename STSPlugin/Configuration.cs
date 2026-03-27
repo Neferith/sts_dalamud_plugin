@@ -2,7 +2,6 @@ using Dalamud.Configuration;
 using STSPlugin.Domain;
 using System;
 
-
 namespace STSPlugin;
 
 [Serializable]
@@ -10,8 +9,11 @@ public class Configuration : IPluginConfiguration
 {
     public int Version { get; set; } = 1;
 
-    /// <summary>Rang persisté entre sessions.</summary>
+    /// <summary>Rang persisté entre sessions (fallback si aucun personnage actif).</summary>
     public string LastRank { get; set; } = RankKey.Aventurier.ToString();
+
+    /// <summary>Identifiant du personnage actif. Null si aucun sélectionné.</summary>
+    public Guid? ActiveCharacterId { get; set; } = null;
 
     /// <summary>Si true, poste le résultat dans le chat après /sts roll.</summary>
     public bool EchoToChat { get; set; } = true;
@@ -27,4 +29,3 @@ public class Configuration : IPluginConfiguration
 
     public void Save() => Plugin.PluginInterface.SavePluginConfig(this);
 }
-
