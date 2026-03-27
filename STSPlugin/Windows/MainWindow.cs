@@ -5,6 +5,8 @@ using System;
 using System.Linq;
 using System.Numerics;
 
+using STSPlugin.Domain;
+
 namespace STSPlugin.Windows;
 
 public class MainWindow : Window, IDisposable
@@ -71,20 +73,16 @@ public class MainWindow : Window, IDisposable
     {
         if (!ImGui.BeginTabBar("##sts_ranks")) return;
 
-        foreach (var key in StsEngine.RankKeys)
+        foreach (var rankKey in Enum.GetValues<RankKey>())
         {
-            var rank = StsEngine.Ranks[key];
-            var flags = Engine.CurrentRank == key
-                ? ImGuiTabItemFlags.SetSelected
-                : ImGuiTabItemFlags.None;
+            var rank = Rank.Get(rankKey);
 
-            // BeginTabItem sans bool* = onglet non-closable
-            if (ImGui.BeginTabItem(rank.Label + "##rt_" + key))
+            if (ImGui.BeginTabItem(rank.Label + "##rt_" + rankKey))
             {
-                if (Engine.CurrentRank != key)
+                if (Engine.CurrentRank != rank)
                 {
-                    Engine.ChangeRank(key);
-                    plugin.SaveRank(key);
+                    Engine.ChangeRank(rankKey);
+                    plugin.SaveRank(rankKey);
                 }
                 ImGui.EndTabItem();
             }
@@ -97,7 +95,8 @@ public class MainWindow : Window, IDisposable
 
     private void DrawStats()
     {
-        var rank = Engine.Rank;
+        var rank = Engine.CurrentRank;
+        var rrLeft = Engine.RerollsLeft;
 
         ImGui.BeginGroup();
 
@@ -110,7 +109,6 @@ public class MainWindow : Window, IDisposable
         // Rerolls
         ImGui.TextColored(ColMuted, "Rerolls");
         ImGui.SameLine();
-        var rrLeft = Engine.RerollsLeft;
         ImGui.TextColored(rrLeft > 0 ? ColInfo : ColFail, $"{rrLeft}/{rank.Rerolls}");
         ImGui.SameLine(); ImGui.Spacing(); ImGui.SameLine();
 
@@ -189,40 +187,38 @@ public class MainWindow : Window, IDisposable
 
     private void DrawDice()
     {
-        if (!Engine.HasRolled) return;
-
-        var palier = Engine.EffectivePalier;
+        if (Engine.LastResult is not { } result) return;
 
         // Set principal
-        DrawDiceSet(Engine.CurrentDice, palier, chosen: true);
+        DrawDiceSet(result.Chosen, result.Palier, chosen: true);
 
         // Set rejeté (avantage / désavantage)
-        if (Engine.OtherDice.Length > 0)
+        if (result.Rejected is { } rejected)
         {
             ImGui.SameLine();
             ImGui.TextColored(ColMuted, " vs");
             ImGui.SameLine();
-            DrawDiceSet(Engine.OtherDice, palier, chosen: false);
+            DrawDiceSet(rejected, result.Palier, chosen: false);
         }
     }
 
-    private void DrawDiceSet(int[] dice, int palier, bool chosen)
+    private void DrawDiceSet(DiceSet diceSet, int palier, bool chosen)
     {
+        var alpha = chosen ? 1f : 0.3f;
+
         ImGui.BeginGroup();
-        foreach (var val in dice)
+        foreach (var val in diceSet.Values)
         {
             var suc = val >= palier;
-            var label = StsEngine.DispDie(val);
+            var label = DiceSet.Display(val);
             var col = suc ? ColSuccess : ColFail;
             var bgCol = suc ? ColSuccessBg : ColFailBg;
-            var alpha = chosen ? 1f : 0.3f;
 
             ImGui.PushStyleColor(ImGuiCol.Text, col with { W = alpha });
             ImGui.PushStyleColor(ImGuiCol.Button, bgCol with { W = alpha * 0.6f });
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, bgCol with { W = alpha * 0.6f });
             ImGui.PushStyleColor(ImGuiCol.ButtonActive, bgCol with { W = alpha * 0.6f });
 
-            // Bouton passif de 52×52 (pas de feedback de clic)
             ImGui.Button(label + "##die_" + val + "_" + chosen, new Vector2(52, 52));
 
             ImGui.PopStyleColor(4);
@@ -263,10 +259,11 @@ public class MainWindow : Window, IDisposable
 
     private void DrawResult()
     {
-        if (!Engine.HasRolled) return;
+        if (Engine.LastResult is not { } result) return;
 
-        var n = Engine.Successes;
-        var col = n == 0 ? ColDanger : n >= 2 ? ColSuccess : ImGui.GetStyle().Colors[(int)ImGuiCol.Text];
+        var col = result.Successes == 0 ? ColDanger
+                : result.Successes >= 2 ? ColSuccess
+                : ImGui.GetStyle().Colors[(int)ImGuiCol.Text];
 
         // Tag mode si avantage/désavantage
         if (Engine.Mode != RollMode.Normal)
@@ -276,13 +273,13 @@ public class MainWindow : Window, IDisposable
         }
 
         // Gros chiffre
-        ImGui.PushFont(ImGui.GetIO().Fonts.Fonts[0]);
-        ImGui.TextColored(col, n.ToString());
-        ImGui.PopFont();
+        ImGui.TextColored(col, result.Successes.ToString());
         ImGui.SameLine();
 
-        var lbl = n == 0 ? "Aucune réussite" : n == 1 ? "réussite" : "réussites";
-        ImGui.TextColored(ColMuted, $"{lbl}  ·  palier {Engine.EffectivePalier}+");
+        var lbl = result.Successes == 0 ? "Aucune réussite"
+                : result.Successes == 1 ? "réussite"
+                : "réussites";
+        ImGui.TextColored(ColMuted, $"{lbl}  ·  palier {result.Palier}+");
     }
 
     // ------------------------------------------------------------------ Reset event
@@ -310,22 +307,20 @@ public class MainWindow : Window, IDisposable
 
         foreach (var entry in Engine.History)
         {
-            // Rang
+            var col = entry.Successes == 0 ? ColDanger
+                    : entry.Successes >= 2 ? ColSuccess
+                    : ImGui.GetStyle().Colors[(int)ImGuiCol.Text];
+
             ImGui.TextColored(ColMuted, entry.RankLabel);
             ImGui.SameLine();
 
-            // Dés
-            var diceStr = string.Join(" · ", entry.Dice.Select(StsEngine.DispDie));
-            ImGui.Text(diceStr);
+            ImGui.Text(entry.Dice.ToDisplayString());
             ImGui.SameLine();
 
             ImGui.TextColored(ColMuted, $"({entry.Palier}+)");
             ImGui.SameLine();
 
-            // Succès
-            var n = entry.Successes;
-            var col = n == 0 ? ColDanger : n >= 2 ? ColSuccess : ImGui.GetStyle().Colors[(int)ImGuiCol.Text];
-            ImGui.TextColored(col, $"{n} ✓");
+            ImGui.TextColored(col, $"{entry.Successes} ✓");
         }
     }
 }

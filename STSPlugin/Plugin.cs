@@ -1,22 +1,28 @@
-using System.Linq;
-using System.Text;
 using Dalamud.Game.Command;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
-using Dalamud.Game.Text.SeStringHandling.Payloads;
+using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
-using Dalamud.Interface.Windowing;
-using FFXIVClientStructs.FFXIV.Client.UI;
+using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.System.String;
+using FFXIVClientStructs.FFXIV.Client.UI;
+using STSPlugin.Domain;
+using STSPlugin.UseCases;
 using STSPlugin.Windows;
+using System;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace STSPlugin;
 
 public sealed class Plugin : IDalamudPlugin
 {
     private const string CmdMain = "/sts";
+
+    // Capture le nombre à la fin du message /random du jeu
+    private static readonly Regex RandomRegex = new(@"(\d+)[^\d]*$", RegexOptions.Compiled);
 
     [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
     [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
@@ -34,8 +40,14 @@ public sealed class Plugin : IDalamudPlugin
     public Plugin()
     {
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
-        Engine = new StsEngine();
-        Engine.ChangeRank(Configuration.LastRank);
+        Engine = new StsEngine(
+            new DefaultComputePalierUseCase(),
+            new DefaultResolveDiceSetUseCase(),
+            new DefaultPickDiceSetUseCase(),
+            new DefaultCheckRerollUseCase()
+        );
+        if (Enum.TryParse<RankKey>(Configuration.LastRank, out var rankKey))
+            Engine.ChangeRank(rankKey);
 
         mainWindow = new MainWindow(this);
         configWindow = new ConfigWindow(this);
@@ -48,6 +60,9 @@ public sealed class Plugin : IDalamudPlugin
             HelpMessage = "Ouvre/ferme l'interface STS. \"/sts roll\" lance les dés."
         });
 
+        ChatGui.ChatMessage += OnChatMessage;
+        ChatGui.ChatMessageUnhandled += OnChatMessageUnhandled;
+
         PluginInterface.UiBuilder.Draw += DrawUi;
         PluginInterface.UiBuilder.OpenMainUi += ToggleMainUi;
         PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUi;
@@ -55,6 +70,10 @@ public sealed class Plugin : IDalamudPlugin
 
     public void Dispose()
     {
+        ChatGui.ChatMessage -= OnChatMessage;
+        // Dispose
+        ChatGui.ChatMessageUnhandled -= OnChatMessageUnhandled;
+
         PluginInterface.UiBuilder.Draw -= DrawUi;
         PluginInterface.UiBuilder.OpenMainUi -= ToggleMainUi;
         PluginInterface.UiBuilder.OpenConfigUi -= ToggleConfigUi;
@@ -63,19 +82,20 @@ public sealed class Plugin : IDalamudPlugin
         windowSystem.RemoveAllWindows();
     }
 
+ 
+
     private void OnCommand(string command, string args)
     {
         switch (args.Trim().ToLowerInvariant())
         {
             case "roll":
             case "r":
-                Engine.Roll();
-                // Affichage local coloré (visible que par toi)
-                PrintStyledLocal();
-                // Broadcast dans le canal (visible par tout le monde)
-                if (Configuration.EchoToChat)
-                    SendToChannel(Configuration.ChatChannel, BuildPlainMessage());
-                mainWindow.IsOpen = true;
+                StartRoll();
+                break;
+
+            case "reroll":
+            case "rr":
+                StartReroll();
                 break;
 
             case "config":
@@ -88,14 +108,103 @@ public sealed class Plugin : IDalamudPlugin
         }
     }
 
+    // ------------------------------------------------------------------ Roll
+
+    private void StartRoll()
+    {
+        mainWindow.IsOpen = true;
+
+        if (Configuration.RollSource == RollSource.GameRandom)
+        {
+            // Mode /random : on attend l'interception du résultat dans le chat
+            Engine.BeginRoll();
+            SendRaw("/random");
+        }
+        else
+        {
+            // Mode interne : résultat immédiat
+            Engine.Roll();
+            OnRollComplete();
+        }
+    }
+
+    private void StartReroll()
+    {
+        if (!Engine.HasRolled) { PrintInfo("Aucun jet en cours."); return; }
+        if (Engine.RerollsLeft <= 0) { PrintInfo("Plus de rerolls disponibles."); return; }
+
+        if (Configuration.RollSource == RollSource.GameRandom)
+        {
+            Engine.BeginReroll();
+            SendRaw("/random");
+        }
+        else
+        {
+            Engine.Reroll();
+            OnRollComplete();
+        }
+    }
+
+    // ------------------------------------------------------------------ Interception /random
+
+    /// <summary>
+    /// Écoute le chat pour intercepter les résultats /random du jeu (mode GameRandom uniquement).
+    /// </summary>
+    private void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
+    {
+        // Log TOUT pendant le debug, pas seulement quand on attend
+        Log.Debug($"[STS] Chat reçu — type: {(int)type} ({type}), sender: '{sender.TextValue}', message: '{message.TextValue}'");
+
+    }
+
+    private void OnChatMessageUnhandled(XivChatType type, int timestamp, SeString sender, SeString message)
+    {
+        if (Configuration.RollSource != RollSource.GameRandom) return;
+        if (Engine.State != EngineState.WaitingDice) return;
+        if ((int)type != 2122) return;
+
+        var text = message.TextValue;
+        var match = RandomRegex.Match(text);
+
+        Log.Debug($"[STS] Unhandled 2122 : '{text}' | match : {match.Success}");
+
+        if (!match.Success) return;
+        if (!int.TryParse(match.Groups[1].Value, out var value)) return;
+        if (value < 0 || value > 999) return;
+
+        Log.Debug($"[STS] /random reçu : {value:D3}");
+        if (Engine.ReceiveRandom(value))
+            OnRollComplete();
+    }
+
+    // Constructeur
+
+
+
+
+
+    // ------------------------------------------------------------------ Résultat
+
+    /// <summary>
+    /// Appelé une fois le jet résolu, quelle que soit la source.
+    /// </summary>
+    private void OnRollComplete()
+    {
+        PrintStyledLocal();
+        if (Configuration.EchoToChat)
+            SendToChannel(Configuration.ChatChannel, BuildPlainMessage());
+    }
+
+    // ------------------------------------------------------------------ Affichage
+
     /// <summary>
     /// Affichage local uniquement, avec couleurs SeString.
     /// </summary>
     private void PrintStyledLocal()
     {
-        var palier = Engine.EffectivePalier;
-        var n = Engine.Successes;
-        var rank = Engine.Rank;
+        if (Engine.LastResult is not { } result) return;
+
+        var rank = Engine.CurrentRank;
         var player = ClientState.LocalPlayer?.Name.ToString() ?? "???";
 
         const ushort ColGreen = 43;
@@ -112,25 +221,25 @@ public sealed class Plugin : IDalamudPlugin
         sb.AddText(" ");
 
         sb.AddUiForeground(ColGold);
-        sb.AddText($"[{rank.Label} · palier {palier}+]");
+        sb.AddText($"[{rank.Label} · palier {result.Palier}+]");
         sb.AddUiForegroundOff();
         sb.AddText("  ");
 
-        for (var i = 0; i < Engine.CurrentDice.Length; i++)
+        for (var i = 0; i < result.Chosen.Values.Length; i++)
         {
-            var val = Engine.CurrentDice[i];
-            var suc = val >= palier;
+            var val = result.Chosen.Values[i];
+            var suc = val >= result.Palier;
             if (i > 0) sb.AddText(" · ");
             sb.AddUiForeground(suc ? ColGreen : ColGrey);
-            sb.AddText(StsEngine.DispDie(val));
+            sb.AddText(DiceSet.Display(val));
             sb.AddUiForegroundOff();
         }
 
         sb.AddText("  →  ");
 
-        ushort resCol = n == 0 ? ColRed : n >= 2 ? ColGreen : ColWhite;
+        ushort resCol = result.Successes == 0 ? ColRed : result.Successes >= 2 ? ColGreen : ColWhite;
         sb.AddUiForeground(resCol);
-        sb.AddText(n == 0 ? "Échec total" : n == 1 ? "1 succès" : $"{n} succès");
+        sb.AddText(result.Successes == 0 ? "Échec total" : result.Successes == 1 ? "1 succès" : $"{result.Successes} succès");
         sb.AddUiForegroundOff();
 
         var rrLeft = Engine.RerollsLeft;
@@ -154,15 +263,31 @@ public sealed class Plugin : IDalamudPlugin
     /// </summary>
     private string BuildPlainMessage()
     {
-        var palier = Engine.EffectivePalier;
-        var n = Engine.Successes;
-        var rank = Engine.Rank;
-        var dice = string.Join(" · ", Engine.CurrentDice.Select(StsEngine.DispDie));
-        var res = n == 0 ? "Échec total" : n == 1 ? "1 succès" : $"{n} succès";
-        var mod = Engine.Modifier != 0 ? $" modif {(Engine.Modifier > 0 ? "+" : "")}{Engine.Modifier}" : "";
+        if (Engine.LastResult is not { } result) return string.Empty;
 
-        return $"[STS] {rank.Label}{mod} · {dice} · palier {palier}+ → {res}";
+        var rank = Engine.CurrentRank;
+        var dice = result.Chosen.ToDisplayString();
+        var res = result.Successes == 0 ? "Échec total"
+                 : result.Successes == 1 ? "1 succès"
+                 : $"{result.Successes} succès";
+        var mod = Engine.Modifier != 0
+                 ? $" modif {(Engine.Modifier > 0 ? "+" : "")}{Engine.Modifier}"
+                 : "";
+
+        return $"[STS] {rank.Label}{mod} · {dice} · palier {result.Palier}+ → {res}";
     }
+
+    private void PrintInfo(string msg)
+    {
+        ChatGui.Print(new XivChatEntry
+        {
+            Type = XivChatType.SystemMessage,
+            Name = SeString.Empty,
+            Message = new SeStringBuilder().AddText($"[STS] {msg}").Build(),
+        });
+    }
+
+    // ------------------------------------------------------------------ Chat natif
 
     /// <summary>
     /// Envoie un message texte brut dans un canal via la chatbox native.
@@ -170,30 +295,39 @@ public sealed class Plugin : IDalamudPlugin
     private static unsafe void SendToChannel(string channel, string message)
     {
         var uiModule = UIModule.Instance();
-        if (uiModule == null)
-        {
-            Log.Warning("[STS] UIModule introuvable.");
-            return;
-        }
+        if (uiModule == null) { Log.Warning("[STS] UIModule introuvable."); return; }
 
-        var fullMessage = $"/{channel} {message}";
-        var bytes = Encoding.UTF8.GetBytes(fullMessage);
+        var bytes = Encoding.UTF8.GetBytes($"/{channel} {message}");
         var utf8String = new Utf8String();
-
-        fixed (byte* ptr = bytes)
-            utf8String.SetString(ptr);
-
+        fixed (byte* ptr = bytes) utf8String.SetString(ptr);
         uiModule->ProcessChatBoxEntry(&utf8String);
         utf8String.Dtor();
     }
+
+    /// <summary>
+    /// Envoie une commande brute via la chatbox native (ex : /random).
+    /// </summary>
+    private static unsafe void SendRaw(string command)
+    {
+        var uiModule = UIModule.Instance();
+        if (uiModule == null) return;
+
+        var bytes = Encoding.UTF8.GetBytes(command);
+        var utf8String = new Utf8String();
+        fixed (byte* ptr = bytes) utf8String.SetString(ptr);
+        uiModule->ProcessChatBoxEntry(&utf8String);
+        utf8String.Dtor();
+    }
+
+    // ------------------------------------------------------------------ UI
 
     private void DrawUi() => windowSystem.Draw();
     public void ToggleMainUi() => mainWindow.Toggle();
     public void ToggleConfigUi() => configWindow.Toggle();
 
-    public void SaveRank(string rank)
+    public void SaveRank(RankKey rankKey)
     {
-        Configuration.LastRank = rank;
+        Configuration.LastRank = rankKey.ToString();
         Configuration.Save();
     }
 }
