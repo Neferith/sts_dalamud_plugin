@@ -1,16 +1,19 @@
-using System.Linq;
-using System.Text;
 using Dalamud.Game.Command;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
+using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
-using Dalamud.Interface.Windowing;
-using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.System.String;
+using FFXIVClientStructs.FFXIV.Client.UI;
+using STSPlugin.Domain;
+using STSPlugin.UseCases;
 using STSPlugin.Windows;
+using System;
+using System.Linq;
+using System.Text;
 
 namespace STSPlugin;
 
@@ -34,8 +37,14 @@ public sealed class Plugin : IDalamudPlugin
     public Plugin()
     {
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
-        Engine = new StsEngine();
-        Engine.ChangeRank(Configuration.LastRank);
+        Engine = new StsEngine(
+            new DefaultComputePalierUseCase(),
+            new DefaultResolveDiceSetUseCase(),
+            new DefaultPickDiceSetUseCase(),
+            new DefaultCheckRerollUseCase()
+        );
+        if (Enum.TryParse<RankKey>(Configuration.LastRank, out var rankKey))
+            Engine.ChangeRank(rankKey);
 
         mainWindow = new MainWindow(this);
         configWindow = new ConfigWindow(this);
@@ -93,9 +102,9 @@ public sealed class Plugin : IDalamudPlugin
     /// </summary>
     private void PrintStyledLocal()
     {
-        var palier = Engine.EffectivePalier;
-        var n = Engine.Successes;
-        var rank = Engine.Rank;
+        if (Engine.LastResult is not { } result) return;
+
+        var rank = Engine.CurrentRank;
         var player = ClientState.LocalPlayer?.Name.ToString() ?? "???";
 
         const ushort ColGreen = 43;
@@ -112,25 +121,25 @@ public sealed class Plugin : IDalamudPlugin
         sb.AddText(" ");
 
         sb.AddUiForeground(ColGold);
-        sb.AddText($"[{rank.Label} · palier {palier}+]");
+        sb.AddText($"[{rank.Label} · palier {result.Palier}+]");
         sb.AddUiForegroundOff();
         sb.AddText("  ");
 
-        for (var i = 0; i < Engine.CurrentDice.Length; i++)
+        for (var i = 0; i < result.Chosen.Values.Length; i++)
         {
-            var val = Engine.CurrentDice[i];
-            var suc = val >= palier;
+            var val = result.Chosen.Values[i];
+            var suc = val >= result.Palier;
             if (i > 0) sb.AddText(" · ");
             sb.AddUiForeground(suc ? ColGreen : ColGrey);
-            sb.AddText(StsEngine.DispDie(val));
+            sb.AddText(DiceSet.Display(val));
             sb.AddUiForegroundOff();
         }
 
         sb.AddText("  →  ");
 
-        ushort resCol = n == 0 ? ColRed : n >= 2 ? ColGreen : ColWhite;
+        ushort resCol = result.Successes == 0 ? ColRed : result.Successes >= 2 ? ColGreen : ColWhite;
         sb.AddUiForeground(resCol);
-        sb.AddText(n == 0 ? "Échec total" : n == 1 ? "1 succès" : $"{n} succès");
+        sb.AddText(result.Successes == 0 ? "Échec total" : result.Successes == 1 ? "1 succès" : $"{result.Successes} succès");
         sb.AddUiForegroundOff();
 
         var rrLeft = Engine.RerollsLeft;
@@ -154,14 +163,18 @@ public sealed class Plugin : IDalamudPlugin
     /// </summary>
     private string BuildPlainMessage()
     {
-        var palier = Engine.EffectivePalier;
-        var n = Engine.Successes;
-        var rank = Engine.Rank;
-        var dice = string.Join(" · ", Engine.CurrentDice.Select(StsEngine.DispDie));
-        var res = n == 0 ? "Échec total" : n == 1 ? "1 succès" : $"{n} succès";
-        var mod = Engine.Modifier != 0 ? $" modif {(Engine.Modifier > 0 ? "+" : "")}{Engine.Modifier}" : "";
+        if (Engine.LastResult is not { } result) return string.Empty;
 
-        return $"[STS] {rank.Label}{mod} · {dice} · palier {palier}+ → {res}";
+        var rank = Engine.CurrentRank;
+        var dice = result.Chosen.ToDisplayString();
+        var res = result.Successes == 0 ? "Échec total"
+                 : result.Successes == 1 ? "1 succès"
+                 : $"{result.Successes} succès";
+        var mod = Engine.Modifier != 0
+                 ? $" modif {(Engine.Modifier > 0 ? "+" : "")}{Engine.Modifier}"
+                 : "";
+
+        return $"[STS] {rank.Label}{mod} · {dice} · palier {result.Palier}+ → {res}";
     }
 
     /// <summary>
@@ -191,9 +204,9 @@ public sealed class Plugin : IDalamudPlugin
     public void ToggleMainUi() => mainWindow.Toggle();
     public void ToggleConfigUi() => configWindow.Toggle();
 
-    public void SaveRank(string rank)
+    public void SaveRank(RankKey rankKey)
     {
-        Configuration.LastRank = rank;
+        Configuration.LastRank = rankKey.ToString();
         Configuration.Save();
     }
 }
