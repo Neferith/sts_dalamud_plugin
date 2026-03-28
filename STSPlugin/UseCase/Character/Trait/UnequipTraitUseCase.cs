@@ -14,7 +14,7 @@ public interface UnequipTraitUseCase
     /// </summary>
     /// <param name="character">Le personnage cible.</param>
     /// <param name="traitId">L'identifiant du trait à retirer.</param>
-    void Execute(Character character, TraitId traitId);
+    void Execute(Character character, string traitId);
 }
 
 /// <summary>
@@ -22,15 +22,15 @@ public interface UnequipTraitUseCase
 /// </summary>
 public class DefaultUnequipTraitUseCase : UnequipTraitUseCase
 {
-    private readonly CharacterRepository _repository;
+    private readonly CharacterRepository _characterRepository;
 
-    public DefaultUnequipTraitUseCase(CharacterRepository repository)
-        => _repository = repository;
+    public DefaultUnequipTraitUseCase(CharacterRepository characterRepository)
+        => _characterRepository = characterRepository;
 
     /// <inheritdoc/>
-    public void Execute(Character character, TraitId traitId)
+    public void Execute(Character character, string traitId)
     {
-        if (!character.EquippedTraits.Remove(traitId)) return;
-        _repository.Save(character);
+        if (!character.EquippedTraitIds.Remove(traitId)) return;
+        _characterRepository.Save(character);
     }
 }

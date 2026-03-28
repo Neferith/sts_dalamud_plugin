@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace STSPlugin.Domain;
+namespace STSPlugin.OldDomain;
 
 /// <summary>
 /// Catégorie d'un trait, déterminant son origine et ses règles d'équipement.

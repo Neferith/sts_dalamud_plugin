@@ -7,6 +7,7 @@ using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.System.String;
 using FFXIVClientStructs.FFXIV.Client.UI;
+using STSPlugin.DataSource;
 using STSPlugin.Domain;
 using STSPlugin.Repository;
 using STSPlugin.UseCases;
@@ -23,7 +24,6 @@ public sealed class Plugin : IDalamudPlugin
 {
     private const string CmdMain = "/sts";
 
-    // Capture le nombre à la fin du message /random du jeu
     private static readonly Regex RandomRegex = new(@"(\d+)[^\d]*$", RegexOptions.Compiled);
 
     [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
@@ -35,6 +35,8 @@ public sealed class Plugin : IDalamudPlugin
     public Configuration Configuration { get; init; }
     public StsEngine Engine { get; init; }
     public CharacterRepository CharacterRepository { get; init; }
+    public TraitRepository TraitRepository { get; init; }
+    public JobRepository JobRepository { get; init; }
 
     // --- use cases personnages ---
     public GetAllCharactersUseCase GetAllCharacters { get; init; }
@@ -44,6 +46,7 @@ public sealed class Plugin : IDalamudPlugin
     public DeleteCharacterUseCase DeleteCharacter { get; init; }
     public SetActiveCharacterUseCase SetActiveCharacter { get; init; }
 
+    // --- use cases traits / job ---
     public SetJobUseCase SetJob { get; init; }
     public SetOriginTraitUseCase SetOriginTrait { get; init; }
     public EquipTraitUseCase EquipTrait { get; init; }
@@ -67,9 +70,15 @@ public sealed class Plugin : IDalamudPlugin
             new DefaultCheckRerollUseCase()
         );
 
-        // --- Repository personnages ---
+        // --- DataSource ---
+        var dataPath = Path.Combine(PluginInterface.AssemblyLocation.DirectoryName!, "data.json");
+        var dataSource = new LocalJsonDataSource(dataPath);
+
+        // --- Repositories ---
         var charactersDir = Path.Combine(PluginInterface.GetPluginConfigDirectory(), "characters");
         CharacterRepository = new DefaultCharacterRepository(charactersDir);
+        TraitRepository = new DefaultTraitRepository(dataSource);
+        JobRepository = new DefaultJobRepository(dataSource);
 
         // --- Use cases personnages ---
         GetAllCharacters = new DefaultGetAllCharactersUseCase(CharacterRepository);
@@ -79,9 +88,10 @@ public sealed class Plugin : IDalamudPlugin
         DeleteCharacter = new DefaultDeleteCharacterUseCase(CharacterRepository, Configuration);
         SetActiveCharacter = new DefaultSetActiveCharacterUseCase(CharacterRepository, Configuration, Engine);
 
-        SetJob = new DefaultSetJobUseCase(CharacterRepository);
-        SetOriginTrait = new DefaultSetOriginTraitUseCase(CharacterRepository);
-        EquipTrait = new DefaultEquipTraitUseCase(CharacterRepository);
+        // --- Use cases traits / job ---
+        SetJob = new DefaultSetJobUseCase(CharacterRepository, JobRepository);
+        SetOriginTrait = new DefaultSetOriginTraitUseCase(CharacterRepository, TraitRepository);
+        EquipTrait = new DefaultEquipTraitUseCase(CharacterRepository, TraitRepository);
         UnequipTrait = new DefaultUnequipTraitUseCase(CharacterRepository);
 
         // --- Appliquer le personnage actif au démarrage ---
@@ -136,16 +146,13 @@ public sealed class Plugin : IDalamudPlugin
             case "r":
                 StartRoll();
                 break;
-
             case "reroll":
             case "rr":
                 StartReroll();
                 break;
-
             case "config":
                 configWindow.Toggle();
                 break;
-
             default:
                 ToggleMainUi();
                 break;

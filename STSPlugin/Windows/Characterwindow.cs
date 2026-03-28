@@ -1,6 +1,7 @@
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Windowing;
 using STSPlugin.Domain;
+using STSPlugin.UseCases;
 using System;
 using System.Linq;
 using System.Numerics;
@@ -24,7 +25,6 @@ public class CharacterWindow : Window, IDisposable
     private static readonly Vector4 ColDanger = new(0.64f, 0.17f, 0.17f, 1f);
     private static readonly Vector4 ColMuted = new(0.60f, 0.60f, 0.58f, 1f);
     private static readonly Vector4 ColInfo = new(0.09f, 0.37f, 0.65f, 1f);
-    private static readonly Vector4 ColWarn = new(0.52f, 0.31f, 0.04f, 1f);
     private static readonly Vector4 ColActive = new(0.20f, 0.20f, 0.20f, 0.40f);
 
     public CharacterWindow(Plugin plugin, Character character)
@@ -61,7 +61,6 @@ public class CharacterWindow : Window, IDisposable
     {
         var isActive = _plugin.Configuration.ActiveCharacterId == _character.Id;
 
-        // Indicateur actif
         if (isActive)
         {
             ImGui.PushStyleColor(ImGuiCol.Text, ColSuccess);
@@ -95,7 +94,6 @@ public class CharacterWindow : Window, IDisposable
                 if (!string.IsNullOrWhiteSpace(_editName))
                     _character.Name = _editName.Trim();
                 _plugin.UpdateCharacter.Execute(_character);
-                // Mettre à jour le titre de la fenêtre
                 WindowName = $"{_character.Name} — Fiche STS##{_character.Id}";
                 _editMode = false;
             }
@@ -122,6 +120,7 @@ public class CharacterWindow : Window, IDisposable
     private void DrawReadMode()
     {
         var rank = Rank.Get(_character.RankKey);
+        var job = _character.JobId != null ? _plugin.JobRepository.GetById(_character.JobId) : null;
 
         // Nom + rang
         ImGui.Text(_character.Name);
@@ -131,10 +130,9 @@ public class CharacterWindow : Window, IDisposable
         ImGui.Spacing();
 
         // Job
-        var jobLabel = _character.Job == Job.Aucun ? "Aucun job" : _character.Job.ToString();
         ImGui.TextColored(ColMuted, "Job :");
         ImGui.SameLine();
-        ImGui.Text(jobLabel);
+        ImGui.Text(job?.Name ?? "Aucun");
 
         ImGui.Spacing();
         ImGui.Separator();
@@ -143,13 +141,16 @@ public class CharacterWindow : Window, IDisposable
         // Trait d'origine
         ImGui.TextColored(ColMuted, "TRAIT D'ORIGINE");
         ImGui.Spacing();
-        if (_character.OriginTrait is { } originId)
+        if (_character.OriginTraitId is { } originId)
         {
-            var origin = Trait.Get(originId);
-            ImGui.Text($"● {origin.Name}");
-            ImGui.PushStyleColor(ImGuiCol.Text, ColMuted);
-            ImGui.TextWrapped(origin.Description);
-            ImGui.PopStyleColor();
+            var origin = _plugin.TraitRepository.GetById(originId);
+            if (origin != null)
+            {
+                ImGui.Text($"● {origin.Name}");
+                ImGui.PushStyleColor(ImGuiCol.Text, ColMuted);
+                ImGui.TextWrapped(origin.Description);
+                ImGui.PopStyleColor();
+            }
         }
         else
         {
@@ -161,17 +162,18 @@ public class CharacterWindow : Window, IDisposable
         ImGui.Spacing();
 
         // Traits équipés
-        ImGui.TextColored(ColMuted, $"TRAITS  ({_character.EquippedTraits.Count}/{rank.Traits})");
+        ImGui.TextColored(ColMuted, $"TRAITS  ({_character.EquippedTraitIds.Count}/{rank.Traits})");
         ImGui.Spacing();
-        if (_character.EquippedTraits.Count == 0)
+        if (_character.EquippedTraitIds.Count == 0)
         {
             ImGui.TextColored(ColMuted, "Aucun trait équipé.");
         }
         else
         {
-            foreach (var traitId in _character.EquippedTraits)
+            foreach (var traitId in _character.EquippedTraitIds)
             {
-                var trait = Trait.Get(traitId);
+                var trait = _plugin.TraitRepository.GetById(traitId);
+                if (trait is null) continue;
                 ImGui.Text($"● {trait.Name}");
                 ImGui.PushStyleColor(ImGuiCol.Text, ColMuted);
                 ImGui.TextWrapped(trait.Description);
@@ -220,12 +222,21 @@ public class CharacterWindow : Window, IDisposable
         // ---- Job ----
         ImGui.TextColored(ColMuted, "Job :");
         ImGui.Spacing();
-        foreach (var job in Enum.GetValues<Job>())
+
+        // Bouton "Aucun"
+        var noJob = _character.JobId == null;
+        if (noJob) { ImGui.PushStyleColor(ImGuiCol.Button, ColActive); ImGui.PushStyleColor(ImGuiCol.ButtonHovered, ColActive); }
+        if (ImGui.Button("Aucun##job_none"))
+            _plugin.SetJob.Execute(_character, null);
+        if (noJob) ImGui.PopStyleColor(2);
+        ImGui.SameLine();
+
+        foreach (var job in _plugin.JobRepository.GetAll())
         {
-            var current = _character.Job == job;
+            var current = _character.JobId == job.Id;
             if (current) { ImGui.PushStyleColor(ImGuiCol.Button, ColActive); ImGui.PushStyleColor(ImGuiCol.ButtonHovered, ColActive); }
-            if (ImGui.Button(job.ToString() + "##job_" + job))
-                _plugin.SetJob.Execute(_character, job);
+            if (ImGui.Button(job.Name + "##job_" + job.Id))
+                _plugin.SetJob.Execute(_character, job.Id);
             if (current) ImGui.PopStyleColor(2);
             ImGui.SameLine();
         }
@@ -240,9 +251,10 @@ public class CharacterWindow : Window, IDisposable
         ImGui.TextColored(ColMuted, "(gratuit, hors quota, nécessite la certification MJ)");
         ImGui.Spacing();
 
-        if (_character.OriginTrait is { } currentOrigin)
+        if (_character.OriginTraitId is { } currentOriginId)
         {
-            ImGui.Text($"● {Trait.Get(currentOrigin).Name}");
+            var origin = _plugin.TraitRepository.GetById(currentOriginId);
+            ImGui.Text($"● {origin?.Name ?? currentOriginId}");
             ImGui.SameLine();
             ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.64f, 0.17f, 0.17f, 0.20f));
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.64f, 0.17f, 0.17f, 0.40f));
@@ -255,7 +267,7 @@ public class CharacterWindow : Window, IDisposable
         {
             ImGui.TextColored(ColMuted, "Aucun. Choisissez ci-dessous :");
             ImGui.Spacing();
-            foreach (var trait in Trait.GetByCategory(TraitCategory.Origine))
+            foreach (var trait in _plugin.TraitRepository.GetByCategory(TraitCategory.Origine))
             {
                 if (ImGui.Button($"+ {trait.Name}##orig_{trait.Id}"))
                     _plugin.SetOriginTrait.Execute(_character, trait.Id);
@@ -269,18 +281,18 @@ public class CharacterWindow : Window, IDisposable
         ImGui.Spacing();
 
         // ---- Traits équipés ----
-        ImGui.TextColored(ColMuted, $"TRAITS ÉQUIPÉS  ({_character.EquippedTraits.Count}/{rank.Traits})");
+        ImGui.TextColored(ColMuted, $"TRAITS ÉQUIPÉS  ({_character.EquippedTraitIds.Count}/{rank.Traits})");
         ImGui.Spacing();
 
-        if (_character.EquippedTraits.Count == 0)
+        if (_character.EquippedTraitIds.Count == 0)
         {
             ImGui.TextColored(ColMuted, "Aucun trait équipé.");
         }
         else
         {
-            foreach (var traitId in _character.EquippedTraits.ToList())
+            foreach (var traitId in _character.EquippedTraitIds.ToList())
             {
-                var trait = Trait.Get(traitId);
+                var trait = _plugin.TraitRepository.GetById(traitId);
                 ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.64f, 0.17f, 0.17f, 0.20f));
                 ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.64f, 0.17f, 0.17f, 0.40f));
                 ImGui.PushStyleColor(ImGuiCol.Text, ColDanger);
@@ -288,8 +300,8 @@ public class CharacterWindow : Window, IDisposable
                     _plugin.UnequipTrait.Execute(_character, traitId);
                 ImGui.PopStyleColor(3);
                 ImGui.SameLine();
-                ImGui.Text(trait.Name);
-                if (ImGui.IsItemHovered())
+                ImGui.Text(trait?.Name ?? traitId);
+                if (ImGui.IsItemHovered() && trait != null)
                     ImGui.SetTooltip(trait.Description);
             }
         }
@@ -315,9 +327,9 @@ public class CharacterWindow : Window, IDisposable
 
             foreach (var category in categories)
             {
-                var available = Trait.GetByCategory(category)
+                var available = _plugin.TraitRepository.GetByCategory(category)
                     .Where(t => !_character.HasTrait(t.Id))
-                    .Where(t => t.RequiredJob == null || t.RequiredJob == _character.Job)
+                    .Where(t => t.RequiredJobId == null || t.RequiredJobId == _character.JobId)
                     .ToList();
 
                 if (available.Count == 0) continue;
@@ -327,7 +339,14 @@ public class CharacterWindow : Window, IDisposable
 
                 foreach (var trait in available)
                 {
-                    var canEquip = _character.CanEquip(trait.Id);
+                    // Vérifier l'exclusivité localement pour griser le bouton
+                    var hasConflict = trait.ExclusiveGroup != null &&
+                        _character.EquippedTraitIds
+                            .Select(id => _plugin.TraitRepository.GetById(id))
+                            .Any(t => t?.ExclusiveGroup == trait.ExclusiveGroup);
+
+                    var canEquip = !hasConflict;
+
                     if (!canEquip)
                     {
                         ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.3f, 0.3f, 0.3f, 0.20f));
