@@ -55,7 +55,7 @@ public class DefaultTraitRepository : TraitRepository
     public IReadOnlyList<Trait> GetByJobId(string? jobId)
         => [.. _cache.Values.Where(t => t.RequiredJobId == null || t.RequiredJobId == jobId)];
 
-    // --- privé ---
+    // --- mapping ---
 
     private static Trait MapTrait(TraitData data) => new(
         Id: data.Id,
@@ -63,8 +63,34 @@ public class DefaultTraitRepository : TraitRepository
         Description: data.Description,
         Category: ParseCategory(data.Category),
         RequiredJobId: data.RequiredJobId,
-        ExclusiveGroup: data.ExclusiveGroup
+        ExclusiveGroup: data.ExclusiveGroup,
+        Effects: data.Effects.Select(MapEffect).ToList()
     );
+
+    private static TraitEffect MapEffect(TraitEffectData data) => new(
+        Type: ParseEffectType(data.Type),
+        Value: data.Value,
+        ForcedMode: data.ForcedMode != null ? ParseRollMode(data.ForcedMode) : null,
+        Context: data.Context
+    );
+
+    private static TraitEffectType ParseEffectType(string value) => value switch
+    {
+        "BonusRerolls" => TraitEffectType.BonusRerolls,
+        "BonusPalier" => TraitEffectType.BonusPalier,
+        "ForceRollMode" => TraitEffectType.ForceRollMode,
+        "BonusSuccessOnZero" => TraitEffectType.BonusSuccessOnZero,
+        "BonusSuccess" => TraitEffectType.BonusSuccess,
+        "MalusSuccess" => TraitEffectType.MalusSuccess,
+        _ => TraitEffectType.Manual,
+    };
+
+    private static RollMode ParseRollMode(string value) => value switch
+    {
+        "Avantage" => RollMode.Avantage,
+        "Desavantage" => RollMode.Desavantage,
+        _ => RollMode.Normal,
+    };
 
     private static TraitCategory ParseCategory(string value) => value switch
     {
@@ -74,6 +100,6 @@ public class DefaultTraitRepository : TraitRepository
         "RoleSoigneur" => TraitCategory.RoleSoigneur,
         "RoleTank" => TraitCategory.RoleTank,
         "Job" => TraitCategory.Job,
-        _ => TraitCategory.Connaissance, // fallback safe
+        _ => TraitCategory.Connaissance,
     };
 }
