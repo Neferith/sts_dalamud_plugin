@@ -34,7 +34,7 @@ public class DefaultCreateCharacterUseCase : CreateCharacterUseCase
         var character = new Character
         {
             Name = name.Trim(),
-            Rank = rank,
+            RankKey = rank,
         };
 
         _repository.Save(character);

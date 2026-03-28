@@ -105,7 +105,7 @@ public class MainWindow : Window, IDisposable
 
     private void DrawActiveCharacterHeader(Domain.Character active)
     {
-        var rank = Rank.Get(active.Rank);
+        var rank = Rank.Get(active.RankKey);
 
         ImGui.PushStyleColor(ImGuiCol.Text, ColSuccess);
         ImGui.Text("●");
@@ -380,7 +380,7 @@ public class MainWindow : Window, IDisposable
 
                 // Sélection
                 if (ImGui.Selectable(
-                    $"{character.Name}  [{Rank.Get(character.Rank).Label}]##{character.Id}",
+                    $"{character.Name}  [{Rank.Get(character.RankKey).Label}]##{character.Id}",
                     isSelected))
                 {
                     _selectedId = isSelected ? null : character.Id;
@@ -414,7 +414,7 @@ public class MainWindow : Window, IDisposable
             foreach (var rankKey in Enum.GetValues<RankKey>())
             {
                 var rank = Rank.Get(rankKey);
-                var current = selected.Rank == rankKey;
+                var current = selected.RankKey == rankKey;
                 if (current)
                 {
                     ImGui.PushStyleColor(ImGuiCol.Button, ColActive);
@@ -422,7 +422,7 @@ public class MainWindow : Window, IDisposable
                 }
                 if (ImGui.Button(rank.Label + "##cr_" + rankKey))
                 {
-                    selected.Rank = rankKey;
+                    selected.RankKey = rankKey;
                     plugin.UpdateCharacter.Execute(selected);
                     // Si c'est le personnage actif, synchroniser l'engine
                     if (isActive)
@@ -456,6 +456,14 @@ public class MainWindow : Window, IDisposable
             }
 
             ImGui.Spacing();
+
+            // Ouvrir la fiche
+          //  var avail = ImGui.GetContentRegionAvail().X;
+            if (ImGui.Button("Ouvrir la fiche##open_char", new Vector2(avail, 0)))
+                plugin.OpenCharacterWindow(selected);
+
+            ImGui.Spacing();
+
 
             // Supprimer
             ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.64f, 0.17f, 0.17f, 0.20f));

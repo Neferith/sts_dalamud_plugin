@@ -55,6 +55,6 @@ public class DefaultSetActiveCharacterUseCase : SetActiveCharacterUseCase
         _configuration.Save();
 
         // Synchroniser le rang dans l'engine
-        _engine.ChangeRank(character.Rank);
+        _engine.ChangeRank(character.RankKey);
     }
 }

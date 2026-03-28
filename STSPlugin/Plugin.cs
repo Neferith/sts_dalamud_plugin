@@ -12,6 +12,7 @@ using STSPlugin.Repository;
 using STSPlugin.UseCases;
 using STSPlugin.Windows;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -43,9 +44,16 @@ public sealed class Plugin : IDalamudPlugin
     public DeleteCharacterUseCase DeleteCharacter { get; init; }
     public SetActiveCharacterUseCase SetActiveCharacter { get; init; }
 
+    public SetJobUseCase SetJob { get; init; }
+    public SetOriginTraitUseCase SetOriginTrait { get; init; }
+    public EquipTraitUseCase EquipTrait { get; init; }
+    public UnequipTraitUseCase UnequipTrait { get; init; }
+
     private readonly WindowSystem windowSystem = new("STSPlugin");
     private readonly MainWindow mainWindow;
     private readonly ConfigWindow configWindow;
+
+    private readonly Dictionary<Guid, CharacterWindow> _characterWindows = new();
 
     public Plugin()
     {
@@ -71,10 +79,15 @@ public sealed class Plugin : IDalamudPlugin
         DeleteCharacter = new DefaultDeleteCharacterUseCase(CharacterRepository, Configuration);
         SetActiveCharacter = new DefaultSetActiveCharacterUseCase(CharacterRepository, Configuration, Engine);
 
+        SetJob = new DefaultSetJobUseCase(CharacterRepository);
+        SetOriginTrait = new DefaultSetOriginTraitUseCase(CharacterRepository);
+        EquipTrait = new DefaultEquipTraitUseCase(CharacterRepository);
+        UnequipTrait = new DefaultUnequipTraitUseCase(CharacterRepository);
+
         // --- Appliquer le personnage actif au démarrage ---
         var active = GetActiveCharacter.Execute();
         if (active != null)
-            Engine.ChangeRank(active.Rank);
+            Engine.ChangeRank(active.RankKey);
         else if (Enum.TryParse<RankKey>(Configuration.LastRank, out var rankKey))
             Engine.ChangeRank(rankKey);
 
@@ -107,6 +120,10 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.OpenMainUi -= ToggleMainUi;
         PluginInterface.UiBuilder.OpenConfigUi -= ToggleConfigUi;
 
+        foreach (var w in _characterWindows.Values)
+            windowSystem.RemoveWindow(w);
+        _characterWindows.Clear();
+
         CommandManager.RemoveHandler(CmdMain);
         windowSystem.RemoveAllWindows();
     }
@@ -133,6 +150,20 @@ public sealed class Plugin : IDalamudPlugin
                 ToggleMainUi();
                 break;
         }
+    }
+
+    public void OpenCharacterWindow(Character character)
+    {
+        if (_characterWindows.TryGetValue(character.Id, out var existing))
+        {
+            existing.IsOpen = true;
+            return;
+        }
+
+        var window = new CharacterWindow(this, character);
+        _characterWindows[character.Id] = window;
+        windowSystem.AddWindow(window);
+        window.IsOpen = true;
     }
 
     // ------------------------------------------------------------------ Roll
