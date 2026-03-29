@@ -1,0 +1,823 @@
+{
+    "jobs": [
+        {
+            "id": "machiniste",
+            "name": "Machiniste"
+        },
+        {
+            "id": "sage",
+            "name": "Sage"
+        },
+        {
+            "id": "faucheur",
+            "name": "Faucheur"
+        },
+        {
+            "id": "guerrier",
+            "name": "Guerrier"
+        }
+    ],
+    "traits": [
+        {
+            "id": "forestier",
+            "name": "Forestier",
+            "category": "Origine",
+            "description": "Reroll supplémentaire en environnement forestier.",
+            "effects": [
+                {
+                    "type": "BonusRerolls",
+                    "value": 1,
+                    "context": "forestier"
+                }
+            ]
+        },
+        {
+            "id": "urbain",
+            "name": "Urbain",
+            "category": "Origine",
+            "description": "Reroll supplémentaire en environnement urbain.",
+            "effects": [
+                {
+                    "type": "BonusRerolls",
+                    "value": 1,
+                    "context": "urbain"
+                }
+            ]
+        },
+        {
+            "id": "maritime",
+            "name": "Maritime",
+            "category": "Origine",
+            "description": "Reroll supplémentaire en environnement maritime.",
+            "effects": [
+                {
+                    "type": "BonusRerolls",
+                    "value": 1,
+                    "context": "maritime"
+                }
+            ]
+        },
+        {
+            "id": "aride",
+            "name": "Aride",
+            "category": "Origine",
+            "description": "Reroll supplémentaire en environnement aride.",
+            "effects": [
+                {
+                    "type": "BonusRerolls",
+                    "value": 1,
+                    "context": "aride"
+                }
+            ]
+        },
+        {
+            "id": "campagnard",
+            "name": "Campagnard",
+            "category": "Origine",
+            "description": "Reroll supplémentaire en environnement campagnard.",
+            "effects": [
+                {
+                    "type": "BonusRerolls",
+                    "value": 1,
+                    "context": "campagnard"
+                }
+            ]
+        },
+        {
+            "id": "glacial",
+            "name": "Glacial",
+            "category": "Origine",
+            "description": "Reroll supplémentaire en environnement glacial.",
+            "effects": [
+                {
+                    "type": "BonusRerolls",
+                    "value": 1,
+                    "context": "glacial"
+                }
+            ]
+        },
+        {
+            "id": "montagnard",
+            "name": "Montagnard",
+            "category": "Origine",
+            "description": "Reroll supplémentaire en environnement montagnard.",
+            "effects": [
+                {
+                    "type": "BonusRerolls",
+                    "value": 1,
+                    "context": "montagnard"
+                }
+            ]
+        },
+        {
+            "id": "souterrain",
+            "name": "Souterrain",
+            "category": "Origine",
+            "description": "Reroll supplémentaire en environnement souterrain.",
+            "effects": [
+                {
+                    "type": "BonusRerolls",
+                    "value": 1,
+                    "context": "souterrain"
+                }
+            ]
+        },
+        {
+            "id": "noble",
+            "name": "Noble",
+            "category": "Origine",
+            "description": "Reroll supplémentaire en environnement aisé.",
+            "effects": [
+                {
+                    "type": "BonusRerolls",
+                    "value": 1,
+                    "context": "noble"
+                }
+            ]
+        },
+        {
+            "id": "pauvre",
+            "name": "Pauvre",
+            "category": "Origine",
+            "description": "Reroll supplémentaire en environnement démuni (camps de réfugiés, bas-fonds...).",
+            "effects": [
+                {
+                    "type": "BonusRerolls",
+                    "value": 1,
+                    "context": "pauvre"
+                }
+            ]
+        },
+        {
+            "id": "parieur",
+            "name": "Parieur",
+            "category": "Origine",
+            "description": "Une fois par event en cas d'échec, relancez un dé 3. Le résultat devient votre nombre de réussites.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "vagabond",
+            "name": "Vagabond",
+            "category": "Origine",
+            "description": "Quand vous utilisez un reroll, diminuez votre palier de réussite de 1 pour ce reroll. Non cumulable.",
+            "effects": [
+                {
+                    "type": "BonusPalier",
+                    "value": 1
+                }
+            ]
+        },
+        {
+            "id": "uldien",
+            "name": "Ul'dien",
+            "category": "Origine",
+            "description": "Reroll supplémentaire sur les jets liés au marchandage.",
+            "effects": [
+                {
+                    "type": "BonusRerolls",
+                    "value": 1,
+                    "context": "marchandage"
+                }
+            ]
+        },
+        {
+            "id": "sharlayanais",
+            "name": "Sharlayanais",
+            "category": "Origine",
+            "description": "Reroll supplémentaire sur les jets liés à l'éthérologie.",
+            "effects": [
+                {
+                    "type": "BonusRerolls",
+                    "value": 1,
+                    "context": "etherologie"
+                }
+            ]
+        },
+        {
+            "id": "thavnairois",
+            "name": "Thavnairois",
+            "category": "Origine",
+            "description": "Reroll supplémentaire sur les jets liés à l'alchimie.",
+            "effects": [
+                {
+                    "type": "BonusRerolls",
+                    "value": 1,
+                    "context": "alchimie"
+                }
+            ]
+        },
+        {
+            "id": "garlemaldais",
+            "name": "Garlemaldais",
+            "category": "Origine",
+            "description": "Reroll supplémentaire sur les jets liés à l'ingénierie magitek.",
+            "effects": [
+                {
+                    "type": "BonusRerolls",
+                    "value": 1,
+                    "context": "magitek"
+                }
+            ]
+        },
+        {
+            "id": "saltimbanque",
+            "name": "Saltimbanque",
+            "category": "Origine",
+            "description": "Reroll supplémentaire sur les jets liés au déguisement ou à la tromperie.",
+            "effects": [
+                {
+                    "type": "BonusRerolls",
+                    "value": 1,
+                    "context": "deguisement"
+                }
+            ]
+        },
+        {
+            "id": "xaela_des_steppes",
+            "name": "Xaela des Steppes",
+            "category": "Origine",
+            "description": "Reroll supplémentaire sur les jets liés à l'intimidation.",
+            "effects": [
+                {
+                    "type": "BonusRerolls",
+                    "value": 1,
+                    "context": "intimidation"
+                }
+            ]
+        },
+        {
+            "id": "connaissance_vie",
+            "name": "Connaissance de la Vie",
+            "category": "Connaissance",
+            "description": "Avantage sur : Médecine, Biologie, Poisons, Faune, Flore.",
+            "effects": [
+                {
+                    "type": "ForceRollMode",
+                    "forcedMode": "Avantage",
+                    "context": "connaissance_vie"
+                }
+            ]
+        },
+        {
+            "id": "connaissance_technologie",
+            "name": "Connaissance de la Technologie",
+            "category": "Connaissance",
+            "description": "Avantage sur : Machines, Réparations, Modifications, Crochetage, Piratage.",
+            "effects": [
+                {
+                    "type": "ForceRollMode",
+                    "forcedMode": "Avantage",
+                    "context": "connaissance_technologie"
+                }
+            ]
+        },
+        {
+            "id": "connaissance_monde",
+            "name": "Connaissance du Monde",
+            "category": "Connaissance",
+            "description": "Avantage sur : Traditions, Administration, Géographie, Criminalité, Politique.",
+            "effects": [
+                {
+                    "type": "ForceRollMode",
+                    "forcedMode": "Avantage",
+                    "context": "connaissance_monde"
+                }
+            ]
+        },
+        {
+            "id": "connaissance_arcane",
+            "name": "Connaissance de l'Arcane",
+            "category": "Connaissance",
+            "description": "Avantage sur : Éthérologie, Histoire, Écoles de magie.",
+            "effects": [
+                {
+                    "type": "ForceRollMode",
+                    "forcedMode": "Avantage",
+                    "context": "connaissance_arcane"
+                }
+            ]
+        },
+        {
+            "id": "specialiste_magie",
+            "name": "Spécialiste de la magie",
+            "category": "RoleDps",
+            "exclusiveGroup": "specialiste",
+            "description": "+1 réussite attaques magiques. +1 réussite requise autres attaques et défenses non-magiques. Incompatible avec les autres spécialistes.",
+            "effects": [
+                {
+                    "type": "BonusSuccess",
+                    "value": 1,
+                    "context": "attaque_magique"
+                },
+                {
+                    "type": "MalusSuccess",
+                    "value": 1,
+                    "context": "attaque_non_magique"
+                },
+                {
+                    "type": "MalusSuccess",
+                    "value": 1,
+                    "context": "defense_non_magique"
+                }
+            ]
+        },
+        {
+            "id": "specialiste_contact",
+            "name": "Spécialiste du contact",
+            "category": "RoleDps",
+            "exclusiveGroup": "specialiste",
+            "description": "+1 réussite attaques mêlée. +1 réussite requise autres attaques et défenses hors mêlée. Incompatible avec les autres spécialistes.",
+            "effects": [
+                {
+                    "type": "BonusSuccess",
+                    "value": 1,
+                    "context": "attaque_melee"
+                },
+                {
+                    "type": "MalusSuccess",
+                    "value": 1,
+                    "context": "attaque_non_melee"
+                },
+                {
+                    "type": "MalusSuccess",
+                    "value": 1,
+                    "context": "defense_non_melee"
+                }
+            ]
+        },
+        {
+            "id": "specialiste_distance",
+            "name": "Spécialiste à distance",
+            "category": "RoleDps",
+            "exclusiveGroup": "specialiste",
+            "description": "+1 réussite attaques à distance. +1 réussite requise autres attaques et défenses hors distance. Incompatible avec les autres spécialistes.",
+            "effects": [
+                {
+                    "type": "BonusSuccess",
+                    "value": 1,
+                    "context": "attaque_distance"
+                },
+                {
+                    "type": "MalusSuccess",
+                    "value": 1,
+                    "context": "attaque_non_distance"
+                },
+                {
+                    "type": "MalusSuccess",
+                    "value": 1,
+                    "context": "defense_non_distance"
+                }
+            ]
+        },
+        {
+            "id": "polyviolence",
+            "name": "Polyviolence",
+            "category": "RoleDps",
+            "description": "+1 réussite jets d'attaque. +1 réussite requise jets de défense.",
+            "effects": [
+                {
+                    "type": "BonusSuccess",
+                    "value": 1,
+                    "context": "attaque"
+                },
+                {
+                    "type": "MalusSuccess",
+                    "value": 1,
+                    "context": "defense"
+                }
+            ]
+        },
+        {
+            "id": "polyvalence",
+            "name": "Polyvalence",
+            "category": "RoleDps",
+            "description": "Reroll supplémentaire.",
+            "effects": [
+                {
+                    "type": "BonusRerolls",
+                    "value": 1
+                }
+            ]
+        },
+        {
+            "id": "attaques_coordonnees",
+            "name": "Attaques coordonnées",
+            "category": "RoleDps",
+            "description": "Vous pouvez offrir un de vos rerolls à un allié sur un jet d'attaque.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "coup_critique",
+            "name": "Coup critique",
+            "category": "RoleDps",
+            "exclusiveGroup": "critique",
+            "description": "+1 réussite si un 0 (ou chiffre absent) apparaît dans un jet d'attaque. Incompatible avec Défense Critique.",
+            "effects": [
+                {
+                    "type": "BonusSuccessOnZero",
+                    "value": 1,
+                    "context": "attaque"
+                }
+            ]
+        },
+        {
+            "id": "aura_apaisante",
+            "name": "Aura apaisante",
+            "category": "RoleSoigneur",
+            "description": "Une fois par event, annule l'impact de blessure d'un joueur proche.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "prestance_pretre",
+            "name": "Prestance du Prêtre",
+            "category": "RoleSoigneur",
+            "description": "Avantage jets d'attaque, mais impossible d'utiliser sorts curatifs ou boucliers. Déclaré en début de combat.",
+            "effects": [
+                {
+                    "type": "ForceRollMode",
+                    "forcedMode": "Avantage",
+                    "context": "attaque"
+                },
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "defense_coordonnee",
+            "name": "Défense Coordonnée",
+            "category": "RoleSoigneur",
+            "description": "Vous pouvez offrir un de vos rerolls à un allié sur un jet de défense.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "assistance_heroique",
+            "name": "Assistance héroïque",
+            "category": "RoleSoigneur",
+            "description": "Une fois par combat, si un allié échoue un jet de défense, lancez un dé et ajoutez max 2 réussites à son résultat.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "aura_temerite",
+            "name": "Aura de témérité",
+            "category": "RoleTank",
+            "description": "Attaque avec avantage, défense avec désavantage. Déclaré en début de combat.",
+            "effects": [
+                {
+                    "type": "ForceRollMode",
+                    "forcedMode": "Avantage",
+                    "context": "attaque"
+                },
+                {
+                    "type": "ForceRollMode",
+                    "forcedMode": "Desavantage",
+                    "context": "defense"
+                }
+            ]
+        },
+        {
+            "id": "aura_protecteur",
+            "name": "Aura de protecteur",
+            "category": "RoleTank",
+            "description": "Une fois par event, encaissez une blessure à la place d'un allié à proximité.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "defense_critique",
+            "name": "Défense Critique",
+            "category": "RoleTank",
+            "exclusiveGroup": "critique",
+            "description": "Un 0 (ou chiffre absent) sur un jet de défense ajoute une réussite. Incompatible avec Coup Critique.",
+            "effects": [
+                {
+                    "type": "BonusSuccessOnZero",
+                    "value": 1,
+                    "context": "defense"
+                }
+            ]
+        },
+        {
+            "id": "controle_combat",
+            "name": "Contrôle du combat",
+            "category": "RoleTank",
+            "description": "Une fois par event, appliquez vos bonus de défense à un jet d'attaque.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "pistolero",
+            "name": "Pistolero",
+            "category": "Job",
+            "requiredJobId": "machiniste",
+            "description": "+1 réussite jets d'attaque contre des cibles à distance. Désavantage sur jets de défense.",
+            "effects": [
+                {
+                    "type": "BonusSuccess",
+                    "value": 1,
+                    "context": "attaque_distance"
+                },
+                {
+                    "type": "ForceRollMode",
+                    "forcedMode": "Desavantage",
+                    "context": "defense"
+                }
+            ]
+        },
+        {
+            "id": "bouclier_mecanique",
+            "name": "Bouclier mécanique",
+            "category": "Job",
+            "requiredJobId": "machiniste",
+            "description": "+1 réussite défense (soi ou allié) par tourelle à proximité. Les tourelles sont détruites. Reine = +2.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "tir_couverture",
+            "name": "Tir de Couverture",
+            "category": "Job",
+            "requiredJobId": "machiniste",
+            "description": "+1 réussite jet allié de votre choix tant que vous n'attaquez pas. Une fois par combat, cumulable sur un même allié.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "kardia",
+            "name": "Kardia",
+            "category": "Job",
+            "requiredJobId": "sage",
+            "description": "Une fois par event, applique Kardia à un équipier. Réussir une attaque réduit sa blessure d'un niveau (hors létale).",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "diplome_sharlayanais",
+            "name": "Diplôme Sharlayannais",
+            "category": "Job",
+            "requiredJobId": "sage",
+            "description": "+1 réussite sur les jets de connaissance effectués avec avantage.",
+            "effects": [
+                {
+                    "type": "BonusSuccess",
+                    "value": 1,
+                    "context": "connaissance_avantage"
+                }
+            ]
+        },
+        {
+            "id": "bile_vipere",
+            "name": "Bile de Vipère",
+            "category": "Job",
+            "requiredJobId": "sage",
+            "description": "Une fois par event, ignore les modificateurs négatifs sur vos jets de dés.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "entrainement_assassin",
+            "name": "Entraînement d'assassin",
+            "category": "Job",
+            "requiredJobId": "faucheur",
+            "description": "Avantage sur les jets de discrétion et attaques surprises. +1 réussite requise sur jets de défense.",
+            "effects": [
+                {
+                    "type": "ForceRollMode",
+                    "forcedMode": "Avantage",
+                    "context": "discretion"
+                },
+                {
+                    "type": "ForceRollMode",
+                    "forcedMode": "Avantage",
+                    "context": "attaque_surprise"
+                },
+                {
+                    "type": "MalusSuccess",
+                    "value": 1,
+                    "context": "defense"
+                }
+            ]
+        },
+        {
+            "id": "presence_terrifiante",
+            "name": "Présence terrifiante",
+            "category": "Job",
+            "requiredJobId": "faucheur",
+            "description": "+1 réussite sur les jets d'intimidation.",
+            "effects": [
+                {
+                    "type": "BonusSuccess",
+                    "value": 1,
+                    "context": "intimidation"
+                }
+            ]
+        },
+        {
+            "id": "endurance_mentale",
+            "name": "Endurance Mentale",
+            "category": "Job",
+            "requiredJobId": "faucheur",
+            "description": "+1 réussite contre les attaques mentales.",
+            "effects": [
+                {
+                    "type": "BonusSuccess",
+                    "value": 1,
+                    "context": "attaque_mentale"
+                }
+            ]
+        },
+        {
+            "id": "bain_de_sang",
+            "name": "Bain de Sang",
+            "category": "Job",
+            "requiredJobId": "guerrier",
+            "description": "Une fois par event, en réussissant une attaque, diminue le niveau de votre blessure selon vos succès. Déclaré avant le lancer.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "frisson_bataille",
+            "name": "Frisson de la Bataille",
+            "category": "Job",
+            "requiredJobId": "guerrier",
+            "description": "Avantage en nombre inférieur, désavantage en nombre supérieur. Déclaré en début de combat.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "insensible_douleur",
+            "name": "Insensible à la douleur",
+            "category": "Job",
+            "requiredJobId": "guerrier",
+            "description": "Palier de défense réduit de moitié (arrondi au supérieur) contre les créatures de grande taille.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "id": "attaque",
+            "name": "Attaque",
+            "contexts": [
+                "attaque"
+            ]
+        },
+        {
+            "id": "attaque_magique",
+            "name": "Attaque magique",
+            "contexts": [
+                "attaque",
+                "attaque_magique"
+            ]
+        },
+        {
+            "id": "attaque_melee",
+            "name": "Attaque mêlée",
+            "contexts": [
+                "attaque",
+                "attaque_melee"
+            ]
+        },
+        {
+            "id": "attaque_distance",
+            "name": "Attaque à distance",
+            "contexts": [
+                "attaque",
+                "attaque_distance"
+            ]
+        },
+        {
+            "id": "attaque_surprise",
+            "name": "Attaque surprise",
+            "contexts": [
+                "attaque",
+                "attaque_surprise"
+            ]
+        },
+        {
+            "id": "defense",
+            "name": "Défense",
+            "contexts": [
+                "defense"
+            ]
+        },
+        {
+            "id": "defense_magique",
+            "name": "Défense magique",
+            "contexts": [
+                "defense",
+                "defense_magique"
+            ]
+        },
+        {
+            "id": "discretion",
+            "name": "Discrétion",
+            "contexts": [
+                "discretion"
+            ]
+        },
+        {
+            "id": "intimidation",
+            "name": "Intimidation",
+            "contexts": [
+                "intimidation"
+            ]
+        },
+        {
+            "id": "connaissance_vie",
+            "name": "Connaissance — Vie",
+            "contexts": [
+                "connaissance_vie"
+            ]
+        },
+        {
+            "id": "connaissance_technologie",
+            "name": "Connaissance — Technologie",
+            "contexts": [
+                "connaissance_technologie"
+            ]
+        },
+        {
+            "id": "connaissance_monde",
+            "name": "Connaissance — Monde",
+            "contexts": [
+                "connaissance_monde"
+            ]
+        },
+        {
+            "id": "connaissance_arcane",
+            "name": "Connaissance — Arcane",
+            "contexts": [
+                "connaissance_arcane"
+            ]
+        },
+        {
+            "id": "marchandage",
+            "name": "Marchandage",
+            "contexts": [
+                "marchandage"
+            ]
+        },
+        {
+            "id": "alchimie",
+            "name": "Alchimie",
+            "contexts": [
+                "alchimie"
+            ]
+        },
+        {
+            "id": "magitek",
+            "name": "Ingénierie magitek",
+            "contexts": [
+                "magitek"
+            ]
+        }
+    ]
+}

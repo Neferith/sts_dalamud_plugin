@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using STSPlugin.Domain;
 using STSPlugin.UseCases;
 
@@ -7,8 +8,8 @@ namespace STSPlugin;
 
 /// <summary>
 /// Moteur principal du STS. Orchestre les use cases et maintient l'état de la session.
-/// Supporte deux modes de jet : interne (Roll/Reroll) et GameRandom (BeginRoll/ReceiveRandom).
-/// Ne contient aucune logique métier propre — tout est délégué aux use cases.
+/// Supporte deux modes de jet : interne (Roll) et GameRandom (BeginRoll/ReceiveRandom).
+/// Calcule les effets des traits équipés selon les contextes de l'action en cours.
 /// </summary>
 public class StsEngine
 {
@@ -21,8 +22,12 @@ public class StsEngine
     // --- état courant ---
     private readonly RollSession _session = new();
 
+    // --- traits équipés du personnage actif ---
+    private IReadOnlyList<Trait> _equippedTraits = [];
+
     // --- état GameRandom ---
-    private DiceSet? _pendingRejected; // set rejeté à conserver lors d'un reroll en mode avantage
+    private DiceSet? _pendingRejected;
+    private RollAction? _pendingAction;
 
     // --- random interne ---
     private static readonly Random Rng = new();
@@ -34,7 +39,7 @@ public class StsEngine
     /// <summary>Rang courant du personnage.</summary>
     public Rank CurrentRank => _session.Rank;
 
-    /// <summary>Mode de jet actif (Normal, Avantage, Désavantage).</summary>
+    /// <summary>Mode de jet actif.</summary>
     public RollMode Mode
     {
         get => _session.Mode;
@@ -54,24 +59,28 @@ public class StsEngine
     /// <summary>Indique si un jet a déjà été effectué.</summary>
     public bool HasRolled => _session.HasRolled;
 
-    /// <summary>Résultat du dernier jet résolu. Null si aucun jet en cours.</summary>
+    /// <summary>Résultat du dernier jet résolu.</summary>
     public RollResult? LastResult => _session.LastResult;
 
-    /// <summary>Nombre de rerolls restants pour l'event en cours.</summary>
-    public int RerollsLeft => _checkReroll.Execute(_session.Rank.Rerolls, _session.RerollsUsed).Remaining;
-
     /// <summary>
-    /// État vis-à-vis du mode GameRandom.
-    /// Idle = prêt, WaitingDice = en attente d'un résultat /random depuis le chat.
+    /// Nombre de rerolls restants pour l'event en cours.
+    /// Inclut les bonus permanents des traits (context null).
     /// </summary>
+    public int RerollsLeft
+    {
+        get
+        {
+            var baseRerolls = _session.Rank.Rerolls + PermanentBonusRerolls();
+            return _checkReroll.Execute(baseRerolls, _session.RerollsUsed).Remaining;
+        }
+    }
+
+    /// <summary>État vis-à-vis du mode GameRandom.</summary>
     public EngineState State { get; private set; } = EngineState.Idle;
 
     /// <summary>Historique des 8 derniers jets.</summary>
     public List<RollEntry> History { get; } = [];
 
-    /// <summary>
-    /// Initialise l'engine avec les implémentations des use cases.
-    /// </summary>
     public StsEngine(
         ComputePalierUseCase computePalier,
         ResolveDiceSetUseCase resolveDiceSet,
@@ -84,11 +93,15 @@ public class StsEngine
         _checkReroll = checkReroll;
     }
 
-    // --- actions mode Internal ---
+    // --- configuration ---
 
     /// <summary>
-    /// Change le rang du personnage et réinitialise la session en cours.
+    /// Met à jour les traits équipés du personnage actif.
+    /// À appeler quand le personnage actif change ou quand ses traits sont modifiés.
     /// </summary>
+    public void SetEquippedTraits(IReadOnlyList<Trait> traits)
+        => _equippedTraits = traits;
+
     public void ChangeRank(RankKey rankKey)
     {
         _session.Rank = Rank.Get(rankKey);
@@ -96,130 +109,240 @@ public class StsEngine
         State = EngineState.Idle;
     }
 
+    // --- actions mode Internal ---
+
     /// <summary>
-    /// [Mode Internal] Effectue un jet de dés complet immédiatement.
+    /// [Mode Internal] Jet manuel sans action — pas d'effets de traits calculés.
     /// </summary>
     public void Roll()
-    {
-        _session.RerollsUsed = 0;
-        _session.LastResult = ResolveNewRoll(previousRejected: null);
-        PushHistory(_session.LastResult);
-    }
+        => RollWithAction(null);
+
+    /// <summary>
+    /// [Mode Internal] Jet avec une action — effets de traits calculés selon les contextes.
+    /// </summary>
+    public void Roll(RollAction action)
+        => RollWithAction(action);
 
     /// <summary>
     /// [Mode Internal] Relance les 3 dés si un reroll est disponible.
     /// </summary>
-    /// <returns>True si le reroll a été effectué, false sinon.</returns>
     public bool Reroll()
     {
-        var check = _checkReroll.Execute(_session.Rank.Rerolls, _session.RerollsUsed);
+        var baseRerolls = _session.Rank.Rerolls + PermanentBonusRerolls();
+        var check = _checkReroll.Execute(baseRerolls, _session.RerollsUsed);
         if (!HasRolled || !check.Allowed) return false;
 
         _session.RerollsUsed++;
-        _session.LastResult = ResolveNewRoll(_session.LastResult?.Rejected);
+        var action = _session.LastResult?.Action;
+        var effects = ComputeTraitEffects(action, isReroll: true);
+        _session.LastResult = ResolveWithSet(Roll3(), _session.LastResult?.Rejected, action, effects);
         PushHistory(_session.LastResult);
         return true;
     }
 
     // --- actions mode GameRandom ---
 
-    /// <summary>
-    /// [Mode GameRandom] Prépare l'engine à recevoir un résultat /random.
-    /// À appeler avant d'envoyer /random dans le chat.
-    /// </summary>
+    /// <summary>[Mode GameRandom] Prépare l'engine pour un jet manuel.</summary>
     public void BeginRoll()
-    {
-        _session.RerollsUsed = 0;
-        _pendingRejected = null;
-        State = EngineState.WaitingDice;
-    }
+        => BeginRollWithAction(null);
 
-    /// <summary>
-    /// [Mode GameRandom] Prépare l'engine à recevoir un résultat /random pour un reroll.
-    /// Conserve le set rejeté précédent pour le mode Avantage/Désavantage.
-    /// </summary>
-    /// <returns>True si le reroll peut être effectué, false sinon.</returns>
+    /// <summary>[Mode GameRandom] Prépare l'engine pour un jet avec action.</summary>
+    public void BeginRoll(RollAction action)
+        => BeginRollWithAction(action);
+
+    /// <summary>[Mode GameRandom] Prépare l'engine pour un reroll.</summary>
     public bool BeginReroll()
     {
-        var check = _checkReroll.Execute(_session.Rank.Rerolls, _session.RerollsUsed);
+        var baseRerolls = _session.Rank.Rerolls + PermanentBonusRerolls();
+        var check = _checkReroll.Execute(baseRerolls, _session.RerollsUsed);
         if (!HasRolled || !check.Allowed) return false;
 
         _session.RerollsUsed++;
-        _pendingRejected = _session.LastResult?.Rejected; // conserver pour la comparaison
+        _pendingRejected = _session.LastResult?.Rejected;
+        _pendingAction = _session.LastResult?.Action;
         State = EngineState.WaitingDice;
         return true;
     }
 
     /// <summary>
-    /// [Mode GameRandom] Reçoit la valeur brute du /random du jeu (0–999) et résout le jet.
-    /// Chaque chiffre du résultat correspond à un dé : 0 → 10, 1–9 → 1–9.
+    /// [Mode GameRandom] Reçoit la valeur brute du /random (0–999) et résout le jet.
     /// </summary>
-    /// <param name="randomValue">Valeur reçue du /random (0 à 999).</param>
-    /// <returns>True si le jet est résolu, false si l'état n'était pas WaitingDice.</returns>
     public bool ReceiveRandom(int randomValue)
     {
         if (State != EngineState.WaitingDice) return false;
 
+        var effects = ComputeTraitEffects(_pendingAction, isReroll: _pendingRejected != null);
         var diceSet = ParseRandomToDiceSet(randomValue);
-        _session.LastResult = ResolveWithSet(diceSet, _pendingRejected);
+        _session.LastResult = ResolveWithSet(diceSet, _pendingRejected, _pendingAction, effects);
         PushHistory(_session.LastResult);
         State = EngineState.Idle;
         _pendingRejected = null;
+        _pendingAction = null;
         return true;
     }
 
     // --- reset ---
 
-    /// <summary>
-    /// Réinitialise les rerolls et le jet en cours pour un nouvel event.
-    /// </summary>
     public void ResetEvent()
     {
         _session.Reset();
         State = EngineState.Idle;
         _pendingRejected = null;
+        _pendingAction = null;
     }
+
+    // --- calcul des effets de traits ---
+
+    /// <summary>
+    /// Calcule les effets de traits applicables pour une action donnée.
+    /// </summary>
+    private AppliedTraitEffects ComputeTraitEffects(RollAction? action, bool isReroll = false)
+    {
+        if (_equippedTraits.Count == 0)
+            return AppliedTraitEffects.None;
+
+        var contexts = action?.Contexts ?? [];
+
+        var bonusRerolls = 0;
+        var bonusSuccess = 0;
+        var malusSuccess = 0;
+        RollMode? forcedMode = null;
+
+        foreach (var trait in _equippedTraits)
+        {
+            if (trait.Effects is null) continue;
+
+            foreach (var effect in trait.Effects)
+            {
+                // Un effet s'applique si son context est null (permanent)
+                // ou présent dans les contextes de l'action
+                var matches = effect.Context == null
+                    || contexts.Contains(effect.Context);
+
+                if (!matches) continue;
+
+                switch (effect.Type)
+                {
+                    case TraitEffectType.BonusRerolls:
+                        bonusRerolls += effect.Value;
+                        break;
+
+                    case TraitEffectType.BonusPalier when isReroll:
+                        // Géré dans EffectivePalier lors du reroll — stocké séparément
+                        break;
+
+                    case TraitEffectType.ForceRollMode:
+                        // Dernier trait qui force le mode gagne
+                        forcedMode = effect.ForcedMode;
+                        break;
+
+                    case TraitEffectType.BonusSuccess:
+                        bonusSuccess += effect.Value;
+                        break;
+
+                    case TraitEffectType.MalusSuccess:
+                        malusSuccess += effect.Value;
+                        break;
+
+                    case TraitEffectType.BonusSuccessOnZero:
+                        // Sera calculé après résolution des dés
+                        break;
+
+                    case TraitEffectType.Manual:
+                        break;
+                }
+            }
+        }
+
+        return new AppliedTraitEffects(bonusSuccess, malusSuccess, bonusRerolls, forcedMode);
+    }
+
+    /// <summary>
+    /// Calcule les bonus de réussites liés aux 0 dans les dés (BonusSuccessOnZero).
+    /// Appelé après résolution des dés.
+    /// </summary>
+    private int ComputeZeroBonuses(DiceSet dice, RollAction? action)
+    {
+        if (_equippedTraits.Count == 0) return 0;
+
+        var contexts = action?.Contexts ?? [];
+        var hasZero = dice.Values.Any(v => v == 10); // 10 s'affiche "0"
+        if (!hasZero) return 0;
+
+        return _equippedTraits
+            .Where(t => t.Effects != null)
+            .SelectMany(t => t.Effects!)
+            .Where(e => e.Type == TraitEffectType.BonusSuccessOnZero)
+            .Where(e => e.Context == null || contexts.Contains(e.Context))
+            .Sum(e => e.Value);
+    }
+
+    /// <summary>Rerolls permanents accordés par les traits (context null).</summary>
+    private int PermanentBonusRerolls()
+        => _equippedTraits
+            .Where(t => t.Effects != null)
+            .SelectMany(t => t.Effects!)
+            .Where(e => e.Type == TraitEffectType.BonusRerolls && e.Context == null)
+            .Sum(e => e.Value);
 
     // --- privé ---
 
-    /// <summary>
-    /// [Mode Internal] Lance les dés et résout selon le mode actif.
-    /// </summary>
-    private RollResult ResolveNewRoll(DiceSet? previousRejected)
+    private void RollWithAction(RollAction? action)
     {
-        var set = Roll3();
-        return ResolveWithSet(set, previousRejected);
+        var effects = ComputeTraitEffects(action);
+        _session.LastResult = ResolveNewRoll(null, action, effects);
+        PushHistory(_session.LastResult);
     }
 
-    /// <summary>
-    /// Résout un jet à partir d'un set de dés fourni (interne ou GameRandom).
-    /// En mode Normal : évalue directement le set.
-    /// En mode Avantage/Désavantage : compare avec le set rejeté précédent ou en lance un second.
-    /// </summary>
-    private RollResult ResolveWithSet(DiceSet set, DiceSet? previousRejected)
+    private void BeginRollWithAction(RollAction? action)
+    {
+        _pendingRejected = null;
+        _pendingAction = action;
+        State = EngineState.WaitingDice;
+    }
+
+    private RollResult ResolveNewRoll(DiceSet? previousRejected, RollAction? action, AppliedTraitEffects effects)
+        => ResolveWithSet(Roll3(), previousRejected, action, effects);
+
+    private RollResult ResolveWithSet(DiceSet set, DiceSet? previousRejected, RollAction? action, AppliedTraitEffects effects)
     {
         var palier = EffectivePalier;
 
-        if (Mode == RollMode.Normal)
+        // Le mode peut être forcé par un trait
+        var effectiveMode = effects.ForcedMode ?? Mode;
+
+        DiceSet chosen, rejected;
+
+        if (effectiveMode == RollMode.Normal)
         {
-            var resolution = _resolveDiceSet.Execute(set, palier);
-            return new RollResult(set, null, resolution.Successes, palier);
+            chosen = set;
+            rejected = null!;
         }
         else
         {
             var other = previousRejected ?? Roll3();
-            var mode = Mode == RollMode.Avantage ? PickMode.Best : PickMode.Worst;
-            var picked = _pickDiceSet.Execute(set, other, palier, mode);
-            var resolution = _resolveDiceSet.Execute(picked.Chosen, palier);
-            return new RollResult(picked.Chosen, picked.Rejected, resolution.Successes, palier);
+            var pickMode = effectiveMode == RollMode.Avantage ? PickMode.Best : PickMode.Worst;
+            var picked = _pickDiceSet.Execute(set, other, palier, pickMode);
+            chosen = picked.Chosen;
+            rejected = picked.Rejected;
         }
+
+        var resolution = _resolveDiceSet.Execute(chosen, palier);
+
+        // Ajouter les bonus de zéros
+        var zeroBonuses = ComputeZeroBonuses(chosen, action);
+        var finalEffects = effects with { BonusSuccesses = effects.BonusSuccesses + zeroBonuses };
+
+        return new RollResult(
+            chosen,
+            effectiveMode == RollMode.Normal ? null : rejected,
+            resolution.Successes,
+            palier,
+            finalEffects,
+            action
+        );
     }
 
-    /// <summary>
-    /// Parse un résultat /random (0–999) en DiceSet STS.
-    /// Chaque chiffre : 0 → 10, 1–9 → 1–9.
-    /// Ex : 042 → [10, 4, 2] | 000 → [10, 10, 10]
-    /// </summary>
     private static DiceSet ParseRandomToDiceSet(int value)
     {
         var s = value.ToString("D3");
@@ -238,7 +361,9 @@ public class StsEngine
             _session.Rank.Label,
             result.Chosen,
             result.Palier,
-            result.Successes));
+            result.RawSuccesses,
+            result.Successes,
+            result.Action?.Name));
 
         if (History.Count > 8) History.RemoveAt(8);
     }

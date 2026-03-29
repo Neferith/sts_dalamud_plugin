@@ -1,0 +1,90 @@
+using System.Linq;
+using STSPlugin.Domain;
+using STSPlugin.Repository;
+
+namespace STSPlugin.UseCases;
+
+/// <summary>
+/// Résultat de la tentative d'équipement d'un trait.
+/// </summary>
+public enum EquipTraitResult
+{
+    /// <summary>Le trait a été équipé avec succès.</summary>
+    Success,
+
+    /// <summary>Le trait est introuvable dans le repository.</summary>
+    TraitNotFound,
+
+    /// <summary>Le trait est déjà équipé.</summary>
+    AlreadyEquipped,
+
+    /// <summary>Plus de slots de traits disponibles.</summary>
+    NoSlotAvailable,
+
+    /// <summary>Le job requis pour ce trait n'est pas celui du personnage.</summary>
+    JobMismatch,
+
+    /// <summary>Un trait du même groupe d'exclusivité est déjà équipé.</summary>
+    ExclusivityConflict,
+}
+
+/// <summary>
+/// Cas d'usage : équiper un trait sur un personnage.
+/// Valide toutes les règles d'équipement avant de persister.
+/// </summary>
+public interface EquipTraitUseCase
+{
+    /// <summary>
+    /// Tente d'équiper le trait sur le personnage.
+    /// </summary>
+    /// <param name="character">Le personnage cible.</param>
+    /// <param name="traitId">L'identifiant du trait à équiper.</param>
+    /// <returns>Le résultat de la tentative.</returns>
+    EquipTraitResult Execute(Character character, string traitId);
+}
+
+/// <summary>
+/// Implémentation par défaut de <see cref="EquipTraitUseCase"/>.
+/// </summary>
+public class DefaultEquipTraitUseCase : EquipTraitUseCase
+{
+    private readonly CharacterRepository _characterRepository;
+    private readonly TraitRepository _traitRepository;
+
+    public DefaultEquipTraitUseCase(CharacterRepository characterRepository, TraitRepository traitRepository)
+    {
+        _characterRepository = characterRepository;
+        _traitRepository = traitRepository;
+    }
+
+    /// <inheritdoc/>
+    public EquipTraitResult Execute(Character character, string traitId)
+    {
+        var trait = _traitRepository.GetById(traitId);
+        if (trait is null)
+            return EquipTraitResult.TraitNotFound;
+
+        if (character.HasTrait(traitId))
+            return EquipTraitResult.AlreadyEquipped;
+
+        if (character.FreeTraitSlots <= 0)
+            return EquipTraitResult.NoSlotAvailable;
+
+        if (trait.RequiredJobId != null && trait.RequiredJobId != character.JobId)
+            return EquipTraitResult.JobMismatch;
+
+        if (trait.ExclusiveGroup != null)
+        {
+            var equippedTraits = character.EquippedTraitIds
+                .Select(id => _traitRepository.GetById(id))
+                .Where(t => t != null);
+
+            var conflict = equippedTraits.Any(t => t!.ExclusiveGroup == trait.ExclusiveGroup);
+            if (conflict) return EquipTraitResult.ExclusivityConflict;
+        }
+
+        character.EquippedTraitIds.Add(traitId);
+        _characterRepository.Save(character);
+        return EquipTraitResult.Success;
+    }
+}

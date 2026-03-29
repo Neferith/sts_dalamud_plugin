@@ -5,13 +5,17 @@ using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
-using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.System.String;
 using FFXIVClientStructs.FFXIV.Client.UI;
+using STSPlugin.DataSource;
 using STSPlugin.Domain;
+using STSPlugin.Repository;
 using STSPlugin.UseCases;
 using STSPlugin.Windows;
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -21,7 +25,6 @@ public sealed class Plugin : IDalamudPlugin
 {
     private const string CmdMain = "/sts";
 
-    // Capture le nombre à la fin du message /random du jeu
     private static readonly Regex RandomRegex = new(@"(\d+)[^\d]*$", RegexOptions.Compiled);
 
     [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
@@ -32,23 +35,92 @@ public sealed class Plugin : IDalamudPlugin
 
     public Configuration Configuration { get; init; }
     public StsEngine Engine { get; init; }
+    public CharacterRepository CharacterRepository { get; init; }
+    public TraitRepository TraitRepository { get; init; }
+    public JobRepository JobRepository { get; init; }
+    public ActionRepository ActionRepository { get; init; }
+
+    // --- use cases personnages ---
+    public GetAllCharactersUseCase GetAllCharacters { get; init; }
+    public GetActiveCharacterUseCase GetActiveCharacter { get; init; }
+    public CreateCharacterUseCase CreateCharacter { get; init; }
+    public UpdateCharacterUseCase UpdateCharacter { get; init; }
+    public DeleteCharacterUseCase DeleteCharacter { get; init; }
+    public SetActiveCharacterUseCase SetActiveCharacter { get; init; }
+
+    // --- use cases traits / job ---
+    public SetJobUseCase SetJob { get; init; }
+    public SetOriginTraitUseCase SetOriginTrait { get; init; }
+    public EquipTraitUseCase EquipTrait { get; init; }
+    public UnequipTraitUseCase UnequipTrait { get; init; }
+
+    // --- use cases actions ---
+    public GetActionsForCharacterUseCase GetActionsForCharacter { get; init; }
+    public CreateCustomActionUseCase CreateCustomAction { get; init; }
+    public DeleteCustomActionUseCase DeleteCustomAction { get; init; }
 
     private readonly WindowSystem windowSystem = new("STSPlugin");
     private readonly MainWindow mainWindow;
     private readonly ConfigWindow configWindow;
+    private QuickbarWindow? quickbarWindow;
+
+    private readonly Dictionary<Guid, CharacterWindow> _characterWindows = new();
 
     public Plugin()
     {
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+
+        // --- Engine ---
         Engine = new StsEngine(
             new DefaultComputePalierUseCase(),
             new DefaultResolveDiceSetUseCase(),
             new DefaultPickDiceSetUseCase(),
             new DefaultCheckRerollUseCase()
         );
-        if (Enum.TryParse<RankKey>(Configuration.LastRank, out var rankKey))
-            Engine.ChangeRank(rankKey);
 
+        // --- DataSource ---
+        var dataPath = Path.Combine(PluginInterface.AssemblyLocation.DirectoryName!, "data.json");
+        var dataSource = new LocalJsonDataSource(dataPath);
+
+        // --- Repositories ---
+        var charactersDir = Path.Combine(PluginInterface.GetPluginConfigDirectory(), "characters");
+        CharacterRepository = new DefaultCharacterRepository(charactersDir);
+        TraitRepository = new DefaultTraitRepository(dataSource);
+        JobRepository = new DefaultJobRepository(dataSource);
+        ActionRepository = new DefaultActionRepository(dataSource);
+
+        // --- Use cases personnages ---
+        GetAllCharacters = new DefaultGetAllCharactersUseCase(CharacterRepository);
+        GetActiveCharacter = new DefaultGetActiveCharacterUseCase(CharacterRepository, Configuration);
+        CreateCharacter = new DefaultCreateCharacterUseCase(CharacterRepository);
+        UpdateCharacter = new DefaultUpdateCharacterUseCase(CharacterRepository);
+        DeleteCharacter = new DefaultDeleteCharacterUseCase(CharacterRepository, Configuration);
+        SetActiveCharacter = new DefaultSetActiveCharacterUseCase(CharacterRepository, Configuration, Engine);
+
+        // --- Use cases traits / job ---
+        SetJob = new DefaultSetJobUseCase(CharacterRepository, JobRepository);
+        SetOriginTrait = new DefaultSetOriginTraitUseCase(CharacterRepository, TraitRepository);
+        EquipTrait = new DefaultEquipTraitUseCase(CharacterRepository, TraitRepository);
+        UnequipTrait = new DefaultUnequipTraitUseCase(CharacterRepository);
+
+        // --- Use cases actions ---
+        GetActionsForCharacter = new DefaultGetActionsForCharacterUseCase(ActionRepository);
+        CreateCustomAction = new DefaultCreateCustomActionUseCase(CharacterRepository);
+        DeleteCustomAction = new DefaultDeleteCustomActionUseCase(CharacterRepository);
+
+        // --- Appliquer le personnage actif au démarrage ---
+        var active = GetActiveCharacter.Execute();
+        if (active != null)
+        {
+            Engine.ChangeRank(active.RankKey);
+            RefreshEquippedTraits(active);
+        }
+        else if (Enum.TryParse<RankKey>(Configuration.LastRank, out var rankKey))
+        {
+            Engine.ChangeRank(rankKey);
+        }
+
+        // --- Windows ---
         mainWindow = new MainWindow(this);
         configWindow = new ConfigWindow(this);
 
@@ -57,7 +129,7 @@ public sealed class Plugin : IDalamudPlugin
 
         CommandManager.AddHandler(CmdMain, new CommandInfo(OnCommand)
         {
-            HelpMessage = "Ouvre/ferme l'interface STS. \"/sts roll\" lance les dés."
+            HelpMessage = "Ouvre/ferme l'interface STS. \"/sts roll\" lance les dés. \"/sts quickbar\" ouvre la barre de raccourcis."
         });
 
         ChatGui.ChatMessage += OnChatMessage;
@@ -71,18 +143,19 @@ public sealed class Plugin : IDalamudPlugin
     public void Dispose()
     {
         ChatGui.ChatMessage -= OnChatMessage;
-        // Dispose
         ChatGui.ChatMessageUnhandled -= OnChatMessageUnhandled;
 
         PluginInterface.UiBuilder.Draw -= DrawUi;
         PluginInterface.UiBuilder.OpenMainUi -= ToggleMainUi;
         PluginInterface.UiBuilder.OpenConfigUi -= ToggleConfigUi;
 
+        foreach (var w in _characterWindows.Values)
+            windowSystem.RemoveWindow(w);
+        _characterWindows.Clear();
+
         CommandManager.RemoveHandler(CmdMain);
         windowSystem.RemoveAllWindows();
     }
-
- 
 
     private void OnCommand(string command, string args)
     {
@@ -90,40 +163,85 @@ public sealed class Plugin : IDalamudPlugin
         {
             case "roll":
             case "r":
-                StartRoll();
+                StartRoll(action: null);
                 break;
-
             case "reroll":
             case "rr":
                 StartReroll();
                 break;
-
+            case "quickbar":
+            case "qb":
+                ToggleQuickbar();
+                break;
             case "config":
                 configWindow.Toggle();
                 break;
-
             default:
                 ToggleMainUi();
                 break;
         }
     }
 
+    public void OpenCharacterWindow(Character character)
+    {
+        if (_characterWindows.TryGetValue(character.Id, out var existing))
+        {
+            existing.IsOpen = true;
+            return;
+        }
+
+        var window = new CharacterWindow(this, character);
+        _characterWindows[character.Id] = window;
+        windowSystem.AddWindow(window);
+        window.IsOpen = true;
+    }
+
+    /// <summary>
+    /// Met à jour les traits équipés dans l'engine quand le personnage actif change.
+    /// À appeler après tout changement de personnage actif ou de traits équipés.
+    /// </summary>
+    public void RefreshEquippedTraits(Character? character = null)
+    {
+        var active = character ?? GetActiveCharacter.Execute();
+        if (active is null)
+        {
+            Engine.SetEquippedTraits([]);
+            return;
+        }
+
+        var traits = active.EquippedTraitIds
+            .Select(id => TraitRepository.GetById(id))
+            .Where(t => t != null)
+            .Cast<Trait>()
+            .ToList();
+
+        // Inclure le trait d'origine s'il est équipé
+        if (active.OriginTraitId is { } originId
+            && TraitRepository.GetById(originId) is { } originTrait)
+        {
+            traits.Add(originTrait);
+        }
+
+        Engine.SetEquippedTraits(traits);
+    }
+
     // ------------------------------------------------------------------ Roll
 
-    private void StartRoll()
+    /// <summary>Lance un jet avec une action optionnelle.</summary>
+    public void StartRoll(RollAction? action)
     {
         mainWindow.IsOpen = true;
 
         if (Configuration.RollSource == RollSource.GameRandom)
         {
-            // Mode /random : on attend l'interception du résultat dans le chat
-            Engine.BeginRoll();
+            if (action != null) Engine.BeginRoll(action);
+            else Engine.BeginRoll();
             SendRaw("/random");
         }
         else
         {
-            // Mode interne : résultat immédiat
-            Engine.Roll();
+            if (action != null) Engine.Roll(action);
+            else Engine.Roll();
             OnRollComplete();
         }
     }
@@ -147,14 +265,9 @@ public sealed class Plugin : IDalamudPlugin
 
     // ------------------------------------------------------------------ Interception /random
 
-    /// <summary>
-    /// Écoute le chat pour intercepter les résultats /random du jeu (mode GameRandom uniquement).
-    /// </summary>
     private void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
     {
-        // Log TOUT pendant le debug, pas seulement quand on attend
         Log.Debug($"[STS] Chat reçu — type: {(int)type} ({type}), sender: '{sender.TextValue}', message: '{message.TextValue}'");
-
     }
 
     private void OnChatMessageUnhandled(XivChatType type, int timestamp, SeString sender, SeString message)
@@ -177,17 +290,8 @@ public sealed class Plugin : IDalamudPlugin
             OnRollComplete();
     }
 
-    // Constructeur
-
-
-
-
-
     // ------------------------------------------------------------------ Résultat
 
-    /// <summary>
-    /// Appelé une fois le jet résolu, quelle que soit la source.
-    /// </summary>
     private void OnRollComplete()
     {
         PrintStyledLocal();
@@ -197,9 +301,6 @@ public sealed class Plugin : IDalamudPlugin
 
     // ------------------------------------------------------------------ Affichage
 
-    /// <summary>
-    /// Affichage local uniquement, avec couleurs SeString.
-    /// </summary>
     private void PrintStyledLocal()
     {
         if (Engine.LastResult is not { } result) return;
@@ -221,7 +322,8 @@ public sealed class Plugin : IDalamudPlugin
         sb.AddText(" ");
 
         sb.AddUiForeground(ColGold);
-        sb.AddText($"[{rank.Label} · palier {result.Palier}+]");
+        var actionLabel = result.Action != null ? $" — {result.Action.Name}" : "";
+        sb.AddText($"[{rank.Label}{actionLabel} · palier {result.Palier}+]");
         sb.AddUiForegroundOff();
         sb.AddText("  ");
 
@@ -236,6 +338,19 @@ public sealed class Plugin : IDalamudPlugin
         }
 
         sb.AddText("  →  ");
+
+        // Afficher bonus/malus traits si présents
+        if (result.TraitEffects.BonusSuccesses > 0 || result.TraitEffects.MalusSuccesses > 0)
+        {
+            sb.AddUiForeground(ColGrey);
+            sb.AddText($"({result.RawSuccesses} dés");
+            if (result.TraitEffects.BonusSuccesses > 0)
+                sb.AddText($" +{result.TraitEffects.BonusSuccesses} traits");
+            if (result.TraitEffects.MalusSuccesses > 0)
+                sb.AddText($" -{result.TraitEffects.MalusSuccesses} malus");
+            sb.AddText(")  →  ");
+            sb.AddUiForegroundOff();
+        }
 
         ushort resCol = result.Successes == 0 ? ColRed : result.Successes >= 2 ? ColGreen : ColWhite;
         sb.AddUiForeground(resCol);
@@ -258,23 +373,21 @@ public sealed class Plugin : IDalamudPlugin
         });
     }
 
-    /// <summary>
-    /// Construit le message texte brut pour le canal (le serveur n'accepte pas les SeString).
-    /// </summary>
     private string BuildPlainMessage()
     {
         if (Engine.LastResult is not { } result) return string.Empty;
 
         var rank = Engine.CurrentRank;
         var dice = result.Chosen.ToDisplayString();
+        var actionPart = result.Action != null ? $" [{result.Action.Name}]" : "";
         var res = result.Successes == 0 ? "Échec total"
-                 : result.Successes == 1 ? "1 succès"
-                 : $"{result.Successes} succès";
+                       : result.Successes == 1 ? "1 succès"
+                       : $"{result.Successes} succès";
         var mod = Engine.Modifier != 0
-                 ? $" modif {(Engine.Modifier > 0 ? "+" : "")}{Engine.Modifier}"
-                 : "";
+                       ? $" modif {(Engine.Modifier > 0 ? "+" : "")}{Engine.Modifier}"
+                       : "";
 
-        return $"[STS] {rank.Label}{mod} · {dice} · palier {result.Palier}+ → {res}";
+        return $"[STS] {rank.Label}{actionPart}{mod} · {dice} · palier {result.Palier}+ → {res}";
     }
 
     private void PrintInfo(string msg)
@@ -287,11 +400,20 @@ public sealed class Plugin : IDalamudPlugin
         });
     }
 
+    // ------------------------------------------------------------------ Quickbar
+
+    public void ToggleQuickbar()
+    {
+        if (quickbarWindow is null)
+        {
+            quickbarWindow = new QuickbarWindow(this);
+            windowSystem.AddWindow(quickbarWindow);
+        }
+        quickbarWindow.Toggle();
+    }
+
     // ------------------------------------------------------------------ Chat natif
 
-    /// <summary>
-    /// Envoie un message texte brut dans un canal via la chatbox native.
-    /// </summary>
     private static unsafe void SendToChannel(string channel, string message)
     {
         var uiModule = UIModule.Instance();
@@ -304,9 +426,6 @@ public sealed class Plugin : IDalamudPlugin
         utf8String.Dtor();
     }
 
-    /// <summary>
-    /// Envoie une commande brute via la chatbox native (ex : /random).
-    /// </summary>
     private static unsafe void SendRaw(string command)
     {
         var uiModule = UIModule.Instance();
