@@ -11,6 +11,9 @@ public class DataModel
 
     [JsonPropertyName("traits")]
     public List<TraitData> Traits { get; set; } = [];
+
+    [JsonPropertyName("actions")]
+    public List<ActionData> Actions { get; set; } = [];
 }
 
 /// <summary>Modèle JSON d'un job.</summary>
@@ -66,4 +69,17 @@ public class TraitEffectData
     /// <summary>Contexte conditionnel. Null = effet permanent.</summary>
     [JsonPropertyName("context")]
     public string? Context { get; set; } = null;
+}
+
+/// <summary>Modèle JSON d'une action de jet prédéfinie.</summary>
+public class ActionData
+{
+    [JsonPropertyName("id")]
+    public string Id { get; set; } = string.Empty;
+
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+
+    [JsonPropertyName("contexts")]
+    public List<string> Contexts { get; set; } = [];
 }

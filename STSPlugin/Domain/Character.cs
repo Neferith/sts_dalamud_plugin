@@ -4,9 +4,7 @@ using System.Collections.Generic;
 namespace STSPlugin.Domain;
 
 /// <summary>
-/// Représente un personnage joueur avec son rang, son job et ses traits.
-/// Les traits et le job sont référencés par identifiant string,
-/// résolus via les repositories au moment de l'affichage ou de la validation.
+/// Représente un personnage joueur avec son rang, son job, ses traits et ses actions.
 /// </summary>
 public class Character
 {
@@ -19,24 +17,32 @@ public class Character
     /// <summary>Rang STS actuel du personnage.</summary>
     public RankKey RankKey { get; set; } = RankKey.Novice;
 
-    /// <summary>
-    /// Identifiant du job du personnage.
-    /// Null si aucun job assigné.
-    /// </summary>
+    /// <summary>Identifiant du job du personnage. Null si aucun job assigné.</summary>
     public string? JobId { get; set; } = null;
 
     /// <summary>
     /// Identifiant du trait d'origine équipé.
-    /// Gratuit, hors quota, un seul à la fois.
-    /// Null si aucun trait d'origine équipé.
+    /// Gratuit, hors quota, un seul à la fois. Null si aucun.
     /// </summary>
     public string? OriginTraitId { get; set; } = null;
 
     /// <summary>
     /// Identifiants des traits équipés (hors trait d'origine).
-    /// La taille maximale est définie par le rang.
+    /// Taille maximale définie par le rang.
     /// </summary>
     public List<string> EquippedTraitIds { get; set; } = [];
+
+    /// <summary>
+    /// Actions de jet personnalisées créées par le joueur.
+    /// S'ajoutent aux actions prédéfinies du data.json.
+    /// </summary>
+    public List<RollAction> CustomActions { get; set; } = [];
+
+    /// <summary>
+    /// Ids des actions affichées dans la quickbar.
+    /// Si vide, toutes les actions disponibles sont affichées.
+    /// </summary>
+    public List<string> QuickbarActionIds { get; set; } = [];
 
     // --- propriétés calculées ---
 

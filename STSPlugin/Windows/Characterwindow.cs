@@ -76,8 +76,10 @@ public class CharacterWindow : Window, IDisposable
             ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.09f, 0.37f, 0.65f, 0.25f));
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.09f, 0.37f, 0.65f, 0.40f));
             ImGui.PushStyleColor(ImGuiCol.Text, ColInfo);
-            if (ImGui.Button("Activer##hdr_activate"))
+            if (ImGui.Button("Activer##hdr_activate")) { 
                 _plugin.SetActiveCharacter.Execute(_character.Id);
+                _plugin.RefreshEquippedTraits();
+            }
             ImGui.PopStyleColor(3);
         }
 
@@ -260,7 +262,10 @@ public class CharacterWindow : Window, IDisposable
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.64f, 0.17f, 0.17f, 0.40f));
             ImGui.PushStyleColor(ImGuiCol.Text, ColDanger);
             if (ImGui.Button("Retirer##origin_remove"))
+            {
                 _plugin.SetOriginTrait.Execute(_character, null);
+                _plugin.RefreshEquippedTraits(_character); // ← ajouter
+            }
             ImGui.PopStyleColor(3);
         }
         else
@@ -270,7 +275,10 @@ public class CharacterWindow : Window, IDisposable
             foreach (var trait in _plugin.TraitRepository.GetByCategory(TraitCategory.Origine))
             {
                 if (ImGui.Button($"+ {trait.Name}##orig_{trait.Id}"))
+                {
                     _plugin.SetOriginTrait.Execute(_character, trait.Id);
+                    _plugin.RefreshEquippedTraits(_character); // ← ajouter
+                }
                 if (ImGui.IsItemHovered())
                     ImGui.SetTooltip(trait.Description);
             }
@@ -297,7 +305,10 @@ public class CharacterWindow : Window, IDisposable
                 ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.64f, 0.17f, 0.17f, 0.40f));
                 ImGui.PushStyleColor(ImGuiCol.Text, ColDanger);
                 if (ImGui.Button($"✕##remove_{traitId}"))
+                {
                     _plugin.UnequipTrait.Execute(_character, traitId);
+                    _plugin.RefreshEquippedTraits(_character); // ← ajouter
+                }
                 ImGui.PopStyleColor(3);
                 ImGui.SameLine();
                 ImGui.Text(trait?.Name ?? traitId);
@@ -361,7 +372,10 @@ public class CharacterWindow : Window, IDisposable
                     }
 
                     if (ImGui.Button($"+ {trait.Name}##avail_{trait.Id}") && canEquip)
+                    {
                         _plugin.EquipTrait.Execute(_character, trait.Id);
+                        _plugin.RefreshEquippedTraits(_character); // ← ajouter
+                    }
 
                     ImGui.PopStyleColor(3);
 

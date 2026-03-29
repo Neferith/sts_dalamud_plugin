@@ -153,7 +153,11 @@
             "name": "Parieur",
             "category": "Origine",
             "description": "Une fois par event en cas d'échec, relancez un dé 3. Le résultat devient votre nombre de réussites.",
-            "effects": [ { "type": "Manual" } ]
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
         },
         {
             "id": "vagabond",
@@ -245,7 +249,6 @@
                 }
             ]
         },
-
         {
             "id": "connaissance_vie",
             "name": "Connaissance de la Vie",
@@ -298,7 +301,6 @@
                 }
             ]
         },
-
         {
             "id": "specialiste_magie",
             "name": "Spécialiste de la magie",
@@ -406,7 +408,11 @@
             "name": "Attaques coordonnées",
             "category": "RoleDps",
             "description": "Vous pouvez offrir un de vos rerolls à un allié sur un jet d'attaque.",
-            "effects": [ { "type": "Manual" } ]
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
         },
         {
             "id": "coup_critique",
@@ -422,13 +428,16 @@
                 }
             ]
         },
-
         {
             "id": "aura_apaisante",
             "name": "Aura apaisante",
             "category": "RoleSoigneur",
             "description": "Une fois par event, annule l'impact de blessure d'un joueur proche.",
-            "effects": [ { "type": "Manual" } ]
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
         },
         {
             "id": "prestance_pretre",
@@ -441,7 +450,9 @@
                     "forcedMode": "Avantage",
                     "context": "attaque"
                 },
-                { "type": "Manual" }
+                {
+                    "type": "Manual"
+                }
             ]
         },
         {
@@ -449,16 +460,23 @@
             "name": "Défense Coordonnée",
             "category": "RoleSoigneur",
             "description": "Vous pouvez offrir un de vos rerolls à un allié sur un jet de défense.",
-            "effects": [ { "type": "Manual" } ]
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
         },
         {
             "id": "assistance_heroique",
             "name": "Assistance héroïque",
             "category": "RoleSoigneur",
             "description": "Une fois par combat, si un allié échoue un jet de défense, lancez un dé et ajoutez max 2 réussites à son résultat.",
-            "effects": [ { "type": "Manual" } ]
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
         },
-
         {
             "id": "aura_temerite",
             "name": "Aura de témérité",
@@ -482,7 +500,11 @@
             "name": "Aura de protecteur",
             "category": "RoleTank",
             "description": "Une fois par event, encaissez une blessure à la place d'un allié à proximité.",
-            "effects": [ { "type": "Manual" } ]
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
         },
         {
             "id": "defense_critique",
@@ -503,9 +525,12 @@
             "name": "Contrôle du combat",
             "category": "RoleTank",
             "description": "Une fois par event, appliquez vos bonus de défense à un jet d'attaque.",
-            "effects": [ { "type": "Manual" } ]
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
         },
-
         {
             "id": "pistolero",
             "name": "Pistolero",
@@ -531,7 +556,11 @@
             "category": "Job",
             "requiredJobId": "machiniste",
             "description": "+1 réussite défense (soi ou allié) par tourelle à proximité. Les tourelles sont détruites. Reine = +2.",
-            "effects": [ { "type": "Manual" } ]
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
         },
         {
             "id": "tir_couverture",
@@ -539,16 +568,23 @@
             "category": "Job",
             "requiredJobId": "machiniste",
             "description": "+1 réussite jet allié de votre choix tant que vous n'attaquez pas. Une fois par combat, cumulable sur un même allié.",
-            "effects": [ { "type": "Manual" } ]
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
         },
-
         {
             "id": "kardia",
             "name": "Kardia",
             "category": "Job",
             "requiredJobId": "sage",
             "description": "Une fois par event, applique Kardia à un équipier. Réussir une attaque réduit sa blessure d'un niveau (hors létale).",
-            "effects": [ { "type": "Manual" } ]
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
         },
         {
             "id": "diplome_sharlayanais",
@@ -570,9 +606,12 @@
             "category": "Job",
             "requiredJobId": "sage",
             "description": "Une fois par event, ignore les modificateurs négatifs sur vos jets de dés.",
-            "effects": [ { "type": "Manual" } ]
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
         },
-
         {
             "id": "entrainement_assassin",
             "name": "Entraînement d'assassin",
@@ -625,14 +664,17 @@
                 }
             ]
         },
-
         {
             "id": "bain_de_sang",
             "name": "Bain de Sang",
             "category": "Job",
             "requiredJobId": "guerrier",
             "description": "Une fois par event, en réussissant une attaque, diminue le niveau de votre blessure selon vos succès. Déclaré avant le lancer.",
-            "effects": [ { "type": "Manual" } ]
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
         },
         {
             "id": "frisson_bataille",
@@ -640,7 +682,11 @@
             "category": "Job",
             "requiredJobId": "guerrier",
             "description": "Avantage en nombre inférieur, désavantage en nombre supérieur. Déclaré en début de combat.",
-            "effects": [ { "type": "Manual" } ]
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
         },
         {
             "id": "insensible_douleur",
@@ -648,7 +694,130 @@
             "category": "Job",
             "requiredJobId": "guerrier",
             "description": "Palier de défense réduit de moitié (arrondi au supérieur) contre les créatures de grande taille.",
-            "effects": [ { "type": "Manual" } ]
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "id": "attaque",
+            "name": "Attaque",
+            "contexts": [
+                "attaque"
+            ]
+        },
+        {
+            "id": "attaque_magique",
+            "name": "Attaque magique",
+            "contexts": [
+                "attaque",
+                "attaque_magique"
+            ]
+        },
+        {
+            "id": "attaque_melee",
+            "name": "Attaque mêlée",
+            "contexts": [
+                "attaque",
+                "attaque_melee"
+            ]
+        },
+        {
+            "id": "attaque_distance",
+            "name": "Attaque à distance",
+            "contexts": [
+                "attaque",
+                "attaque_distance"
+            ]
+        },
+        {
+            "id": "attaque_surprise",
+            "name": "Attaque surprise",
+            "contexts": [
+                "attaque",
+                "attaque_surprise"
+            ]
+        },
+        {
+            "id": "defense",
+            "name": "Défense",
+            "contexts": [
+                "defense"
+            ]
+        },
+        {
+            "id": "defense_magique",
+            "name": "Défense magique",
+            "contexts": [
+                "defense",
+                "defense_magique"
+            ]
+        },
+        {
+            "id": "discretion",
+            "name": "Discrétion",
+            "contexts": [
+                "discretion"
+            ]
+        },
+        {
+            "id": "intimidation",
+            "name": "Intimidation",
+            "contexts": [
+                "intimidation"
+            ]
+        },
+        {
+            "id": "connaissance_vie",
+            "name": "Connaissance — Vie",
+            "contexts": [
+                "connaissance_vie"
+            ]
+        },
+        {
+            "id": "connaissance_technologie",
+            "name": "Connaissance — Technologie",
+            "contexts": [
+                "connaissance_technologie"
+            ]
+        },
+        {
+            "id": "connaissance_monde",
+            "name": "Connaissance — Monde",
+            "contexts": [
+                "connaissance_monde"
+            ]
+        },
+        {
+            "id": "connaissance_arcane",
+            "name": "Connaissance — Arcane",
+            "contexts": [
+                "connaissance_arcane"
+            ]
+        },
+        {
+            "id": "marchandage",
+            "name": "Marchandage",
+            "contexts": [
+                "marchandage"
+            ]
+        },
+        {
+            "id": "alchimie",
+            "name": "Alchimie",
+            "contexts": [
+                "alchimie"
+            ]
+        },
+        {
+            "id": "magitek",
+            "name": "Ingénierie magitek",
+            "contexts": [
+                "magitek"
+            ]
         }
     ]
 }

@@ -15,6 +15,7 @@ using STSPlugin.Windows;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -37,6 +38,7 @@ public sealed class Plugin : IDalamudPlugin
     public CharacterRepository CharacterRepository { get; init; }
     public TraitRepository TraitRepository { get; init; }
     public JobRepository JobRepository { get; init; }
+    public ActionRepository ActionRepository { get; init; }
 
     // --- use cases personnages ---
     public GetAllCharactersUseCase GetAllCharacters { get; init; }
@@ -52,9 +54,15 @@ public sealed class Plugin : IDalamudPlugin
     public EquipTraitUseCase EquipTrait { get; init; }
     public UnequipTraitUseCase UnequipTrait { get; init; }
 
+    // --- use cases actions ---
+    public GetActionsForCharacterUseCase GetActionsForCharacter { get; init; }
+    public CreateCustomActionUseCase CreateCustomAction { get; init; }
+    public DeleteCustomActionUseCase DeleteCustomAction { get; init; }
+
     private readonly WindowSystem windowSystem = new("STSPlugin");
     private readonly MainWindow mainWindow;
     private readonly ConfigWindow configWindow;
+    private QuickbarWindow? quickbarWindow;
 
     private readonly Dictionary<Guid, CharacterWindow> _characterWindows = new();
 
@@ -79,6 +87,7 @@ public sealed class Plugin : IDalamudPlugin
         CharacterRepository = new DefaultCharacterRepository(charactersDir);
         TraitRepository = new DefaultTraitRepository(dataSource);
         JobRepository = new DefaultJobRepository(dataSource);
+        ActionRepository = new DefaultActionRepository(dataSource);
 
         // --- Use cases personnages ---
         GetAllCharacters = new DefaultGetAllCharactersUseCase(CharacterRepository);
@@ -94,12 +103,22 @@ public sealed class Plugin : IDalamudPlugin
         EquipTrait = new DefaultEquipTraitUseCase(CharacterRepository, TraitRepository);
         UnequipTrait = new DefaultUnequipTraitUseCase(CharacterRepository);
 
+        // --- Use cases actions ---
+        GetActionsForCharacter = new DefaultGetActionsForCharacterUseCase(ActionRepository);
+        CreateCustomAction = new DefaultCreateCustomActionUseCase(CharacterRepository);
+        DeleteCustomAction = new DefaultDeleteCustomActionUseCase(CharacterRepository);
+
         // --- Appliquer le personnage actif au démarrage ---
         var active = GetActiveCharacter.Execute();
         if (active != null)
+        {
             Engine.ChangeRank(active.RankKey);
+            RefreshEquippedTraits(active);
+        }
         else if (Enum.TryParse<RankKey>(Configuration.LastRank, out var rankKey))
+        {
             Engine.ChangeRank(rankKey);
+        }
 
         // --- Windows ---
         mainWindow = new MainWindow(this);
@@ -110,7 +129,7 @@ public sealed class Plugin : IDalamudPlugin
 
         CommandManager.AddHandler(CmdMain, new CommandInfo(OnCommand)
         {
-            HelpMessage = "Ouvre/ferme l'interface STS. \"/sts roll\" lance les dés."
+            HelpMessage = "Ouvre/ferme l'interface STS. \"/sts roll\" lance les dés. \"/sts quickbar\" ouvre la barre de raccourcis."
         });
 
         ChatGui.ChatMessage += OnChatMessage;
@@ -144,11 +163,15 @@ public sealed class Plugin : IDalamudPlugin
         {
             case "roll":
             case "r":
-                StartRoll();
+                StartRoll(action: null);
                 break;
             case "reroll":
             case "rr":
                 StartReroll();
+                break;
+            case "quickbar":
+            case "qb":
+                ToggleQuickbar();
                 break;
             case "config":
                 configWindow.Toggle();
@@ -173,20 +196,52 @@ public sealed class Plugin : IDalamudPlugin
         window.IsOpen = true;
     }
 
+    /// <summary>
+    /// Met à jour les traits équipés dans l'engine quand le personnage actif change.
+    /// À appeler après tout changement de personnage actif ou de traits équipés.
+    /// </summary>
+    public void RefreshEquippedTraits(Character? character = null)
+    {
+        var active = character ?? GetActiveCharacter.Execute();
+        if (active is null)
+        {
+            Engine.SetEquippedTraits([]);
+            return;
+        }
+
+        var traits = active.EquippedTraitIds
+            .Select(id => TraitRepository.GetById(id))
+            .Where(t => t != null)
+            .Cast<Trait>()
+            .ToList();
+
+        // Inclure le trait d'origine s'il est équipé
+        if (active.OriginTraitId is { } originId
+            && TraitRepository.GetById(originId) is { } originTrait)
+        {
+            traits.Add(originTrait);
+        }
+
+        Engine.SetEquippedTraits(traits);
+    }
+
     // ------------------------------------------------------------------ Roll
 
-    private void StartRoll()
+    /// <summary>Lance un jet avec une action optionnelle.</summary>
+    public void StartRoll(RollAction? action)
     {
         mainWindow.IsOpen = true;
 
         if (Configuration.RollSource == RollSource.GameRandom)
         {
-            Engine.BeginRoll();
+            if (action != null) Engine.BeginRoll(action);
+            else Engine.BeginRoll();
             SendRaw("/random");
         }
         else
         {
-            Engine.Roll();
+            if (action != null) Engine.Roll(action);
+            else Engine.Roll();
             OnRollComplete();
         }
     }
@@ -267,7 +322,8 @@ public sealed class Plugin : IDalamudPlugin
         sb.AddText(" ");
 
         sb.AddUiForeground(ColGold);
-        sb.AddText($"[{rank.Label} · palier {result.Palier}+]");
+        var actionLabel = result.Action != null ? $" — {result.Action.Name}" : "";
+        sb.AddText($"[{rank.Label}{actionLabel} · palier {result.Palier}+]");
         sb.AddUiForegroundOff();
         sb.AddText("  ");
 
@@ -282,6 +338,19 @@ public sealed class Plugin : IDalamudPlugin
         }
 
         sb.AddText("  →  ");
+
+        // Afficher bonus/malus traits si présents
+        if (result.TraitEffects.BonusSuccesses > 0 || result.TraitEffects.MalusSuccesses > 0)
+        {
+            sb.AddUiForeground(ColGrey);
+            sb.AddText($"({result.RawSuccesses} dés");
+            if (result.TraitEffects.BonusSuccesses > 0)
+                sb.AddText($" +{result.TraitEffects.BonusSuccesses} traits");
+            if (result.TraitEffects.MalusSuccesses > 0)
+                sb.AddText($" -{result.TraitEffects.MalusSuccesses} malus");
+            sb.AddText(")  →  ");
+            sb.AddUiForegroundOff();
+        }
 
         ushort resCol = result.Successes == 0 ? ColRed : result.Successes >= 2 ? ColGreen : ColWhite;
         sb.AddUiForeground(resCol);
@@ -310,14 +379,15 @@ public sealed class Plugin : IDalamudPlugin
 
         var rank = Engine.CurrentRank;
         var dice = result.Chosen.ToDisplayString();
+        var actionPart = result.Action != null ? $" [{result.Action.Name}]" : "";
         var res = result.Successes == 0 ? "Échec total"
-                 : result.Successes == 1 ? "1 succès"
-                 : $"{result.Successes} succès";
+                       : result.Successes == 1 ? "1 succès"
+                       : $"{result.Successes} succès";
         var mod = Engine.Modifier != 0
-                 ? $" modif {(Engine.Modifier > 0 ? "+" : "")}{Engine.Modifier}"
-                 : "";
+                       ? $" modif {(Engine.Modifier > 0 ? "+" : "")}{Engine.Modifier}"
+                       : "";
 
-        return $"[STS] {rank.Label}{mod} · {dice} · palier {result.Palier}+ → {res}";
+        return $"[STS] {rank.Label}{actionPart}{mod} · {dice} · palier {result.Palier}+ → {res}";
     }
 
     private void PrintInfo(string msg)
@@ -328,6 +398,18 @@ public sealed class Plugin : IDalamudPlugin
             Name = SeString.Empty,
             Message = new SeStringBuilder().AddText($"[STS] {msg}").Build(),
         });
+    }
+
+    // ------------------------------------------------------------------ Quickbar
+
+    public void ToggleQuickbar()
+    {
+        if (quickbarWindow is null)
+        {
+            quickbarWindow = new QuickbarWindow(this);
+            windowSystem.AddWindow(quickbarWindow);
+        }
+        quickbarWindow.Toggle();
     }
 
     // ------------------------------------------------------------------ Chat natif
