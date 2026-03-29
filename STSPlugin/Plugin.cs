@@ -39,6 +39,7 @@ public sealed class Plugin : IDalamudPlugin
     public TraitRepository TraitRepository { get; init; }
     public JobRepository JobRepository { get; init; }
     public ActionRepository ActionRepository { get; init; }
+    public AbilityRepository AbilityRepository { get; init; }
 
     // --- use cases personnages ---
     public GetAllCharactersUseCase GetAllCharacters { get; init; }
@@ -58,6 +59,15 @@ public sealed class Plugin : IDalamudPlugin
     public GetActionsForCharacterUseCase GetActionsForCharacter { get; init; }
     public CreateCustomActionUseCase CreateCustomAction { get; init; }
     public DeleteCustomActionUseCase DeleteCustomAction { get; init; }
+
+    // --- use cases compétences ---
+    public EquipAbilityUseCase EquipAbility { get; init; }
+    public UnequipAbilityUseCase UnequipAbility { get; init; }
+    public SetSkillPointsUseCase SetSkillPoints { get; init; }
+
+    // --- use cases certifications ---
+    public AddCertificationUseCase AddCertification { get; init; }
+    public RemoveCertificationUseCase RemoveCertification { get; init; }
 
     private readonly WindowSystem windowSystem = new("STSPlugin");
     private readonly MainWindow mainWindow;
@@ -88,6 +98,7 @@ public sealed class Plugin : IDalamudPlugin
         TraitRepository = new DefaultTraitRepository(dataSource);
         JobRepository = new DefaultJobRepository(dataSource);
         ActionRepository = new DefaultActionRepository(dataSource);
+        AbilityRepository = new DefaultAbilityRepository(dataSource);
 
         // --- Use cases personnages ---
         GetAllCharacters = new DefaultGetAllCharactersUseCase(CharacterRepository);
@@ -107,6 +118,15 @@ public sealed class Plugin : IDalamudPlugin
         GetActionsForCharacter = new DefaultGetActionsForCharacterUseCase(ActionRepository);
         CreateCustomAction = new DefaultCreateCustomActionUseCase(CharacterRepository);
         DeleteCustomAction = new DefaultDeleteCustomActionUseCase(CharacterRepository);
+
+        // --- Use cases compétences ---
+        EquipAbility = new DefaultEquipAbilityUseCase(CharacterRepository, AbilityRepository);
+        UnequipAbility = new DefaultUnequipAbilityUseCase(CharacterRepository);
+        SetSkillPoints = new DefaultSetSkillPointsUseCase(CharacterRepository);
+
+        // --- Use cases certifications ---
+        AddCertification = new DefaultAddCertificationUseCase(CharacterRepository);
+        RemoveCertification = new DefaultRemoveCertificationUseCase(CharacterRepository);
 
         // --- Appliquer le personnage actif au démarrage ---
         var active = GetActiveCharacter.Execute();
@@ -173,10 +193,8 @@ public sealed class Plugin : IDalamudPlugin
                         ? GetActionsForCharacter.GetAll(active).FirstOrDefault(a => a.Id == actionId)
                         : null;
 
-                    if (action is null)
-                        PrintInfo($"Action inconnue : {actionId}");
-                    else
-                        StartRoll(action);
+                    if (action is null) PrintInfo($"Action inconnue : {actionId}");
+                    else StartRoll(action);
                     break;
                 }
             case "reroll":
@@ -229,7 +247,6 @@ public sealed class Plugin : IDalamudPlugin
             .Cast<Trait>()
             .ToList();
 
-        // Inclure le trait d'origine s'il est équipé
         if (active.OriginTraitId is { } originId
             && TraitRepository.GetById(originId) is { } originTrait)
         {
@@ -241,7 +258,6 @@ public sealed class Plugin : IDalamudPlugin
 
     // ------------------------------------------------------------------ Roll
 
-    /// <summary>Lance un jet avec une action optionnelle.</summary>
     public void StartRoll(RollAction? action)
     {
         mainWindow.IsOpen = true;
@@ -353,7 +369,6 @@ public sealed class Plugin : IDalamudPlugin
 
         sb.AddText("  →  ");
 
-        // Afficher bonus/malus traits si présents
         if (result.TraitEffects.BonusSuccesses > 0 || result.TraitEffects.MalusSuccesses > 0)
         {
             sb.AddUiForeground(ColGrey);

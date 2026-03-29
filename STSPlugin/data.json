@@ -819,5 +819,474 @@
                 "magitek"
             ]
         }
+    ],
+    "abilities": [
+        {
+            "id": "arme_a_feu",
+            "name": "Arme à feu",
+            "category": "Weapon",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Connaissances théoriques suffisantes pour manier son arme en se concentrant."
+                },
+                {
+                    "level": 2,
+                    "description": "Peut désormais utiliser son arme de manière fiable peu importe la situation."
+                },
+                {
+                    "level": 3,
+                    "description": "Passé maître dans l'art d'utiliser son arme, peut désormais utiliser des techniques avancées."
+                }
+            ]
+        },
+        {
+            "id": "lance_flamme",
+            "name": "Lance-flamme",
+            "category": "Weapon",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Connaissances théoriques suffisantes pour manier son arme en se concentrant."
+                },
+                {
+                    "level": 2,
+                    "description": "Peut désormais utiliser son arme de manière fiable peu importe la situation."
+                },
+                {
+                    "level": 3,
+                    "description": "Passé maître dans l'art d'utiliser son arme, peut désormais utiliser des techniques avancées."
+                }
+            ]
+        },
+        {
+            "id": "dague",
+            "name": "Dague",
+            "category": "Weapon",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Connaissances théoriques suffisantes pour manier son arme en se concentrant."
+                },
+                {
+                    "level": 2,
+                    "description": "Peut désormais utiliser son arme de manière fiable peu importe la situation."
+                },
+                {
+                    "level": 3,
+                    "description": "Passé maître dans l'art d'utiliser son arme, peut désormais utiliser des techniques avancées."
+                }
+            ]
+        },
+        {
+            "id": "pistolame",
+            "name": "Pistolame",
+            "category": "Weapon",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Connaissances théoriques suffisantes pour manier son arme en se concentrant."
+                },
+                {
+                    "level": 2,
+                    "description": "Peut désormais utiliser son arme de manière fiable peu importe la situation."
+                },
+                {
+                    "level": 3,
+                    "description": "Passé maître dans l'art d'utiliser son arme, peut désormais utiliser des techniques avancées."
+                }
+            ]
+        },
+        {
+            "id": "arc",
+            "name": "Arc",
+            "category": "Weapon",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Connaissances théoriques suffisantes pour manier son arme en se concentrant."
+                },
+                {
+                    "level": 2,
+                    "description": "Peut désormais utiliser son arme de manière fiable peu importe la situation."
+                },
+                {
+                    "level": 3,
+                    "description": "Passé maître dans l'art d'utiliser son arme, peut désormais utiliser des techniques avancées."
+                }
+            ]
+        },
+        {
+            "id": "ruee",
+            "name": "Ruée",
+            "category": "RoleDps",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Permet d'arriver au corps à corps contre sa cible pour l'attaquer. Distance moyenne."
+                },
+                {
+                    "level": 2,
+                    "description": "Depuis n'importe quelle distance."
+                }
+            ]
+        },
+        {
+            "id": "repli",
+            "name": "Repli",
+            "category": "RoleDps",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Permet de s'éloigner d'une cible pour l'attaquer. Distance moyenne."
+                },
+                {
+                    "level": 2,
+                    "description": "Depuis n'importe quelle distance."
+                }
+            ]
+        },
+        {
+            "id": "restreinte",
+            "name": "Restreinte / Embrouillement",
+            "category": "RoleDps",
+            "usageLimit": "OncePerCombat",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Donne l'avantage à un allié sur un jet de défense."
+                }
+            ]
+        },
+        {
+            "id": "second_souffle",
+            "name": "Second Souffle",
+            "category": "RoleDps",
+            "usageLimit": "OncePerCombat",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Dissipe une blessure Modérée ou inférieure."
+                }
+            ]
+        },
+        {
+            "id": "derobade",
+            "name": "Dérobade",
+            "category": "RoleDps",
+            "usageLimit": "OncePerCombat",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Redirige une attaque vous étant destinée vers un allié."
+                }
+            ]
+        },
+        {
+            "id": "guerison",
+            "name": "Guérison",
+            "category": "RoleSoigneur",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Permet de guérir une personne d'un poison/maladie/affaiblissement de faible puissance."
+                },
+                {
+                    "level": 2,
+                    "description": "Permet de guérir une personne d'un poison/maladie/affaiblissement."
+                },
+                {
+                    "level": 3,
+                    "description": "Permet également de guérir les malédictions."
+                }
+            ]
+        },
+        {
+            "id": "secours",
+            "name": "Secours",
+            "category": "RoleSoigneur",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Permet d'attirer un équipier vers vous. Utilisable pendant le tour d'un ennemi."
+                }
+            ]
+        },
+        {
+            "id": "sommeil",
+            "name": "Sommeil",
+            "category": "RoleSoigneur",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Permet d'endormir un monstre ou ennemi de petite taille."
+                },
+                {
+                    "level": 2,
+                    "description": "Permet d'endormir un monstre ou ennemi de taille moyenne."
+                },
+                {
+                    "level": 3,
+                    "description": "Permet d'endormir un monstre ou ennemi de votre choix."
+                }
+            ]
+        },
+        {
+            "id": "soin",
+            "name": "Soin",
+            "category": "RoleSoigneur",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Réduit la blessure d'un allié de 1 (ou la vôtre), si elle est en dessous de Majeure."
+                },
+                {
+                    "level": 2,
+                    "description": "Affecte également les blessures Majeures."
+                },
+                {
+                    "level": 3,
+                    "description": "Affecte également les blessures Critiques."
+                }
+            ]
+        },
+        {
+            "id": "rempart",
+            "name": "Rempart",
+            "category": "RoleTank",
+            "usageLimit": "OncePerCombat",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Si vous devez recevoir une blessure inférieure à Majeure, prenez à la place une blessure du rang au dessous."
+                },
+                {
+                    "level": 2,
+                    "description": "S'applique désormais aux blessures Majeures."
+                },
+                {
+                    "level": 3,
+                    "description": "S'applique désormais aux blessures Critiques."
+                }
+            ]
+        },
+        {
+            "id": "retorsion",
+            "name": "Rétorsion",
+            "category": "RoleTank",
+            "usageLimit": "OncePerCombat",
+            "startLevel": 2,
+            "levels": [
+                {
+                    "level": 2,
+                    "description": "Les ennemis à proximité infligent moins de dégâts. Sans effets sur blessures critiques/létales."
+                }
+            ]
+        },
+        {
+            "id": "interception",
+            "name": "Interception",
+            "category": "RoleTank",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Permet de vous rapprocher rapidement d'un allié, peu importe la distance."
+                }
+            ]
+        },
+        {
+            "id": "coup_bas",
+            "name": "Coup bas",
+            "category": "RoleTank",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Étourdit un adversaire de petite taille."
+                },
+                {
+                    "level": 2,
+                    "description": "Étourdit un adversaire de taille moyenne."
+                }
+            ]
+        },
+        {
+            "id": "portee_de_bras",
+            "name": "Portée de Bras",
+            "category": "RoleTank",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Immunise aux projections et déplacements forcés."
+                }
+            ]
+        },
+        {
+            "id": "tir_de_balles",
+            "name": "Tir de balles",
+            "category": "Job",
+            "requiredJobId": "machiniste",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Effectue une série de tirs rapide vers la ou les cibles."
+                },
+                {
+                    "level": 2,
+                    "description": "Les balles explosent au contact, infligeant des brûlures supplémentaires."
+                }
+            ]
+        },
+        {
+            "id": "tir_net",
+            "name": "Tir net",
+            "category": "Job",
+            "requiredJobId": "machiniste",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Effectue un tir unique sur une cible que vous pouvez voir, peu importe la distance. Perd en puissance avec la distance."
+                },
+                {
+                    "level": 2,
+                    "description": "Le tir est suivi d'une décharge électrique, permettant d'étourdir temporairement un adversaire."
+                }
+            ]
+        },
+        {
+            "id": "fusil_a_pompe",
+            "name": "Fusil à pompe",
+            "category": "Job",
+            "requiredJobId": "machiniste",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Modifie votre arme pour avoir une très courte portée mais infliger de lourds dégâts à une cible unique."
+                },
+                {
+                    "level": 2,
+                    "description": "Augmente la dispersion, permettant de toucher plusieurs ennemis."
+                }
+            ]
+        },
+        {
+            "id": "bioblaster",
+            "name": "BioBlaster",
+            "category": "Job",
+            "requiredJobId": "machiniste",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Modifie votre arme pour tirer une balle empoisonnée."
+                },
+                {
+                    "level": 2,
+                    "description": "La balle explose au contact, répandant du poison dans une zone donnée."
+                }
+            ]
+        },
+        {
+            "id": "tourelle_tour",
+            "name": "Tourelle Tour",
+            "category": "Job",
+            "requiredJobId": "machiniste",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Déploie une tourelle qui va tirer et distraire un ennemi."
+                },
+                {
+                    "level": 2,
+                    "description": "La tourelle devient capable de changer de cible."
+                }
+            ]
+        },
+        {
+            "id": "tourelle_fou",
+            "name": "Tourelle Fou",
+            "category": "Job",
+            "requiredJobId": "machiniste",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Déploie une tourelle qui crée une zone de dégâts autour d'elle."
+                },
+                {
+                    "level": 2,
+                    "description": "La zone de dégâts peut être convertie en bouclier pour les alliés."
+                }
+            ]
+        },
+        {
+            "id": "flambee",
+            "name": "Flambée",
+            "category": "Job",
+            "requiredJobId": "machiniste",
+            "usageLimit": "TwicePerCombat",
+            "startLevel": 2,
+            "levels": [
+                {
+                    "level": 2,
+                    "description": "Lance un explosif qui détone quand on lui tire dessus, ou bien après quelques instants."
+                }
+            ]
+        },
+        {
+            "id": "demontage",
+            "name": "Démontage",
+            "category": "Job",
+            "requiredJobId": "machiniste",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Lance un outil vers la cible, une attaque réussie interrompt le lancement d'un sort."
+                }
+            ]
+        },
+        {
+            "id": "foreuse",
+            "name": "Foreuse",
+            "category": "Job",
+            "requiredJobId": "machiniste",
+            "usageLimit": "OncePerEvent",
+            "startLevel": 2,
+            "levels": [
+                {
+                    "level": 2,
+                    "description": "Matérialise une tête de foreuse pour infliger de lourds dégâts sur un décor ou une cible à petite distance."
+                },
+                {
+                    "level": 3,
+                    "description": "La foreuse est désormais propulsée, permettant d'atteindre les cibles à distance."
+                }
+            ]
+        },
+        {
+            "id": "tourelle_reine",
+            "name": "Tourelle Reine",
+            "category": "Job",
+            "requiredJobId": "machiniste",
+            "usageLimit": "OncePerEvent",
+            "startLevel": 3,
+            "levels": [
+                {
+                    "level": 3,
+                    "description": "Appelle un automate Reine pour rejoindre le combat. L'automate possède une grande durabilité et attaque au corps à corps tout ennemi à portée."
+                }
+            ]
+        },
+        {
+            "id": "fusil_mystique",
+            "name": "Fusil Mystique",
+            "category": "Job",
+            "requiredJobId": "machiniste",
+            "usageLimit": "OncePerEvent",
+            "startLevel": 3,
+            "levels": [
+                {
+                    "level": 3,
+                    "description": "Tire une balle de sniper unique qui atteindra toujours sa cible peu importe la portée, tant qu'elle reste dans votre champ de vision. La balle ignore la plupart des résistances."
+                }
+            ]
+        }
     ]
 }

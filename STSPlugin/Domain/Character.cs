@@ -1,58 +1,82 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace STSPlugin.Domain;
 
 /// <summary>
-/// Représente un personnage joueur avec son rang, son job, ses traits et ses actions.
+/// Représente un personnage joueur.
 /// </summary>
 public class Character
 {
-    /// <summary>Identifiant unique du personnage. Généré à la création, jamais modifié.</summary>
     public Guid Id { get; init; } = Guid.NewGuid();
-
-    /// <summary>Nom du personnage.</summary>
     public string Name { get; set; } = string.Empty;
-
-    /// <summary>Rang STS actuel du personnage.</summary>
     public RankKey RankKey { get; set; } = RankKey.Novice;
-
-    /// <summary>Identifiant du job du personnage. Null si aucun job assigné.</summary>
     public string? JobId { get; set; } = null;
 
-    /// <summary>
-    /// Identifiant du trait d'origine équipé.
-    /// Gratuit, hors quota, un seul à la fois. Null si aucun.
-    /// </summary>
+    /// <summary>Trait d'origine équipé. Gratuit si une certification le débloque.</summary>
     public string? OriginTraitId { get; set; } = null;
 
-    /// <summary>
-    /// Identifiants des traits équipés (hors trait d'origine).
-    /// Taille maximale définie par le rang.
-    /// </summary>
+    /// <summary>Traits équipés (hors trait d'origine). Max = Rank.Traits.</summary>
     public List<string> EquippedTraitIds { get; set; } = [];
 
-    /// <summary>
-    /// Actions de jet personnalisées créées par le joueur.
-    /// S'ajoutent aux actions prédéfinies du data.json.
-    /// </summary>
+    /// <summary>Actions personnalisées du joueur.</summary>
     public List<RollAction> CustomActions { get; set; } = [];
 
-    /// <summary>
-    /// Ids des actions affichées dans la quickbar.
-    /// Si vide, toutes les actions disponibles sont affichées.
-    /// </summary>
+    /// <summary>Ids des actions visibles dans la quickbar. Vide = toutes.</summary>
     public List<string> QuickbarActionIds { get; set; } = [];
 
-    // --- propriétés calculées ---
+    /// <summary>Points de compétence accordés par le MJ.</summary>
+    public int SkillPoints { get; set; } = 0;
 
-    /// <summary>Nombre de slots de traits disponibles selon le rang.</summary>
+    /// <summary>Compétences apprises.</summary>
+    public List<EquippedAbility> EquippedAbilities { get; set; } = [];
+
+    /// <summary>Certifications accordées par un officier.</summary>
+    public List<Certification> Certifications { get; set; } = [];
+
+    // --- helpers traits ---
+
     public int TraitSlots => Rank.Get(RankKey).Traits;
-
-    /// <summary>Nombre de slots de traits encore libres.</summary>
     public int FreeTraitSlots => TraitSlots - EquippedTraitIds.Count;
 
-    /// <summary>Indique si un trait (par id) est actuellement équipé.</summary>
     public bool HasTrait(string traitId)
         => EquippedTraitIds.Contains(traitId) || OriginTraitId == traitId;
+
+    /// <summary>
+    /// Indique si le trait d'origine peut être équipé gratuitement
+    /// grâce à une certification.
+    /// </summary>
+    public bool HasCertificationForOriginTrait(string traitId)
+        => Certifications.Any(c => c.LinkedOriginTraitId == traitId);
+
+    // --- helpers compétences ---
+
+    /// <summary>Points gratuits accordés par les certifications pour une compétence.</summary>
+    public int GetFreePointsForAbility(string abilityId)
+        => Certifications
+            .Where(c => c.LinkedAbilityId == abilityId)
+            .Sum(c => c.FreePoints);
+
+    /// <summary>Points dépensés (net des points gratuits de certifications).</summary>
+    public int SpentSkillPoints
+        => EquippedAbilities.Sum(a => Math.Max(0, a.Level - GetFreePointsForAbility(a.AbilityId)));
+
+    /// <summary>Points restants disponibles.</summary>
+    public int RemainingSkillPoints => Math.Max(0, SkillPoints - SpentSkillPoints);
+
+    /// <summary>Niveau atteint pour une compétence, ou 0 si non apprise.</summary>
+    public int GetAbilityLevel(string abilityId)
+        => EquippedAbilities.FirstOrDefault(a => a.AbilityId == abilityId)?.Level ?? 0;
+
+    /// <summary>
+    /// Nombre de compétences atteignant ou dépassant le niveau donné,
+    /// en ne comptant que les niveaux payés (hors points gratuits).
+    /// </summary>
+    public int CountAbilitiesAtLevel(int level)
+        => EquippedAbilities.Count(a =>
+        {
+            var paid = a.Level - GetFreePointsForAbility(a.AbilityId);
+            return paid >= level;
+        });
 }
