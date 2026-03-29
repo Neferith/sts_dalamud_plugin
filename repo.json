@@ -4,7 +4,7 @@
     "Name": "STSPlugin",
     "Description": "Outil de jets de dés pour le Système Très Simple.",
     "InternalName": "STSPlugin",
-    "AssemblyVersion": "3.0.0.0",
+    "AssemblyVersion": "4.0.0.0",
     "RepoUrl": "https://github.com/Neferith/sts_dalamud_plugin",
     "ApplicableVersion": "any",
     "DalamudApiLevel": 14,
