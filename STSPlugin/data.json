@@ -860,6 +860,63 @@
             ]
         },
         {
+            "id": "dague",
+            "name": "Dague",
+            "category": "Weapon",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Connaissances théoriques suffisantes pour manier son arme en se concentrant."
+                },
+                {
+                    "level": 2,
+                    "description": "Peut désormais utiliser son arme de manière fiable peu importe la situation."
+                },
+                {
+                    "level": 3,
+                    "description": "Passé maître dans l'art d'utiliser son arme, peut désormais utiliser des techniques avancées."
+                }
+            ]
+        },
+        {
+            "id": "pistolame",
+            "name": "Pistolame",
+            "category": "Weapon",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Connaissances théoriques suffisantes pour manier son arme en se concentrant."
+                },
+                {
+                    "level": 2,
+                    "description": "Peut désormais utiliser son arme de manière fiable peu importe la situation."
+                },
+                {
+                    "level": 3,
+                    "description": "Passé maître dans l'art d'utiliser son arme, peut désormais utiliser des techniques avancées."
+                }
+            ]
+        },
+        {
+            "id": "arc",
+            "name": "Arc",
+            "category": "Weapon",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Connaissances théoriques suffisantes pour manier son arme en se concentrant."
+                },
+                {
+                    "level": 2,
+                    "description": "Peut désormais utiliser son arme de manière fiable peu importe la situation."
+                },
+                {
+                    "level": 3,
+                    "description": "Passé maître dans l'art d'utiliser son arme, peut désormais utiliser des techniques avancées."
+                }
+            ]
+        },
+        {
             "id": "ruee",
             "name": "Ruée",
             "category": "RoleDps",
