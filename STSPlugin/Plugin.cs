@@ -69,6 +69,11 @@ public sealed class Plugin : IDalamudPlugin
     public AddCertificationUseCase AddCertification { get; init; }
     public RemoveCertificationUseCase RemoveCertification { get; init; }
 
+    // --- use cases inventaire ---
+    public AddCharacterItemUseCase AddCharacterItem { get; init; }
+    public RemoveCharacterItemUseCase RemoveCharacterItem { get; init; }
+    public ToggleEquipItemUseCase ToggleEquipItem { get; init; }
+
     private readonly WindowSystem windowSystem = new("STSPlugin");
     private readonly MainWindow mainWindow;
     private readonly ConfigWindow configWindow;
@@ -127,6 +132,11 @@ public sealed class Plugin : IDalamudPlugin
         // --- Use cases certifications ---
         AddCertification = new DefaultAddCertificationUseCase(CharacterRepository);
         RemoveCertification = new DefaultRemoveCertificationUseCase(CharacterRepository);
+
+        // --- Use cases inventaire ---
+        AddCharacterItem = new DefaultAddCharacterItemUseCase(CharacterRepository);
+        RemoveCharacterItem = new DefaultRemoveCharacterItemUseCase(CharacterRepository);
+        ToggleEquipItem = new DefaultToggleEquipItemUseCase(CharacterRepository);
 
         // --- Appliquer le personnage actif au démarrage ---
         var active = GetActiveCharacter.Execute();
