@@ -327,8 +327,8 @@ public class MainWindow : Window, IDisposable
 
         foreach (var entry in Engine.History)
         {
-            var col = entry.Successes == 0 ? ColDanger
-                    : entry.Successes >= 2 ? ColSuccess
+            var col = entry.TotalSuccesses == 0 ? ColDanger
+                    : entry.TotalSuccesses >= 2 ? ColSuccess
                     : ImGui.GetStyle().Colors[(int)ImGuiCol.Text];
 
             ImGui.TextColored(ColMuted, entry.RankLabel);
@@ -337,7 +337,12 @@ public class MainWindow : Window, IDisposable
             ImGui.SameLine();
             ImGui.TextColored(ColMuted, $"({entry.Palier}+)");
             ImGui.SameLine();
-            ImGui.TextColored(col, $"{entry.Successes} ✓");
+            if (entry.ActionName != null)
+            {
+                ImGui.TextColored(ColMuted, entry.ActionName);
+                ImGui.SameLine();
+            }
+            ImGui.TextColored(col, $"{entry.TotalSuccesses} ✓");
         }
     }
 
@@ -390,6 +395,7 @@ public class MainWindow : Window, IDisposable
                 if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
                 {
                     plugin.SetActiveCharacter.Execute(character.Id);
+                    plugin.RefreshEquippedTraits();
                     _selectedId = character.Id;
                 }
             }

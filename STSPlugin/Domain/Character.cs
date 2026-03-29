@@ -1,40 +1,48 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace STSPlugin.Domain;
 
 /// <summary>
-/// Représente un personnage joueur avec son rang, son job et ses traits.
+/// Représente un personnage joueur avec son rang, son job, ses traits et ses actions.
 /// </summary>
 public class Character
 {
     /// <summary>Identifiant unique du personnage. Généré à la création, jamais modifié.</summary>
     public Guid Id { get; init; } = Guid.NewGuid();
 
-    /// <summary>Nom du personnage tel qu'il apparaît dans le jeu.</summary>
+    /// <summary>Nom du personnage.</summary>
     public string Name { get; set; } = string.Empty;
 
     /// <summary>Rang STS actuel du personnage.</summary>
     public RankKey RankKey { get; set; } = RankKey.Novice;
 
-    /// <summary>
-    /// Job du personnage. Détermine les traits de job accessibles.
-    /// </summary>
-    public Job Job { get; set; } = Job.Aucun;
+    /// <summary>Identifiant du job du personnage. Null si aucun job assigné.</summary>
+    public string? JobId { get; set; } = null;
 
     /// <summary>
-    /// Trait d'origine équipé. Gratuit, hors quota, un seul à la fois.
-    /// Nécessite la certification associée (vérification MJ, pas codée).
-    /// Null si aucun trait d'origine équipé.
+    /// Identifiant du trait d'origine équipé.
+    /// Gratuit, hors quota, un seul à la fois. Null si aucun.
     /// </summary>
-    public TraitId? OriginTrait { get; set; } = null;
+    public string? OriginTraitId { get; set; } = null;
 
     /// <summary>
-    /// Traits équipés (hors trait d'origine).
-    /// La taille maximale est définie par <see cref="Rank.Get(RankKey).Traits"/>.
+    /// Identifiants des traits équipés (hors trait d'origine).
+    /// Taille maximale définie par le rang.
     /// </summary>
-    public List<TraitId> EquippedTraits { get; set; } = [];
+    public List<string> EquippedTraitIds { get; set; } = [];
+
+    /// <summary>
+    /// Actions de jet personnalisées créées par le joueur.
+    /// S'ajoutent aux actions prédéfinies du data.json.
+    /// </summary>
+    public List<RollAction> CustomActions { get; set; } = [];
+
+    /// <summary>
+    /// Ids des actions affichées dans la quickbar.
+    /// Si vide, toutes les actions disponibles sont affichées.
+    /// </summary>
+    public List<string> QuickbarActionIds { get; set; } = [];
 
     // --- propriétés calculées ---
 
@@ -42,36 +50,9 @@ public class Character
     public int TraitSlots => Rank.Get(RankKey).Traits;
 
     /// <summary>Nombre de slots de traits encore libres.</summary>
-    public int FreeTraitSlots => TraitSlots - EquippedTraits.Count;
+    public int FreeTraitSlots => TraitSlots - EquippedTraitIds.Count;
 
-    /// <summary>Indique si un trait est actuellement équipé.</summary>
-    public bool HasTrait(TraitId id)
-        => EquippedTraits.Contains(id) || OriginTrait == id;
-
-    /// <summary>
-    /// Indique si un trait peut être équipé selon les règles :
-    /// - Slots disponibles
-    /// - Pas déjà équipé
-    /// - Groupe d'exclusivité respecté
-    /// - Job requis respecté
-    /// </summary>
-    public bool CanEquip(TraitId id)
-    {
-        if (HasTrait(id)) return false;
-        if (FreeTraitSlots <= 0) return false;
-
-        var trait = Trait.Get(id);
-
-        if (trait.RequiredJob != null && trait.RequiredJob != Job)
-            return false;
-
-        if (trait.ExclusiveGroup != null)
-        {
-            var conflict = EquippedTraits.Any(e =>
-                Trait.Get(e).ExclusiveGroup == trait.ExclusiveGroup);
-            if (conflict) return false;
-        }
-
-        return true;
-    }
+    /// <summary>Indique si un trait (par id) est actuellement équipé.</summary>
+    public bool HasTrait(string traitId)
+        => EquippedTraitIds.Contains(traitId) || OriginTraitId == traitId;
 }

@@ -1,6 +1,6 @@
+using System.Linq;
 using STSPlugin.Domain;
 using STSPlugin.Repository;
-using System.Linq;
 
 namespace STSPlugin.UseCases;
 
@@ -11,6 +11,9 @@ public enum EquipTraitResult
 {
     /// <summary>Le trait a été équipé avec succès.</summary>
     Success,
+
+    /// <summary>Le trait est introuvable dans le repository.</summary>
+    TraitNotFound,
 
     /// <summary>Le trait est déjà équipé.</summary>
     AlreadyEquipped,
@@ -37,7 +40,7 @@ public interface EquipTraitUseCase
     /// <param name="character">Le personnage cible.</param>
     /// <param name="traitId">L'identifiant du trait à équiper.</param>
     /// <returns>Le résultat de la tentative.</returns>
-    EquipTraitResult Execute(Character character, TraitId traitId);
+    EquipTraitResult Execute(Character character, string traitId);
 }
 
 /// <summary>
@@ -45,34 +48,43 @@ public interface EquipTraitUseCase
 /// </summary>
 public class DefaultEquipTraitUseCase : EquipTraitUseCase
 {
-    private readonly CharacterRepository _repository;
+    private readonly CharacterRepository _characterRepository;
+    private readonly TraitRepository _traitRepository;
 
-    public DefaultEquipTraitUseCase(CharacterRepository repository)
-        => _repository = repository;
+    public DefaultEquipTraitUseCase(CharacterRepository characterRepository, TraitRepository traitRepository)
+    {
+        _characterRepository = characterRepository;
+        _traitRepository = traitRepository;
+    }
 
     /// <inheritdoc/>
-    public EquipTraitResult Execute(Character character, TraitId traitId)
+    public EquipTraitResult Execute(Character character, string traitId)
     {
+        var trait = _traitRepository.GetById(traitId);
+        if (trait is null)
+            return EquipTraitResult.TraitNotFound;
+
         if (character.HasTrait(traitId))
             return EquipTraitResult.AlreadyEquipped;
 
         if (character.FreeTraitSlots <= 0)
             return EquipTraitResult.NoSlotAvailable;
 
-        var trait = Trait.Get(traitId);
-
-        if (trait.RequiredJob != null && trait.RequiredJob != character.Job)
+        if (trait.RequiredJobId != null && trait.RequiredJobId != character.JobId)
             return EquipTraitResult.JobMismatch;
 
         if (trait.ExclusiveGroup != null)
         {
-            var conflict = character.EquippedTraits.Any(e =>
-                Trait.Get(e).ExclusiveGroup == trait.ExclusiveGroup);
+            var equippedTraits = character.EquippedTraitIds
+                .Select(id => _traitRepository.GetById(id))
+                .Where(t => t != null);
+
+            var conflict = equippedTraits.Any(t => t!.ExclusiveGroup == trait.ExclusiveGroup);
             if (conflict) return EquipTraitResult.ExclusivityConflict;
         }
 
-        character.EquippedTraits.Add(traitId);
-        _repository.Save(character);
+        character.EquippedTraitIds.Add(traitId);
+        _characterRepository.Save(character);
         return EquipTraitResult.Success;
     }
 }
