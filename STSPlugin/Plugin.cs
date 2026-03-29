@@ -129,7 +129,7 @@ public sealed class Plugin : IDalamudPlugin
 
         CommandManager.AddHandler(CmdMain, new CommandInfo(OnCommand)
         {
-            HelpMessage = "Ouvre/ferme l'interface STS. \"/sts roll\" lance les dés. \"/sts quickbar\" ouvre la barre de raccourcis."
+            HelpMessage = "Ouvre/ferme l'interface STS. \"/sts roll\" lance les dés. \"/sts roll <id>\" lance une action. \"/sts quickbar\" ouvre la barre."
         });
 
         ChatGui.ChatMessage += OnChatMessage;
@@ -165,6 +165,20 @@ public sealed class Plugin : IDalamudPlugin
             case "r":
                 StartRoll(action: null);
                 break;
+            case string s when s.StartsWith("roll ") || s.StartsWith("r "):
+                {
+                    var actionId = args.Trim().Split(' ', 2)[1].Trim();
+                    var active = GetActiveCharacter.Execute();
+                    var action = active != null
+                        ? GetActionsForCharacter.GetAll(active).FirstOrDefault(a => a.Id == actionId)
+                        : null;
+
+                    if (action is null)
+                        PrintInfo($"Action inconnue : {actionId}");
+                    else
+                        StartRoll(action);
+                    break;
+                }
             case "reroll":
             case "rr":
                 StartReroll();
