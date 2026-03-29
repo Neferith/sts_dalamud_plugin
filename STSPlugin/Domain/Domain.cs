@@ -37,16 +37,30 @@ public enum EngineState
 }
 
 /// <summary>Données immuables associées à un rang.</summary>
-public record Rank(string Label, int Palier, int Rerolls, int Traits)
+public record Rank(string Label, int Palier, int Rerolls, int Traits, int MaxAbilityLv2, int MaxAbilityLv3)
 {
+    /// <summary>
+    /// Catalogue des rangs.
+    /// MaxAbilityLv2/Lv3 : -1 = pas de limite, 0 = interdit.
+    /// </summary>
     public static readonly IReadOnlyDictionary<RankKey, Rank> All = new Dictionary<RankKey, Rank>
     {
-        [RankKey.Novice] = new("Novice", 7, 1, 2),
-        [RankKey.Aventurier] = new("Aventurier", 6, 1, 3),
-        [RankKey.Veteran] = new("Vétéran", 5, 2, 4),
-        [RankKey.Mentor] = new("Mentor", 4, 2, 5),
+        [RankKey.Novice] = new("Novice", 7, 1, 2, 1, 0),
+        [RankKey.Aventurier] = new("Aventurier", 6, 1, 3, 3, 0),
+        [RankKey.Veteran] = new("Vétéran", 5, 2, 4, 10, 1),
+        [RankKey.Mentor] = new("Mentor", 4, 2, 5, -1, 3),
     };
+
     public static Rank Get(RankKey key) => All[key];
+
+    /// <summary>Vérifie si le rang autorise l'équipement d'une compétence au niveau donné.</summary>
+    public bool AllowsAbilityLevel(int level) => level switch
+    {
+        1 => true,
+        2 => MaxAbilityLv2 == -1 || MaxAbilityLv2 > 0,
+        3 => MaxAbilityLv3 == -1 || MaxAbilityLv3 > 0,
+        _ => false,
+    };
 }
 
 /// <summary>Un set de 3 dés STS. Valeur immuable.</summary>

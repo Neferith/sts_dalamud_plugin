@@ -14,6 +14,9 @@ public class DataModel
 
     [JsonPropertyName("actions")]
     public List<ActionData> Actions { get; set; } = [];
+
+    [JsonPropertyName("abilities")]
+    public List<AbilityData> Abilities { get; set; } = [];
 }
 
 /// <summary>Modèle JSON d'un job.</summary>
@@ -69,6 +72,41 @@ public class TraitEffectData
     /// <summary>Contexte conditionnel. Null = effet permanent.</summary>
     [JsonPropertyName("context")]
     public string? Context { get; set; } = null;
+}
+
+/// <summary>Modèle JSON d'une compétence.</summary>
+public class AbilityData
+{
+    [JsonPropertyName("id")]
+    public string Id { get; set; } = string.Empty;
+
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+
+    [JsonPropertyName("category")]
+    public string Category { get; set; } = string.Empty;
+
+    [JsonPropertyName("requiredJobId")]
+    public string? RequiredJobId { get; set; } = null;
+
+    [JsonPropertyName("usageLimit")]
+    public string? UsageLimit { get; set; } = null;
+
+    [JsonPropertyName("startLevel")]
+    public int StartLevel { get; set; } = 1;
+
+    [JsonPropertyName("levels")]
+    public List<AbilityLevelData> Levels { get; set; } = [];
+}
+
+/// <summary>Modèle JSON d'un niveau de compétence.</summary>
+public class AbilityLevelData
+{
+    [JsonPropertyName("level")]
+    public int Level { get; set; }
+
+    [JsonPropertyName("description")]
+    public string Description { get; set; } = string.Empty;
 }
 
 /// <summary>Modèle JSON d'une action de jet prédéfinie.</summary>
