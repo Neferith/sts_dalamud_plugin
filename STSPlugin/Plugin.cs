@@ -5,7 +5,6 @@ using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
-using FFXIVClientStructs.FFXIV.Client.Game.Fate;
 using FFXIVClientStructs.FFXIV.Client.System.String;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using STSPlugin.DataSource;
@@ -77,7 +76,6 @@ public sealed class Plugin : IDalamudPlugin
     public SetItemSlotUseCase SetItemSlot { get; init; }
     public ReorderInventoryUseCase ReorderInventory { get; init; }
     public SetItemIconUseCase SetItemIcon { get; init; }
-
 
     private readonly WindowSystem windowSystem = new("STSPlugin");
     private readonly MainWindow mainWindow;
@@ -279,6 +277,15 @@ public sealed class Plugin : IDalamudPlugin
     {
         mainWindow.IsOpen = true;
 
+        // Évaluer les prérequis de l'action avant le jet
+        Engine.PalierOverride = null;
+        if (action != null)
+        {
+            var active = GetActiveCharacter.Execute();
+            if (active != null)
+                Engine.PalierOverride = EvaluateRequirements(action, active);
+        }
+
         if (Configuration.RollSource == RollSource.GameRandom)
         {
             if (action != null) Engine.BeginRoll(action);
@@ -291,6 +298,27 @@ public sealed class Plugin : IDalamudPlugin
             else Engine.Roll();
             OnRollComplete();
         }
+    }
+
+    /// <summary>
+    /// Évalue les prérequis d'une action et retourne un palier forcé si une règle s'applique.
+    /// Null = pas de forçage.
+    /// </summary>
+    private int? EvaluateRequirements(RollAction action, Character character)
+    {
+        foreach (var req in action.Requirements)
+        {
+            switch (req)
+            {
+                case ActionRequirementType.Weapon:
+                    var equipped = character.EquippedWeapons.ToList();
+                    // Pas d'arme équipée ou toutes non maîtrisées → palier 8
+                    if (equipped.Count == 0 || equipped.All(w => character.IsWeaponUnmastered(w)))
+                        return 8;
+                    break;
+            }
+        }
+        return null;
     }
 
     private void StartReroll()

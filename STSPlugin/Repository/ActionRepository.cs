@@ -34,6 +34,7 @@ public class DefaultActionRepository : ActionRepository
                 Id = a.Id,
                 Name = a.Name,
                 Contexts = a.Contexts,
+                Requirements = a.Requirements.Select(ParseRequirement).ToList(),
                 IsPredefined = true,
             })
             .ToList();
@@ -45,4 +46,10 @@ public class DefaultActionRepository : ActionRepository
     /// <inheritdoc/>
     public RollAction? GetById(string id)
         => _cache.FirstOrDefault(a => a.Id == id);
+
+    private static ActionRequirementType ParseRequirement(string value) => value switch
+    {
+        "Weapon" => ActionRequirementType.Weapon,
+        _ => ActionRequirementType.Weapon,
+    };
 }
