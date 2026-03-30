@@ -47,6 +47,9 @@ public class TraitData
     [JsonPropertyName("requiredJobId")]
     public string? RequiredJobId { get; set; } = null;
 
+    [JsonPropertyName("requiredJobIds")]
+    public List<string>? RequiredJobIds { get; set; } = null;
+
     [JsonPropertyName("exclusiveGroup")]
     public string? ExclusiveGroup { get; set; } = null;
 
@@ -88,6 +91,9 @@ public class AbilityData
 
     [JsonPropertyName("requiredJobId")]
     public string? RequiredJobId { get; set; } = null;
+
+    [JsonPropertyName("requiredJobIds")]
+    public List<string>? RequiredJobIds { get; set; } = null;
 
     [JsonPropertyName("usageLimit")]
     public string? UsageLimit { get; set; } = null;
