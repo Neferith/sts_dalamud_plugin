@@ -1,14 +1,15 @@
 {
-  "Author": "Neferith",
-  "Name": "STSPlugin",
-  "Punchline": "Outil de jets de dés pour le Système Très Simple (STS).",
-  "Description": "Jets 3d10 avec palier par rang, rerolls, historique et affichage dans le chat. Commandes : /sts, /sts roll, /sts config.",
-  "ApplicableVersion": "any",
-  "Tags": [
-    "rp",
-    "dice",
-    "utility",
-    "Système très simple",
-    "Neferith"
-  ]
+    "Author": "Neferith",
+    "Name": "STSPlugin",
+    "Punchline": "Outil de jets de dés pour le Système Très Simple (STS).",
+    "Description": "Jets 3d10 avec palier par rang, rerolls, historique et affichage dans le chat. Commandes : /sts, /sts roll, /sts config.",
+    "IconUrl": "https://raw.githubusercontent.com/Neferith/sts_dalamud_plugin/master/STSPlugin/MoonLogo_sharpened.png",
+    "ApplicableVersion": "any",
+    "Tags": [
+        "rp",
+        "dice",
+        "utility",
+        "Système très simple",
+        "Neferith"
+    ]
 }
