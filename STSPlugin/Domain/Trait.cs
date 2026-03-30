@@ -2,64 +2,31 @@ using System.Collections.Generic;
 
 namespace STSPlugin.Domain;
 
-/// <summary>
-/// Type d'effet mécanique d'un trait sur les jets de dés.
-/// </summary>
+/// <summary>Type d'effet mécanique d'un trait sur les jets de dés.</summary>
 public enum TraitEffectType
 {
-    /// <summary>
-    /// Rerolls supplémentaires.
-    /// Peut être conditionnel si Context est renseigné (ex : "forestier", "intimidation").
-    /// </summary>
+    /// <summary>Rerolls supplémentaires (permanent ou contextuel).</summary>
     BonusRerolls,
-
-    /// <summary>
-    /// Réduit le palier de réussite de Value points lors d'un reroll.
-    /// </summary>
+    /// <summary>Réduit le palier de réussite lors d'un reroll.</summary>
     BonusPalier,
-
-    /// <summary>
-    /// Impose un mode de jet (Avantage ou Désavantage) sur un type de jet.
-    /// Context précise le type (ex : "attaque", "defense", "discrétion").
-    /// </summary>
+    /// <summary>Impose un mode de jet (Avantage ou Désavantage).</summary>
     ForceRollMode,
-
-    /// <summary>
-    /// Ajoute Value réussites si un 0 (ou chiffre absent) apparaît dans le jet.
-    /// Context précise le type de jet concerné (ex : "attaque", "defense").
-    /// </summary>
+    /// <summary>Ajoute des réussites si un 0 apparaît dans le jet.</summary>
     BonusSuccessOnZero,
-
-    /// <summary>
-    /// Ajoute Value réussites sur un type de jet.
-    /// Context précise le type (ex : "attaque_magique", "intimidation").
-    /// </summary>
+    /// <summary>Ajoute des réussites sur un type de jet.</summary>
     BonusSuccess,
-
-    /// <summary>
-    /// Requiert Value réussites supplémentaires sur un type de jet.
-    /// Context précise le type (ex : "defense", "attaque_distance").
-    /// </summary>
+    /// <summary>Requiert des réussites supplémentaires sur un type de jet.</summary>
     MalusSuccess,
-
     /// <summary>
-    /// Effet déclaratif géré par le joueur ou le MJ.
-    /// Ne peut pas être appliqué automatiquement par l'engine.
+    /// Ajoute des réussites sur le résultat d'un reroll.
+    /// S'applique après le lancer du reroll, pas avant.
     /// </summary>
+    BonusSuccessOnReroll,
+    /// <summary>Effet déclaratif — géré par le joueur ou le MJ.</summary>
     Manual,
 }
 
-/// <summary>
-/// Effet mécanique d'un trait sur les jets de dés.
-/// </summary>
-/// <param name="Type">Type d'effet.</param>
-/// <param name="Value">Valeur numérique de l'effet (bonus/malus). 0 par défaut.</param>
-/// <param name="ForcedMode">Mode de jet imposé pour ForceRollMode. Null sinon.</param>
-/// <param name="Context">
-/// Contexte conditionnel de l'effet.
-/// Null = effet permanent sans condition.
-/// Ex : "forestier", "attaque_magique", "intimidation", "attaque", "defense".
-/// </param>
+/// <summary>Effet mécanique d'un trait.</summary>
 public record TraitEffect(
     TraitEffectType Type,
     int Value = 0,
@@ -67,22 +34,14 @@ public record TraitEffect(
     string? Context = null
 );
 
-/// <summary>
-/// Catégorie d'un trait, déterminant ses règles d'équipement.
-/// </summary>
+/// <summary>Catégorie d'un trait.</summary>
 public enum TraitCategory
 {
-    /// <summary>Trait d'origine — gratuit, hors quota, un seul à la fois.</summary>
     Origine,
-    /// <summary>Trait de connaissance — avantage sur des sujets précis.</summary>
     Connaissance,
-    /// <summary>Trait de rôle DPS.</summary>
     RoleDps,
-    /// <summary>Trait de rôle Soigneur.</summary>
     RoleSoigneur,
-    /// <summary>Trait de rôle Tank.</summary>
     RoleTank,
-    /// <summary>Trait de job — spécifique au job du personnage.</summary>
     Job,
 }
 
@@ -91,27 +50,18 @@ public enum TraitCategory
 /// Entité immuable chargée depuis la source de données.
 /// </summary>
 public record Trait(
-    /// <summary>Identifiant unique du trait (ex : "forestier").</summary>
     string Id,
-
-    /// <summary>Nom affiché du trait.</summary>
     string Name,
-
-    /// <summary>Description des effets du trait.</summary>
     string Description,
-
-    /// <summary>Catégorie déterminant les règles d'équipement.</summary>
     TraitCategory Category,
 
-    /// <summary>Identifiant du job requis. Null si aucun job requis.</summary>
-    string? RequiredJobId = null,
-
-    /// <summary>Groupe d'exclusivité. Null si aucune exclusivité.</summary>
-    string? ExclusiveGroup = null,
-
     /// <summary>
-    /// Effets mécaniques du trait applicables automatiquement par l'engine.
-    /// Les effets de type Manual sont listés pour information mais ignorés par l'engine.
+    /// Identifiants des jobs requis pour accéder à ce trait.
+    /// Null ou liste vide = accessible sans job particulier.
+    /// Plusieurs jobs = accessible à tous les jobs listés.
     /// </summary>
+    IReadOnlyList<string>? RequiredJobIds = null,
+
+    string? ExclusiveGroup = null,
     IReadOnlyList<TraitEffect>? Effects = null
 );

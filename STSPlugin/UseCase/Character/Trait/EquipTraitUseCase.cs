@@ -70,8 +70,11 @@ public class DefaultEquipTraitUseCase : EquipTraitUseCase
         if (character.FreeTraitSlots <= 0)
             return EquipTraitResult.NoSlotAvailable;
 
-        if (trait.RequiredJobId != null && trait.RequiredJobId != character.JobId)
-            return EquipTraitResult.JobMismatch;
+        if (trait.RequiredJobIds != null && trait.RequiredJobIds.Count > 0)
+        {
+            if (character.JobId == null || !trait.RequiredJobIds.Contains(character.JobId))
+                return EquipTraitResult.JobMismatch;
+        }
 
         if (trait.ExclusiveGroup != null)
         {

@@ -41,6 +41,14 @@ public class DefaultEquipAbilityUseCase : EquipAbilityUseCase
         var ability = _abilityRepository.GetById(abilityId);
         if (ability is null) return EquipAbilityResult.AbilityNotFound;
 
+        // Vérifier job requis — sauf pour les armes (universelles)
+        if (ability.Category != AbilityCategory.Weapon &&
+            ability.RequiredJobIds != null && ability.RequiredJobIds.Count > 0)
+        {
+            if (character.JobId == null || !ability.RequiredJobIds.Contains(character.JobId))
+                return EquipAbilityResult.AbilityNotFound;
+        }
+
         var rank = Rank.Get(character.RankKey);
         var currentLevel = character.GetAbilityLevel(abilityId);
         var freePoints = character.GetFreePointsForAbility(abilityId);
@@ -53,6 +61,7 @@ public class DefaultEquipAbilityUseCase : EquipAbilityUseCase
 
         // Les points gratuits de certification ignorent les caps de rang
         var paidLevel = System.Math.Max(0, targetLevel - freePoints);
+
         if (paidLevel > 0 && !rank.AllowsAbilityLevel(targetLevel))
             return EquipAbilityResult.RankTooLow;
 

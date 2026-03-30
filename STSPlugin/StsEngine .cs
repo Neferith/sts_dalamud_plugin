@@ -142,7 +142,14 @@ public class StsEngine
         _session.RerollsUsed++;
         var action = _session.LastResult?.Action;
         var effects = ComputeTraitEffects(action, isReroll: true);
-        _session.LastResult = ResolveWithSet(Roll3(), _session.LastResult?.Rejected, action, effects);
+        var result = ResolveWithSet(Roll3(), _session.LastResult?.Rejected, action, effects);
+
+        // Appliquer les bonus post-reroll (ex : Acharnement)
+        var rerollBonus = ComputeRerollBonuses(action);
+        if (rerollBonus > 0)
+            result = result with { TraitEffects = result.TraitEffects with { BonusSuccesses = result.TraitEffects.BonusSuccesses + rerollBonus } };
+
+        _session.LastResult = result;
         PushHistory(_session.LastResult);
         return true;
     }
@@ -178,9 +185,19 @@ public class StsEngine
     {
         if (State != EngineState.WaitingDice) return false;
 
-        var effects = ComputeTraitEffects(_pendingAction, isReroll: _pendingRejected != null);
+        var isReroll = _pendingRejected != null;
+        var effects = ComputeTraitEffects(_pendingAction, isReroll: isReroll);
         var diceSet = ParseRandomToDiceSet(randomValue);
-        _session.LastResult = ResolveWithSet(diceSet, _pendingRejected, _pendingAction, effects);
+        var result = ResolveWithSet(diceSet, _pendingRejected, _pendingAction, effects);
+
+        if (isReroll)
+        {
+            var rerollBonus = ComputeRerollBonuses(_pendingAction);
+            if (rerollBonus > 0)
+                result = result with { TraitEffects = result.TraitEffects with { BonusSuccesses = result.TraitEffects.BonusSuccesses + rerollBonus } };
+        }
+
+        _session.LastResult = result;
         PushHistory(_session.LastResult);
         State = EngineState.Idle;
         _pendingRejected = null;
@@ -200,6 +217,22 @@ public class StsEngine
     }
 
     // --- calcul des effets de traits ---
+
+    /// <summary>
+    /// Calcule les bonus de réussites accordés sur reroll (BonusSuccessOnReroll).
+    /// Appelé après le reroll pour ajouter les bonus post-lancer.
+    /// </summary>
+    private int ComputeRerollBonuses(RollAction? action)
+    {
+        if (_equippedTraits.Count == 0) return 0;
+        var contexts = action?.Contexts ?? [];
+        return _equippedTraits
+            .Where(t => t.Effects != null)
+            .SelectMany(t => t.Effects!)
+            .Where(e => e.Type == TraitEffectType.BonusSuccessOnReroll)
+            .Where(e => e.Context == null || contexts.Contains(e.Context))
+            .Sum(e => e.Value);
+    }
 
     /// <summary>
     /// Calcule les effets de traits applicables pour une action donnée.
