@@ -38,6 +38,12 @@ public class Character
     /// <summary>Inventaire du personnage (armes et objets divers).</summary>
     public List<CharacterItem> Inventory { get; set; } = [];
 
+    /// <summary>Id de l'arme équipée en main principale. Null si vide.</summary>
+    public string? MainHandItemId { get; set; } = null;
+
+    /// <summary>Id de l'arme équipée en main secondaire. Null si vide.</summary>
+    public string? OffHandItemId { get; set; } = null;
+
     // --- helpers inventaire ---
 
     /// <summary>Retourne les armes équipées.</summary>

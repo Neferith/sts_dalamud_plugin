@@ -35,8 +35,19 @@ public class CharacterItem
     public string? LinkedAbilityId { get; set; } = null;
 
     /// <summary>
-    /// Indique si l'arme est actuellement équipée.
+    /// Indique si l'arme est actuellement équipée dans un slot (main ou secondaire).
     /// Sans effet pour les objets de catégorie Item.
     /// </summary>
     public bool IsEquipped { get; set; } = false;
+
+    /// <summary>
+    /// Identifiant d'icône FFXIV.
+    /// Arme par défaut : 20034 (pistolet). Objet par défaut : 21001.
+    /// </summary>
+    public uint IconId { get; set; } = 21001;
+
+    /// <summary>
+    /// Ordre d'affichage dans la grille. Modifiable par drag & drop.
+    /// </summary>
+    public int SortIndex { get; set; } = 0;
 }

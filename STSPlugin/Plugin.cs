@@ -5,6 +5,7 @@ using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
+using FFXIVClientStructs.FFXIV.Client.Game.Fate;
 using FFXIVClientStructs.FFXIV.Client.System.String;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using STSPlugin.DataSource;
@@ -32,6 +33,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IChatGui ChatGui { get; private set; } = null!;
     [PluginService] internal static IClientState ClientState { get; private set; } = null!;
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
+    [PluginService] internal static ITextureProvider TextureProvider { get; private set; } = null!;
 
     public Configuration Configuration { get; init; }
     public StsEngine Engine { get; init; }
@@ -70,9 +72,12 @@ public sealed class Plugin : IDalamudPlugin
     public RemoveCertificationUseCase RemoveCertification { get; init; }
 
     // --- use cases inventaire ---
-    public AddCharacterItemUseCase AddCharacterItem { get; init; }
-    public RemoveCharacterItemUseCase RemoveCharacterItem { get; init; }
-    public ToggleEquipItemUseCase ToggleEquipItem { get; init; }
+    public AddInventoryItemUseCase AddInventoryItem { get; init; }
+    public RemoveInventoryItemUseCase RemoveInventoryItem { get; init; }
+    public SetItemSlotUseCase SetItemSlot { get; init; }
+    public ReorderInventoryUseCase ReorderInventory { get; init; }
+    public SetItemIconUseCase SetItemIcon { get; init; }
+
 
     private readonly WindowSystem windowSystem = new("STSPlugin");
     private readonly MainWindow mainWindow;
@@ -134,9 +139,11 @@ public sealed class Plugin : IDalamudPlugin
         RemoveCertification = new DefaultRemoveCertificationUseCase(CharacterRepository);
 
         // --- Use cases inventaire ---
-        AddCharacterItem = new DefaultAddCharacterItemUseCase(CharacterRepository);
-        RemoveCharacterItem = new DefaultRemoveCharacterItemUseCase(CharacterRepository);
-        ToggleEquipItem = new DefaultToggleEquipItemUseCase(CharacterRepository);
+        AddInventoryItem = new DefaultAddInventoryItemUseCase(CharacterRepository);
+        RemoveInventoryItem = new DefaultRemoveInventoryItemUseCase(CharacterRepository);
+        SetItemSlot = new DefaultSetItemSlotUseCase(CharacterRepository);
+        ReorderInventory = new DefaultReorderInventoryUseCase(CharacterRepository);
+        SetItemIcon = new DefaultSetItemIconUseCase(CharacterRepository);
 
         // --- Appliquer le personnage actif au démarrage ---
         var active = GetActiveCharacter.Execute();
