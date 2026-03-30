@@ -52,22 +52,34 @@ public class DefaultAbilityRepository : AbilityRepository
         => [.. _cache.Values.Where(a => a.Category == category)];
 
     public IReadOnlyList<Ability> GetByJobId(string? jobId)
-        => [.. _cache.Values.Where(a => a.RequiredJobId == null || a.RequiredJobId == jobId)];
+        => [.. _cache.Values.Where(a =>
+            a.RequiredJobIds == null ||
+            a.RequiredJobIds.Count == 0 ||
+            (jobId != null && a.RequiredJobIds.Contains(jobId)))];
 
     public IReadOnlyList<Ability> GetWeapons()
         => [.. _cache.Values.Where(a => a.Category == AbilityCategory.Weapon)];
 
     // --- mapping ---
 
-    private static Ability MapAbility(AbilityData data) => new(
-        Id: data.Id,
-        Name: data.Name,
-        Category: ParseCategory(data.Category),
-        Levels: data.Levels.Select(l => new AbilityLevel(l.Level, l.Description)).ToList(),
-        RequiredJobId: data.RequiredJobId,
-        UsageLimit: ParseUsageLimit(data.UsageLimit),
-        StartLevel: data.StartLevel
-    );
+    private static Ability MapAbility(AbilityData data)
+    {
+        List<string>? jobIds = null;
+        if (data.RequiredJobIds != null && data.RequiredJobIds.Count > 0)
+            jobIds = data.RequiredJobIds;
+        else if (!string.IsNullOrEmpty(data.RequiredJobId))
+            jobIds = [data.RequiredJobId];
+
+        return new Ability(
+            Id: data.Id,
+            Name: data.Name,
+            Category: ParseCategory(data.Category),
+            Levels: data.Levels.Select(l => new AbilityLevel(l.Level, l.Description)).ToList(),
+            RequiredJobIds: jobIds,
+            UsageLimit: ParseUsageLimit(data.UsageLimit),
+            StartLevel: data.StartLevel
+        );
+    }
 
     private static AbilityCategory ParseCategory(string value) => value switch
     {
@@ -84,6 +96,8 @@ public class DefaultAbilityRepository : AbilityRepository
         "OncePerCombat" => UsageLimit.OncePerCombat,
         "TwicePerCombat" => UsageLimit.TwicePerCombat,
         "OncePerEvent" => UsageLimit.OncePerEvent,
+        "TwicePerEvent" => UsageLimit.TwicePerEvent,
+        "ThreeTimesPerEvent" => UsageLimit.ThreeTimesPerEvent,
         _ => UsageLimit.None,
     };
 }

@@ -53,19 +53,32 @@ public class DefaultTraitRepository : TraitRepository
 
     /// <inheritdoc/>
     public IReadOnlyList<Trait> GetByJobId(string? jobId)
-        => [.. _cache.Values.Where(t => t.RequiredJobId == null || t.RequiredJobId == jobId)];
+        => [.. _cache.Values.Where(t =>
+            t.RequiredJobIds == null ||
+            t.RequiredJobIds.Count == 0 ||
+            (jobId != null && t.RequiredJobIds.Contains(jobId)))];
 
     // --- mapping ---
 
-    private static Trait MapTrait(TraitData data) => new(
-        Id: data.Id,
-        Name: data.Name,
-        Description: data.Description,
-        Category: ParseCategory(data.Category),
-        RequiredJobId: data.RequiredJobId,
-        ExclusiveGroup: data.ExclusiveGroup,
-        Effects: data.Effects.Select(MapEffect).ToList()
-    );
+    private static Trait MapTrait(TraitData data)
+    {
+        // Support both legacy requiredJobId and new requiredJobIds
+        List<string>? jobIds = null;
+        if (data.RequiredJobIds != null && data.RequiredJobIds.Count > 0)
+            jobIds = data.RequiredJobIds;
+        else if (!string.IsNullOrEmpty(data.RequiredJobId))
+            jobIds = [data.RequiredJobId];
+
+        return new Trait(
+            Id: data.Id,
+            Name: data.Name,
+            Description: data.Description,
+            Category: ParseCategory(data.Category),
+            RequiredJobIds: jobIds,
+            ExclusiveGroup: data.ExclusiveGroup,
+            Effects: data.Effects.Select(MapEffect).ToList()
+        );
+    }
 
     private static TraitEffect MapEffect(TraitEffectData data) => new(
         Type: ParseEffectType(data.Type),
@@ -80,6 +93,7 @@ public class DefaultTraitRepository : TraitRepository
         "BonusPalier" => TraitEffectType.BonusPalier,
         "ForceRollMode" => TraitEffectType.ForceRollMode,
         "BonusSuccessOnZero" => TraitEffectType.BonusSuccessOnZero,
+        "BonusSuccessOnReroll" => TraitEffectType.BonusSuccessOnReroll,
         "BonusSuccess" => TraitEffectType.BonusSuccess,
         "MalusSuccess" => TraitEffectType.MalusSuccess,
         _ => TraitEffectType.Manual,

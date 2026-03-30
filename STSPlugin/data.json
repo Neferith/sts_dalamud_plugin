@@ -15,6 +15,82 @@
         {
             "id": "guerrier",
             "name": "Guerrier"
+        },
+        {
+            "id": "maitre_hast",
+            "name": "Maître d'Hast",
+            "primaryWeaponId": "lance"
+        },
+        {
+            "id": "chevalier_dragon",
+            "name": "Chevalier Dragon",
+            "primaryWeaponId": "lance",
+            "isLimited": true
+        },
+        {
+            "id": "ninja",
+            "name": "Ninja",
+            "primaryWeaponId": "dague"
+        },
+        {
+            "id": "voleur",
+            "name": "Voleur",
+            "primaryWeaponId": "dague"
+        },
+        {
+            "id": "mage_blanc",
+            "name": "Mage blanc",
+            "primaryWeaponId": "sceptre"
+        },
+        {
+            "id": "paladin",
+            "name": "Paladin",
+            "primaryWeaponId": "epee"
+        },
+        {
+            "id": "moine",
+            "name": "Moine",
+            "primaryWeaponId": "mains_nues"
+        },
+        {
+            "id": "pistosabreur",
+            "name": "Pistosabreur",
+            "primaryWeaponId": "pistolame"
+        },
+        {
+            "id": "pictomancien",
+            "name": "Pictomancien",
+            "primaryWeaponId": "pinceau"
+        },
+        {
+            "id": "astromancien",
+            "name": "Astromancien",
+            "primaryWeaponId": "globe_stellaire"
+        },
+        {
+            "id": "samourai",
+            "name": "Samourai",
+            "primaryWeaponId": "katana"
+        },
+        {
+            "id": "invocateur",
+            "name": "Invocateur",
+            "primaryWeaponId": "sceptre_arcanique"
+        },
+        {
+            "id": "barde",
+            "name": "Barde",
+            "primaryWeaponId": "arc"
+        },
+        {
+            "id": "mage_noir",
+            "name": "Mage noir",
+            "primaryWeaponId": "sceptre"
+        },
+        {
+            "id": "chevalier_noir",
+            "name": "Chevalier noir",
+            "primaryWeaponId": "epee_lourde"
         }
     ],
     "traits": [
@@ -535,7 +611,6 @@
             "id": "pistolero",
             "name": "Pistolero",
             "category": "Job",
-            "requiredJobId": "machiniste",
             "description": "+1 réussite jets d'attaque contre des cibles à distance. Désavantage sur jets de défense.",
             "effects": [
                 {
@@ -548,49 +623,57 @@
                     "forcedMode": "Desavantage",
                     "context": "defense"
                 }
+            ],
+            "requiredJobIds": [
+                "machiniste"
             ]
         },
         {
             "id": "bouclier_mecanique",
             "name": "Bouclier mécanique",
             "category": "Job",
-            "requiredJobId": "machiniste",
             "description": "+1 réussite défense (soi ou allié) par tourelle à proximité. Les tourelles sont détruites. Reine = +2.",
             "effects": [
                 {
                     "type": "Manual"
                 }
+            ],
+            "requiredJobIds": [
+                "machiniste"
             ]
         },
         {
             "id": "tir_couverture",
             "name": "Tir de Couverture",
             "category": "Job",
-            "requiredJobId": "machiniste",
             "description": "+1 réussite jet allié de votre choix tant que vous n'attaquez pas. Une fois par combat, cumulable sur un même allié.",
             "effects": [
                 {
                     "type": "Manual"
                 }
+            ],
+            "requiredJobIds": [
+                "machiniste"
             ]
         },
         {
             "id": "kardia",
             "name": "Kardia",
             "category": "Job",
-            "requiredJobId": "sage",
             "description": "Une fois par event, applique Kardia à un équipier. Réussir une attaque réduit sa blessure d'un niveau (hors létale).",
             "effects": [
                 {
                     "type": "Manual"
                 }
+            ],
+            "requiredJobIds": [
+                "sage"
             ]
         },
         {
             "id": "diplome_sharlayanais",
             "name": "Diplôme Sharlayannais",
             "category": "Job",
-            "requiredJobId": "sage",
             "description": "+1 réussite sur les jets de connaissance effectués avec avantage.",
             "effects": [
                 {
@@ -598,25 +681,29 @@
                     "value": 1,
                     "context": "connaissance_avantage"
                 }
+            ],
+            "requiredJobIds": [
+                "sage"
             ]
         },
         {
             "id": "bile_vipere",
             "name": "Bile de Vipère",
             "category": "Job",
-            "requiredJobId": "sage",
             "description": "Une fois par event, ignore les modificateurs négatifs sur vos jets de dés.",
             "effects": [
                 {
                     "type": "Manual"
                 }
+            ],
+            "requiredJobIds": [
+                "sage"
             ]
         },
         {
             "id": "entrainement_assassin",
             "name": "Entraînement d'assassin",
             "category": "Job",
-            "requiredJobId": "faucheur",
             "description": "Avantage sur les jets de discrétion et attaques surprises. +1 réussite requise sur jets de défense.",
             "effects": [
                 {
@@ -634,13 +721,15 @@
                     "value": 1,
                     "context": "defense"
                 }
+            ],
+            "requiredJobIds": [
+                "faucheur"
             ]
         },
         {
             "id": "presence_terrifiante",
             "name": "Présence terrifiante",
             "category": "Job",
-            "requiredJobId": "faucheur",
             "description": "+1 réussite sur les jets d'intimidation.",
             "effects": [
                 {
@@ -648,14 +737,503 @@
                     "value": 1,
                     "context": "intimidation"
                 }
+            ],
+            "requiredJobIds": [
+                "faucheur"
             ]
         },
         {
             "id": "endurance_mentale",
             "name": "Endurance Mentale",
             "category": "Job",
-            "requiredJobId": "faucheur",
             "description": "+1 réussite contre les attaques mentales.",
+            "effects": [
+                {
+                    "type": "BonusSuccess",
+                    "value": 1,
+                    "context": "attaque_mentale"
+                }
+            ],
+            "requiredJobIds": [
+                "faucheur"
+            ]
+        },
+        {
+            "id": "bain_de_sang",
+            "name": "Bain de Sang",
+            "category": "Job",
+            "description": "Une fois par event, en réussissant une attaque, diminue le niveau de votre blessure selon vos succès. Déclaré avant le lancer.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ],
+            "requiredJobIds": [
+                "guerrier"
+            ]
+        },
+        {
+            "id": "frisson_bataille",
+            "name": "Frisson de la Bataille",
+            "category": "Job",
+            "description": "Avantage en nombre inférieur, désavantage en nombre supérieur. Déclaré en début de combat.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ],
+            "requiredJobIds": [
+                "guerrier"
+            ]
+        },
+        {
+            "id": "insensible_douleur",
+            "name": "Insensible à la douleur",
+            "category": "Job",
+            "description": "Palier de défense réduit de moitié (arrondi au supérieur) contre les créatures de grande taille.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ],
+            "requiredJobIds": [
+                "guerrier"
+            ]
+        },
+        {
+            "id": "distance_securite",
+            "name": "Distance de Securite",
+            "category": "Job",
+            "requiredJobIds": [
+                "maitre_hast",
+                "chevalier_dragon"
+            ],
+            "description": "Gagnez la distance au debut du combat ou sur la reussite d'une attaque au corps a corps. Perdez-la sur toute defense au corps a corps, ce qui vous octroie un succes supplementaire.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "armure_renforcee",
+            "name": "Armure Renforcee",
+            "category": "Job",
+            "requiredJobIds": [
+                "maitre_hast",
+                "chevalier_dragon"
+            ],
+            "description": "+1 reussite sur vos jets de defense. Sans effet sur les attaques de zone.",
+            "effects": [
+                {
+                    "type": "BonusSuccess",
+                    "value": 1,
+                    "context": "defense"
+                }
+            ]
+        },
+        {
+            "id": "combattant_elementaire",
+            "name": "Combattant elementaire",
+            "category": "Job",
+            "requiredJobIds": [
+                "maitre_hast"
+            ],
+            "description": "Vous gagnez un succes sur toutes vos actions tant que votre arme est infusee d'un element.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "mort_venue_den_haut",
+            "name": "Mort venue d'en haut",
+            "category": "Job",
+            "requiredJobIds": [
+                "chevalier_dragon"
+            ],
+            "description": "Vous gagnez un succes sur toutes vos actions tant que votre personnage ne touche pas le sol.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "decalage_ombre",
+            "name": "Decalage d'Ombre",
+            "category": "Job",
+            "requiredJobIds": [
+                "ninja",
+                "voleur"
+            ],
+            "description": "Une fois par event, diminuez votre palier de reussite de 1 sur un jet de defense.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "maitre_discretion",
+            "name": "Maitre de la discretion",
+            "category": "Job",
+            "requiredJobIds": [
+                "ninja",
+                "voleur"
+            ],
+            "description": "Vous avez l'avantage sur tous les jets de discretion.",
+            "effects": [
+                {
+                    "type": "ForceRollMode",
+                    "context": "discretion",
+                    "forcedMode": "Avantage"
+                }
+            ]
+        },
+        {
+            "id": "meisui",
+            "name": "Meisui",
+            "category": "Job",
+            "requiredJobIds": [
+                "ninja"
+            ],
+            "description": "Vos Ninjutsu obtiennent un succes supplementaire en jet d'attaque.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "attaque_deloyale",
+            "name": "Attaque deloyale",
+            "category": "Job",
+            "requiredJobIds": [
+                "voleur"
+            ],
+            "description": "Vous avez l'avantage sur vos jets d'attaque si votre cible ne vous a pas repere.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "sponte",
+            "name": "Sponte",
+            "category": "Job",
+            "requiredJobIds": [
+                "mage_blanc"
+            ],
+            "description": "Deux fois par event, vous pouvez ignorer les malus de blessures en lancant un de.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "presence_esprit",
+            "name": "Presence d'esprit",
+            "category": "Job",
+            "requiredJobIds": [
+                "mage_blanc"
+            ],
+            "description": "Une fois par event, vous pouvez reduire la difficulte de vos jets de 1.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "mage_lumiere",
+            "name": "Mage de lumiere",
+            "category": "Job",
+            "requiredJobIds": [
+                "mage_blanc"
+            ],
+            "description": "Vous avez avantage en combattant toutes les creatures du neant et morts-vivants.",
+            "effects": [
+                {
+                    "type": "ForceRollMode",
+                    "context": "creature_neant",
+                    "forcedMode": "Avantage"
+                }
+            ]
+        },
+        {
+            "id": "serment_bouclier",
+            "name": "Serment du bouclier",
+            "category": "Job",
+            "requiredJobIds": [
+                "paladin"
+            ],
+            "exclusiveGroup": "serment_paladin",
+            "description": "+2 reussites sur vos jets de defense. +2 reussites requises sur vos jets d'attaque. Annonce en debut de combat. Dure tout un combat.",
+            "effects": [
+                {
+                    "type": "BonusSuccess",
+                    "value": 2,
+                    "context": "defense"
+                },
+                {
+                    "type": "MalusSuccess",
+                    "value": 2,
+                    "context": "attaque"
+                }
+            ]
+        },
+        {
+            "id": "serment_epee",
+            "name": "Serment de l'Epee",
+            "category": "Job",
+            "requiredJobIds": [
+                "paladin"
+            ],
+            "exclusiveGroup": "serment_paladin",
+            "description": "+1 reussite sur vos jets d'attaque. +1 reussite requise sur vos jets de defense. Annonce en debut de combat. Dure tout un combat.",
+            "effects": [
+                {
+                    "type": "BonusSuccess",
+                    "value": 1,
+                    "context": "attaque"
+                },
+                {
+                    "type": "MalusSuccess",
+                    "value": 1,
+                    "context": "defense"
+                }
+            ]
+        },
+        {
+            "id": "couverture_paladin",
+            "name": "Couverture",
+            "category": "Job",
+            "requiredJobIds": [
+                "paladin"
+            ],
+            "description": "Une fois par combat, vous pouvez ajouter votre de a la defense d'un allie.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "volee_de_coups",
+            "name": "Volee de coups",
+            "category": "Job",
+            "requiredJobIds": [
+                "moine"
+            ],
+            "description": "Vous permet de faire deux actions en un tour. Votre prochain jet de defense necessite une reussite supplementaire. Cumulable.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "suprematie_mains_nues",
+            "name": "Suprematie a mains nues",
+            "category": "Job",
+            "requiredJobIds": [
+                "moine"
+            ],
+            "description": "Quand vous combattez sans arme face a un ennemi humain sans arme, ajoutez deux reussites a vos jets.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "bravoure_splendeur",
+            "name": "Bravoure de la Splendeur",
+            "category": "Job",
+            "requiredJobIds": [
+                "moine"
+            ],
+            "description": "La premiere fois que vous deviez subir une blessure Critique, vous subissez une blessure majeure a la place.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "garde_royale",
+            "name": "Garde Royale",
+            "category": "Job",
+            "requiredJobIds": [
+                "pistosabreur"
+            ],
+            "description": "Avantage sur les jets de defense contre les attaques physiques. Desavantage contre les attaques magiques. Annonce en debut de combat.",
+            "effects": [
+                {
+                    "type": "ForceRollMode",
+                    "context": "defense_physique",
+                    "forcedMode": "Avantage"
+                },
+                {
+                    "type": "ForceRollMode",
+                    "context": "defense_magique",
+                    "forcedMode": "Desavantage"
+                }
+            ]
+        },
+        {
+            "id": "acharnement",
+            "name": "Acharnement",
+            "category": "Job",
+            "requiredJobIds": [
+                "pistosabreur"
+            ],
+            "description": "Gagnez un succes supplementaire quand vous utilisez un reroll.",
+            "effects": [
+                {
+                    "type": "BonusSuccessOnReroll",
+                    "value": 1
+                }
+            ]
+        },
+        {
+            "id": "garde_du_corps",
+            "name": "Garde du corps",
+            "category": "Job",
+            "requiredJobIds": [
+                "pistosabreur"
+            ],
+            "description": "Au debut d'un event, declarez-vous Garde du Corps pour un joueur. +1 succes a ses jets de defense et a vos jets d'attaque en restant a cote de lui. Non changeable pendant l'event.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "enduit_tempera",
+            "name": "Enduit a Tempera",
+            "category": "Job",
+            "requiredJobIds": [
+                "pictomancien"
+            ],
+            "description": "Une fois par event, ajoutez un succes sur un jet de defense pour vous ou un allie.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "saturation",
+            "name": "Saturation",
+            "category": "Job",
+            "requiredJobIds": [
+                "pictomancien"
+            ],
+            "description": "Vous pouvez ajouter 2 succes a un jet colore. Vous ne pouvez plus utiliser cette couleur et sa palette soustractive pour le reste de l'event.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "couleurs_complementaires",
+            "name": "Couleurs complementaires",
+            "category": "Job",
+            "requiredJobIds": [
+                "pictomancien"
+            ],
+            "description": "Une fois par ennemi, gagnez l'avantage sur un jet d'attaque si cet ennemi est d'une couleur complementaire a la votre.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "vitesse_lumiere",
+            "name": "Vitesse de la Lumiere",
+            "category": "Job",
+            "requiredJobIds": [
+                "astromancien"
+            ],
+            "description": "Une fois par combat, effectuez deux actions en un tour.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "exaltation",
+            "name": "Exaltation",
+            "category": "Job",
+            "requiredJobIds": [
+                "astromancien"
+            ],
+            "description": "Une fois par event, ajoutez deux succes au reroll d'un allie.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "reve_lucide",
+            "name": "Reve Lucide",
+            "category": "Job",
+            "requiredJobIds": [
+                "astromancien"
+            ],
+            "description": "Une fois par event, si vous n'avez plus de rerolls et qu'un allie utilise son dernier reroll, donnez-lui un reroll supplementaire jusqu'a la fin de l'event.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "meditation_sam",
+            "name": "Meditation",
+            "category": "Job",
+            "requiredJobIds": [
+                "samourai"
+            ],
+            "description": "Une fois par event, entrez en meditation. Chaque tour passee a mediter ajoute un succes sur toutes vos actions pour le reste du combat. Se faire blesser rompt la meditation.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "lame_tranchante",
+            "name": "Lame tranchante",
+            "category": "Job",
+            "requiredJobIds": [
+                "samourai"
+            ],
+            "description": "Ajoutez deux succes a un jet d'attaque. Vous avez un succes en moins sur vos jets de defense pour le reste de l'event. Le malus se cumule.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "clarte_esprit",
+            "name": "Clarte d'esprit",
+            "category": "Job",
+            "requiredJobIds": [
+                "samourai"
+            ],
+            "description": "+1 reussite sur vos jets de defense mentale.",
             "effects": [
                 {
                     "type": "BonusSuccess",
@@ -665,11 +1243,13 @@
             ]
         },
         {
-            "id": "bain_de_sang",
-            "name": "Bain de Sang",
+            "id": "sacrifice_familier",
+            "name": "Sacrifice de Familier",
             "category": "Job",
-            "requiredJobId": "guerrier",
-            "description": "Une fois par event, en réussissant une attaque, diminue le niveau de votre blessure selon vos succès. Déclaré avant le lancer.",
+            "requiredJobIds": [
+                "invocateur"
+            ],
+            "description": "Vous pouvez vous donner avantage sur un jet en renvoyant votre familier.",
             "effects": [
                 {
                     "type": "Manual"
@@ -677,11 +1257,13 @@
             ]
         },
         {
-            "id": "frisson_bataille",
-            "name": "Frisson de la Bataille",
+            "id": "reserve_ether",
+            "name": "Reserve d'ether",
             "category": "Job",
-            "requiredJobId": "guerrier",
-            "description": "Avantage en nombre inférieur, désavantage en nombre supérieur. Déclaré en début de combat.",
+            "requiredJobIds": [
+                "invocateur"
+            ],
+            "description": "Vous obtenez une reussite supplementaire tant qu'il vous reste des charges d'invocation en reserve.",
             "effects": [
                 {
                     "type": "Manual"
@@ -689,11 +1271,160 @@
             ]
         },
         {
-            "id": "insensible_douleur",
-            "name": "Insensible à la douleur",
+            "id": "expert_primordial",
+            "name": "Expert primordial",
             "category": "Job",
-            "requiredJobId": "guerrier",
-            "description": "Palier de défense réduit de moitié (arrondi au supérieur) contre les créatures de grande taille.",
+            "requiredJobIds": [
+                "invocateur"
+            ],
+            "description": "Vous avez l'avantage sur tous jets impliquant des primordiaux ou creatures etherees.",
+            "effects": [
+                {
+                    "type": "ForceRollMode",
+                    "context": "primordial",
+                    "forcedMode": "Avantage"
+                }
+            ]
+        },
+        {
+            "id": "rafale_de_coups",
+            "name": "Rafale de coups",
+            "category": "Job",
+            "requiredJobIds": [
+                "barde"
+            ],
+            "description": "Une fois par event, effectuez deux actions en un tour OU donnez-vous avantage sur un jet d'attaque.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "troubadour",
+            "name": "Troubadour",
+            "category": "Job",
+            "requiredJobIds": [
+                "barde"
+            ],
+            "description": "Une fois par event, donnez l'avantage a tous vos allies sur un jet de defense. Vous n'en beneficiez pas.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "tir_couverture_barde",
+            "name": "Tir de Couverture",
+            "category": "Job",
+            "requiredJobIds": [
+                "barde"
+            ],
+            "description": "Ajoutez un succes au jet d'un allie de votre choix tant que vous n'effectuez pas d'attaque. Une fois par combat. Cumulable sur un meme allie.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "barriere_mana",
+            "name": "Barriere de mana",
+            "category": "Job",
+            "requiredJobIds": [
+                "mage_noir"
+            ],
+            "description": "Une fois par event, ajoutez un succes pour un jet de defense.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "chaos_magique",
+            "name": "Chaos magique",
+            "category": "Job",
+            "requiredJobIds": [
+                "mage_noir"
+            ],
+            "description": "Une fois par event, ajoutez a votre jet d'attaque 1 succes par ennemi (et allie) dans le rayon d'un de vos sorts de zone.",
+            "effects": [
+                {
+                    "type": "Manual"
+                }
+            ]
+        },
+        {
+            "id": "tourelle_magique",
+            "name": "Tourelle magique",
+            "category": "Job",
+            "requiredJobIds": [
+                "mage_noir"
+            ],
+            "exclusiveGroup": "posture_mn",
+            "description": "+2 succes a vos jets d'attaque. +2 reussites requises sur vos jets de defense. Disparait si vous vous deplacez. Annonce pour etre actif. Une seule fois par event.",
+            "effects": [
+                {
+                    "type": "BonusSuccess",
+                    "value": 2,
+                    "context": "attaque"
+                },
+                {
+                    "type": "MalusSuccess",
+                    "value": 2,
+                    "context": "defense"
+                }
+            ]
+        },
+        {
+            "id": "tenacite",
+            "name": "Tenacite",
+            "category": "Job",
+            "requiredJobIds": [
+                "chevalier_noir"
+            ],
+            "exclusiveGroup": "posture_cn",
+            "description": "Avantage sur vos jets de defense contre toute attaque magique. Vos attaques ne peuvent plus etre utilisees a distance. Annonce. Dure tout un combat.",
+            "effects": [
+                {
+                    "type": "ForceRollMode",
+                    "context": "defense_magique",
+                    "forcedMode": "Avantage"
+                }
+            ]
+        },
+        {
+            "id": "arme_de_sang",
+            "name": "Arme de Sang",
+            "category": "Job",
+            "requiredJobIds": [
+                "chevalier_noir"
+            ],
+            "exclusiveGroup": "posture_cn",
+            "description": "Avantage sur vos jets d'attaque. -1 reussite sur vos jets de defense. Annonce. Dure tout un combat. Non cumulable avec Tenacite.",
+            "effects": [
+                {
+                    "type": "ForceRollMode",
+                    "context": "attaque",
+                    "forcedMode": "Avantage"
+                },
+                {
+                    "type": "MalusSuccess",
+                    "value": 1,
+                    "context": "defense"
+                }
+            ]
+        },
+        {
+            "id": "oblation",
+            "name": "Oblation",
+            "category": "Job",
+            "requiredJobIds": [
+                "chevalier_noir"
+            ],
+            "description": "Deux fois par combat, reduisez de 1 le palier de reussite d'un allie (ou de vous-meme) sur un jet de defense.",
             "effects": [
                 {
                     "type": "Manual"
@@ -848,6 +1579,215 @@
     ],
     "abilities": [
         {
+            "id": "noulith",
+            "name": "Noulith",
+            "category": "Weapon",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Connaissances theoriques suffisantes pour manier son arme en se concentrant."
+                },
+                {
+                    "level": 2,
+                    "description": "Peut desormais utiliser son arme de maniere fiable peu importe la situation."
+                },
+                {
+                    "level": 3,
+                    "description": "Passe maitre dans l'art d'utiliser son arme, peut desormais utiliser des techniques avancees."
+                }
+            ]
+        },
+        {
+            "id": "faux",
+            "name": "Faux",
+            "category": "Weapon",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Connaissances theoriques suffisantes pour manier son arme en se concentrant."
+                },
+                {
+                    "level": 2,
+                    "description": "Peut desormais utiliser son arme de maniere fiable peu importe la situation."
+                },
+                {
+                    "level": 3,
+                    "description": "Passe maitre dans l'art d'utiliser son arme, peut desormais utiliser des techniques avancees."
+                }
+            ]
+        },
+        {
+            "id": "epee_lourde",
+            "name": "Epee lourde",
+            "category": "Weapon",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Connaissances theoriques suffisantes pour manier son arme en se concentrant."
+                },
+                {
+                    "level": 2,
+                    "description": "Peut desormais utiliser son arme de maniere fiable peu importe la situation."
+                },
+                {
+                    "level": 3,
+                    "description": "Passe maitre dans l'art d'utiliser son arme, peut desormais utiliser des techniques avancees."
+                }
+            ]
+        },
+        {
+            "id": "sceptre",
+            "name": "Sceptre",
+            "category": "Weapon",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Connaissances theoriques suffisantes pour manier son arme en se concentrant."
+                },
+                {
+                    "level": 2,
+                    "description": "Peut desormais utiliser son arme de maniere fiable peu importe la situation."
+                },
+                {
+                    "level": 3,
+                    "description": "Passe maitre dans l'art d'utiliser son arme, peut desormais utiliser des techniques avancees."
+                }
+            ]
+        },
+        {
+            "id": "sceptre_arcanique",
+            "name": "Sceptre arcanique",
+            "category": "Weapon",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Connaissances theoriques suffisantes pour manier son arme en se concentrant."
+                },
+                {
+                    "level": 2,
+                    "description": "Peut desormais utiliser son arme de maniere fiable peu importe la situation."
+                },
+                {
+                    "level": 3,
+                    "description": "Passe maitre dans l'art d'utiliser son arme, peut desormais utiliser des techniques avancees."
+                }
+            ]
+        },
+        {
+            "id": "katana",
+            "name": "Katana",
+            "category": "Weapon",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Connaissances theoriques suffisantes pour manier son arme en se concentrant."
+                },
+                {
+                    "level": 2,
+                    "description": "Peut desormais utiliser son arme de maniere fiable peu importe la situation."
+                },
+                {
+                    "level": 3,
+                    "description": "Passe maitre dans l'art d'utiliser son arme, peut desormais utiliser des techniques avancees."
+                }
+            ]
+        },
+        {
+            "id": "globe_stellaire",
+            "name": "Globe stellaire",
+            "category": "Weapon",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Connaissances theoriques suffisantes pour manier son arme en se concentrant."
+                },
+                {
+                    "level": 2,
+                    "description": "Peut desormais utiliser son arme de maniere fiable peu importe la situation."
+                },
+                {
+                    "level": 3,
+                    "description": "Passe maitre dans l'art d'utiliser son arme, peut desormais utiliser des techniques avancees."
+                }
+            ]
+        },
+        {
+            "id": "pinceau",
+            "name": "Pinceau",
+            "category": "Weapon",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Connaissances theoriques suffisantes pour manier son arme en se concentrant."
+                },
+                {
+                    "level": 2,
+                    "description": "Peut desormais utiliser son arme de maniere fiable peu importe la situation."
+                },
+                {
+                    "level": 3,
+                    "description": "Passe maitre dans l'art d'utiliser son arme, peut desormais utiliser des techniques avancees."
+                }
+            ]
+        },
+        {
+            "id": "mains_nues",
+            "name": "Mains nues",
+            "category": "Weapon",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Connaissances theoriques suffisantes pour manier son arme en se concentrant."
+                },
+                {
+                    "level": 2,
+                    "description": "Peut desormais utiliser son arme de maniere fiable peu importe la situation."
+                },
+                {
+                    "level": 3,
+                    "description": "Passe maitre dans l'art d'utiliser son arme, peut desormais utiliser des techniques avancees."
+                }
+            ]
+        },
+        {
+            "id": "epee",
+            "name": "Epee",
+            "category": "Weapon",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Connaissances theoriques suffisantes pour manier son arme en se concentrant."
+                },
+                {
+                    "level": 2,
+                    "description": "Peut desormais utiliser son arme de maniere fiable peu importe la situation."
+                },
+                {
+                    "level": 3,
+                    "description": "Passe maitre dans l'art d'utiliser son arme, peut desormais utiliser des techniques avancees."
+                }
+            ]
+        },
+        {
+            "id": "lance",
+            "name": "Lance",
+            "category": "Weapon",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Connaissances theoriques suffisantes pour manier son arme en se concentrant."
+                },
+                {
+                    "level": 2,
+                    "description": "Peut desormais utiliser son arme de maniere fiable peu importe la situation."
+                },
+                {
+                    "level": 3,
+                    "description": "Passe maitre dans l'art d'utiliser son arme, peut desormais utiliser des techniques avancees."
+                }
+            ]
+        },
+        {
             "id": "arme_a_feu",
             "name": "Arme à feu",
             "category": "Weapon",
@@ -869,82 +1809,6 @@
         {
             "id": "lance_flamme",
             "name": "Lance-flamme",
-            "category": "Weapon",
-            "levels": [
-                {
-                    "level": 1,
-                    "description": "Connaissances théoriques suffisantes pour manier son arme en se concentrant."
-                },
-                {
-                    "level": 2,
-                    "description": "Peut désormais utiliser son arme de manière fiable peu importe la situation."
-                },
-                {
-                    "level": 3,
-                    "description": "Passé maître dans l'art d'utiliser son arme, peut désormais utiliser des techniques avancées."
-                }
-            ]
-        },
-        {
-            "id": "dague",
-            "name": "Dague",
-            "category": "Weapon",
-            "levels": [
-                {
-                    "level": 1,
-                    "description": "Connaissances théoriques suffisantes pour manier son arme en se concentrant."
-                },
-                {
-                    "level": 2,
-                    "description": "Peut désormais utiliser son arme de manière fiable peu importe la situation."
-                },
-                {
-                    "level": 3,
-                    "description": "Passé maître dans l'art d'utiliser son arme, peut désormais utiliser des techniques avancées."
-                }
-            ]
-        },
-        {
-            "id": "pistolame",
-            "name": "Pistolame",
-            "category": "Weapon",
-            "levels": [
-                {
-                    "level": 1,
-                    "description": "Connaissances théoriques suffisantes pour manier son arme en se concentrant."
-                },
-                {
-                    "level": 2,
-                    "description": "Peut désormais utiliser son arme de manière fiable peu importe la situation."
-                },
-                {
-                    "level": 3,
-                    "description": "Passé maître dans l'art d'utiliser son arme, peut désormais utiliser des techniques avancées."
-                }
-            ]
-        },
-        {
-            "id": "arc",
-            "name": "Arc",
-            "category": "Weapon",
-            "levels": [
-                {
-                    "level": 1,
-                    "description": "Connaissances théoriques suffisantes pour manier son arme en se concentrant."
-                },
-                {
-                    "level": 2,
-                    "description": "Peut désormais utiliser son arme de manière fiable peu importe la situation."
-                },
-                {
-                    "level": 3,
-                    "description": "Passé maître dans l'art d'utiliser son arme, peut désormais utiliser des techniques avancées."
-                }
-            ]
-        },
-        {
-            "id": "hache",
-            "name": "Hache",
             "category": "Weapon",
             "levels": [
                 {
@@ -1169,7 +2033,6 @@
             "id": "tir_de_balles",
             "name": "Tir de balles",
             "category": "Job",
-            "requiredJobId": "machiniste",
             "levels": [
                 {
                     "level": 1,
@@ -1179,13 +2042,15 @@
                     "level": 2,
                     "description": "Les balles explosent au contact, infligeant des brûlures supplémentaires."
                 }
+            ],
+            "requiredJobIds": [
+                "machiniste"
             ]
         },
         {
             "id": "tir_net",
             "name": "Tir net",
             "category": "Job",
-            "requiredJobId": "machiniste",
             "levels": [
                 {
                     "level": 1,
@@ -1195,13 +2060,15 @@
                     "level": 2,
                     "description": "Le tir est suivi d'une décharge électrique, permettant d'étourdir temporairement un adversaire."
                 }
+            ],
+            "requiredJobIds": [
+                "machiniste"
             ]
         },
         {
             "id": "fusil_a_pompe",
             "name": "Fusil à pompe",
             "category": "Job",
-            "requiredJobId": "machiniste",
             "levels": [
                 {
                     "level": 1,
@@ -1211,13 +2078,15 @@
                     "level": 2,
                     "description": "Augmente la dispersion, permettant de toucher plusieurs ennemis."
                 }
+            ],
+            "requiredJobIds": [
+                "machiniste"
             ]
         },
         {
             "id": "bioblaster",
             "name": "BioBlaster",
             "category": "Job",
-            "requiredJobId": "machiniste",
             "levels": [
                 {
                     "level": 1,
@@ -1227,13 +2096,15 @@
                     "level": 2,
                     "description": "La balle explose au contact, répandant du poison dans une zone donnée."
                 }
+            ],
+            "requiredJobIds": [
+                "machiniste"
             ]
         },
         {
             "id": "tourelle_tour",
             "name": "Tourelle Tour",
             "category": "Job",
-            "requiredJobId": "machiniste",
             "levels": [
                 {
                     "level": 1,
@@ -1243,13 +2114,15 @@
                     "level": 2,
                     "description": "La tourelle devient capable de changer de cible."
                 }
+            ],
+            "requiredJobIds": [
+                "machiniste"
             ]
         },
         {
             "id": "tourelle_fou",
             "name": "Tourelle Fou",
             "category": "Job",
-            "requiredJobId": "machiniste",
             "levels": [
                 {
                     "level": 1,
@@ -1259,13 +2132,15 @@
                     "level": 2,
                     "description": "La zone de dégâts peut être convertie en bouclier pour les alliés."
                 }
+            ],
+            "requiredJobIds": [
+                "machiniste"
             ]
         },
         {
             "id": "flambee",
             "name": "Flambée",
             "category": "Job",
-            "requiredJobId": "machiniste",
             "usageLimit": "TwicePerCombat",
             "startLevel": 2,
             "levels": [
@@ -1273,25 +2148,29 @@
                     "level": 2,
                     "description": "Lance un explosif qui détone quand on lui tire dessus, ou bien après quelques instants."
                 }
+            ],
+            "requiredJobIds": [
+                "machiniste"
             ]
         },
         {
             "id": "demontage",
             "name": "Démontage",
             "category": "Job",
-            "requiredJobId": "machiniste",
             "levels": [
                 {
                     "level": 1,
                     "description": "Lance un outil vers la cible, une attaque réussie interrompt le lancement d'un sort."
                 }
+            ],
+            "requiredJobIds": [
+                "machiniste"
             ]
         },
         {
             "id": "foreuse",
             "name": "Foreuse",
             "category": "Job",
-            "requiredJobId": "machiniste",
             "usageLimit": "OncePerEvent",
             "startLevel": 2,
             "levels": [
@@ -1303,13 +2182,15 @@
                     "level": 3,
                     "description": "La foreuse est désormais propulsée, permettant d'atteindre les cibles à distance."
                 }
+            ],
+            "requiredJobIds": [
+                "machiniste"
             ]
         },
         {
             "id": "tourelle_reine",
             "name": "Tourelle Reine",
             "category": "Job",
-            "requiredJobId": "machiniste",
             "usageLimit": "OncePerEvent",
             "startLevel": 3,
             "levels": [
@@ -1317,13 +2198,15 @@
                     "level": 3,
                     "description": "Appelle un automate Reine pour rejoindre le combat. L'automate possède une grande durabilité et attaque au corps à corps tout ennemi à portée."
                 }
+            ],
+            "requiredJobIds": [
+                "machiniste"
             ]
         },
         {
             "id": "fusil_mystique",
             "name": "Fusil Mystique",
             "category": "Job",
-            "requiredJobId": "machiniste",
             "usageLimit": "OncePerEvent",
             "startLevel": 3,
             "levels": [
@@ -1331,7 +2214,2754 @@
                     "level": 3,
                     "description": "Tire une balle de sniper unique qui atteindra toujours sa cible peu importe la portée, tant qu'elle reste dans votre champ de vision. La balle ignore la plupart des résistances."
                 }
+            ],
+            "requiredJobIds": [
+                "machiniste"
             ]
+        },
+        {
+            "id": "eventration",
+            "name": "Eventration",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Feinte terminant par un coup perforant l'armure."
+                },
+                {
+                    "level": 2,
+                    "description": "Permet de lancer Percee Chaotique, une perforante faisant saigner."
+                }
+            ],
+            "requiredJobIds": [
+                "maitre_hast",
+                "chevalier_dragon"
+            ]
+        },
+        {
+            "id": "griffe_percante",
+            "name": "Griffe Percante",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Lance l'arme vers une cible a moyenne portee puis la fait revenir."
+                },
+                {
+                    "level": 2,
+                    "description": "Distance : ce que le porteur peut voir. Perd en puissance avec la distance."
+                }
+            ],
+            "requiredJobIds": [
+                "maitre_hast",
+                "chevalier_dragon"
+            ]
+        },
+        {
+            "id": "percee_vorpale",
+            "name": "Percee Vorpale",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Serie d'attaques a la lance, efficace sur cibles en mouvement et aeriennes."
+                },
+                {
+                    "level": 2,
+                    "description": "Permet de lancer Percee Totale, dommages bonus si la cible ne fait pas face."
+                }
+            ],
+            "requiredJobIds": [
+                "maitre_hast",
+                "chevalier_dragon"
+            ]
+        },
+        {
+            "id": "litanie_combattante",
+            "name": "Litanie Combattante",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 3,
+                    "description": "Renforce le moral des allies, rendant leurs attaques extremement efficaces."
+                }
+            ],
+            "requiredJobIds": [
+                "maitre_hast",
+                "chevalier_dragon"
+            ],
+            "usageLimit": "OncePerEvent",
+            "startLevel": 3
+        },
+        {
+            "id": "pointe_destin",
+            "name": "Pointe du Destin",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Plante l'arme au sol pour une attaque circulaire."
+                },
+                {
+                    "level": 2,
+                    "description": "Si l'arme est infusee, cree une zone persistante de cet element."
+                }
+            ],
+            "requiredJobIds": [
+                "maitre_hast"
+            ]
+        },
+        {
+            "id": "enchantement_glace",
+            "name": "Enchantement de Glace",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Infuse l'arme d'ether de Glace, augmentant ses degats pour les prochains tours."
+                }
+            ],
+            "requiredJobIds": [
+                "maitre_hast"
+            ]
+        },
+        {
+            "id": "enchantement_terre",
+            "name": "Enchantement de Terre",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Infuse l'arme d'ether de Terre, augmentant ses degats pour les prochains tours."
+                }
+            ],
+            "requiredJobIds": [
+                "maitre_hast"
+            ]
+        },
+        {
+            "id": "enchantement_vent",
+            "name": "Enchantement de Vent",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Infuse l'arme d'ether de Vent, augmentant ses degats pour les prochains tours."
+                }
+            ],
+            "requiredJobIds": [
+                "maitre_hast"
+            ]
+        },
+        {
+            "id": "posture_defensive",
+            "name": "Posture Defensive",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Posture defensive : immobile mais defense augmentee. Riposte sur defense reussie."
+                },
+                {
+                    "level": 2,
+                    "description": "Bloque a coup sur les degats d'une charge."
+                }
+            ],
+            "requiredJobIds": [
+                "maitre_hast"
+            ],
+            "usageLimit": "TwicePerCombat"
+        },
+        {
+            "id": "cercle_ronces",
+            "name": "Cercle de Ronces",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 3,
+                    "description": "Plante l'arme, invoquant des plantes enracinant les creatures visibles. Degats bonus si arme infusee."
+                }
+            ],
+            "requiredJobIds": [
+                "maitre_hast"
+            ],
+            "usageLimit": "OncePerEvent",
+            "startLevel": 3
+        },
+        {
+            "id": "geirskogul",
+            "name": "Geirskogul",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Decharge d'energie draconique en ligne a distance moyenne."
+                },
+                {
+                    "level": 2,
+                    "description": "Permet de lancer Nastroend juste apres, decharge enflammee."
+                }
+            ],
+            "requiredJobIds": [
+                "chevalier_dragon"
+            ]
+        },
+        {
+            "id": "saut_cd",
+            "name": "Saut",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Bond dans les airs puis retombee sur la cible pour l'empaler. Immunise aux degats de chute."
+                }
+            ],
+            "requiredJobIds": [
+                "chevalier_dragon"
+            ]
+        },
+        {
+            "id": "pique_mirage",
+            "name": "Pique Mirage",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Projectile retombant sur la cible. Force les cibles aeriennes a atterrir."
+                }
+            ],
+            "requiredJobIds": [
+                "chevalier_dragon"
+            ]
+        },
+        {
+            "id": "rugissement_horrible",
+            "name": "Rugissement Horrible",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Cri imitant les dragons, affaiblissant les ennemis proches en reduisant leur precision."
+                }
+            ],
+            "requiredJobIds": [
+                "chevalier_dragon"
+            ]
+        },
+        {
+            "id": "saut_insaisissable",
+            "name": "Saut Insaisissable",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Saut pour eviter une attaque ou se deplacer en hauteur."
+                },
+                {
+                    "level": 2,
+                    "description": "Si une attaque est evitee, riposte a distance juste apres."
+                }
+            ],
+            "requiredJobIds": [
+                "chevalier_dragon"
+            ],
+            "usageLimit": "TwicePerCombat"
+        },
+        {
+            "id": "briseur_cieux",
+            "name": "Briseur des Cieux",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 3,
+                    "description": "S'elance haut dans les airs (immune), retombe avec de lourds degats de feu. Tres efficace sur cibles aeriennes."
+                }
+            ],
+            "requiredJobIds": [
+                "chevalier_dragon"
+            ]
+        },
+        {
+            "id": "lame_tournoyante",
+            "name": "Lame Tournoyante",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Serie d'attaques de corps a corps pour desequilibrer un adversaire."
+                },
+                {
+                    "level": 2,
+                    "description": "Lame empoisonnee : degats supplementaires sur cibles sans armure."
+                }
+            ],
+            "requiredJobIds": [
+                "ninja",
+                "voleur"
+            ]
+        },
+        {
+            "id": "perce_armure",
+            "name": "Perce-Armure",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Attaque physique ignorant la plupart des protections."
+                },
+                {
+                    "level": 2,
+                    "description": "Permet de briser l'armure de la cible."
+                }
+            ],
+            "requiredJobIds": [
+                "ninja",
+                "voleur"
+            ]
+        },
+        {
+            "id": "furtivite",
+            "name": "Furtivite",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Invisible si immobile et hors combat."
+                },
+                {
+                    "level": 2,
+                    "description": "Peut se deplacer en etant invisible."
+                },
+                {
+                    "level": 3,
+                    "description": "Peut etre lancee en combat."
+                }
+            ],
+            "requiredJobIds": [
+                "ninja",
+                "voleur"
+            ]
+        },
+        {
+            "id": "assassinat",
+            "name": "Assassinat",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 2,
+                    "description": "Attaque puissante. Tue instantanement une cible moyenne si vulnerable ou attaque en furtivite."
+                }
+            ],
+            "requiredJobIds": [
+                "ninja",
+                "voleur"
+            ],
+            "usageLimit": "OncePerEvent",
+            "startLevel": 2
+        },
+        {
+            "id": "lancer_kunai",
+            "name": "Lancer de Kunai",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Lancer de Kunai a distance."
+                },
+                {
+                    "level": 2,
+                    "description": "Le Kunai explose au contact, degats de zone."
+                }
+            ],
+            "requiredJobIds": [
+                "ninja"
+            ]
+        },
+        {
+            "id": "shukuchi",
+            "name": "Shukuchi",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Ecran de fumee pour eviter une attaque ou teleportation a distance moyenne."
+                },
+                {
+                    "level": 2,
+                    "description": "Si une attaque est evitee, teleportation la ou la cible peut voir."
+                }
+            ],
+            "requiredJobIds": [
+                "ninja"
+            ],
+            "usageLimit": "OncePerCombat"
+        },
+        {
+            "id": "mudra_ten",
+            "name": "Mudra Ten",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Lance un shuriken, invoque un lapin, ou finit un Ninjutsu de 2 Mudra par Ten."
+                },
+                {
+                    "level": 2,
+                    "description": "Permet de finir un Ninjutsu de 3 Mudra par Ten."
+                }
+            ],
+            "requiredJobIds": [
+                "ninja"
+            ]
+        },
+        {
+            "id": "mudra_chi",
+            "name": "Mudra Chi",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Lance un shuriken, invoque un lapin, ou finit un Ninjutsu de 2 Mudra par Chi."
+                },
+                {
+                    "level": 2,
+                    "description": "Permet de finir un Ninjutsu de 3 Mudra par Chi."
+                }
+            ],
+            "requiredJobIds": [
+                "ninja"
+            ]
+        },
+        {
+            "id": "mudra_jin",
+            "name": "Mudra Jin",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Lance un shuriken, invoque un lapin, ou finit un Ninjutsu de 2 Mudra par Jin."
+                },
+                {
+                    "level": 2,
+                    "description": "Permet de finir un Ninjutsu de 3 Mudra par Jin."
+                }
+            ],
+            "requiredJobIds": [
+                "ninja"
+            ]
+        },
+        {
+            "id": "kassatsu",
+            "name": "Kassatsu",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 2,
+                    "description": "Augmente drastiquement la puissance du prochain Ninjutsu."
+                }
+            ],
+            "requiredJobIds": [
+                "ninja"
+            ],
+            "usageLimit": "OncePerEvent",
+            "startLevel": 2
+        },
+        {
+            "id": "bunshin",
+            "name": "Bunshin",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 3,
+                    "description": "Cree un double pendant 3 tours repetant toutes les actions, invulnerable."
+                }
+            ],
+            "requiredJobIds": [
+                "ninja"
+            ],
+            "usageLimit": "OncePerEvent",
+            "startLevel": 3
+        },
+        {
+            "id": "attaque_sournoise",
+            "name": "Attaque Sournoise",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 3,
+                    "description": "Attaque exposant un point faible, rendant la cible plus vulnerable aux attaques suivantes."
+                }
+            ],
+            "requiredJobIds": [
+                "ninja"
+            ],
+            "usageLimit": "OncePerEvent",
+            "startLevel": 3
+        },
+        {
+            "id": "rapine",
+            "name": "Rapine",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Derobe un objet de faible valeur."
+                },
+                {
+                    "level": 2,
+                    "description": "Derobe des objets de valeur plus importante, hors vetements et armes."
+                }
+            ],
+            "requiredJobIds": [
+                "voleur"
+            ],
+            "usageLimit": "TwicePerEvent"
+        },
+        {
+            "id": "pas_ombre",
+            "name": "Pas de l'Ombre",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Teleportation moyenne distance vers un endroit a l'ombre."
+                },
+                {
+                    "level": 2,
+                    "description": "Peut etre utilise deux fois par event."
+                }
+            ],
+            "requiredJobIds": [
+                "voleur"
+            ],
+            "usageLimit": "OncePerEvent"
+        },
+        {
+            "id": "jugulation",
+            "name": "Jugulation",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Attaque au corps a corps infligeant Silence a la cible."
+                }
+            ],
+            "requiredJobIds": [
+                "voleur"
+            ]
+        },
+        {
+            "id": "fiole_corrosive",
+            "name": "Fiole Corrosive",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Jette un poison instable creant un nuage toxique."
+                },
+                {
+                    "level": 2,
+                    "description": "Le poison corrode aussi les armes des personnes touchees."
+                }
+            ],
+            "requiredJobIds": [
+                "voleur"
+            ]
+        },
+        {
+            "id": "grenade_aveuglante",
+            "name": "Grenade Aveuglante",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 2,
+                    "description": "Grenade aveuglant toute personne touchee pendant deux tours."
+                }
+            ],
+            "requiredJobIds": [
+                "voleur"
+            ],
+            "usageLimit": "OncePerEvent",
+            "startLevel": 2
+        },
+        {
+            "id": "coupe_tendons",
+            "name": "Coupe-Tendons",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Frappe visant les tendons, immobilisant une cible de taille moyenne."
+                },
+                {
+                    "level": 2,
+                    "description": "Fonctionne sur les cibles de grande taille."
+                }
+            ],
+            "requiredJobIds": [
+                "voleur"
+            ]
+        },
+        {
+            "id": "tir_traitre",
+            "name": "Tir en Traitre",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Attaque a distance dissimilee. Plus efficace sur les cibles qui ne vous ont pas repere. Ne necessite pas de competence d'arme a feu."
+                }
+            ],
+            "requiredJobIds": [
+                "voleur"
+            ],
+            "usageLimit": "OncePerCombat"
+        },
+        {
+            "id": "voile_dissimulation",
+            "name": "Voile de Dissimulation",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 3,
+                    "description": "Dissimule tout un groupe pendant 2 tours. Fin a la moindre action offensive ou detection."
+                }
+            ],
+            "requiredJobIds": [
+                "voleur"
+            ],
+            "usageLimit": "OncePerEvent",
+            "startLevel": 3
+        },
+        {
+            "id": "terre_mb",
+            "name": "Terre",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Attaque magique de terre sur un ennemi visible."
+                },
+                {
+                    "level": 2,
+                    "description": "Permet de lancer Chatoiement, attaque de lumiere."
+                }
+            ],
+            "requiredJobIds": [
+                "mage_blanc"
+            ]
+        },
+        {
+            "id": "vent_mb",
+            "name": "Vent",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Attaque magique de vent appliquant un affaiblissement."
+                },
+                {
+                    "level": 2,
+                    "description": "Permet de lancer Lumen, affaiblissement de lumiere."
+                }
+            ],
+            "requiredJobIds": [
+                "mage_blanc"
+            ]
+        },
+        {
+            "id": "eau_mb",
+            "name": "Eau",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Attaque magique d'eau sur les ennemis alentours."
+                },
+                {
+                    "level": 2,
+                    "description": "Permet de lancer Miracle, attaque de lumiere en zone. Peut aveugler."
+                }
+            ],
+            "requiredJobIds": [
+                "mage_blanc"
+            ]
+        },
+        {
+            "id": "asile",
+            "name": "Asile",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Aura soignant les blessures mineures des allies y restant."
+                },
+                {
+                    "level": 2,
+                    "description": "Aura plus grande, soigne jusqu'aux blessures moderees. Les morts-vivants ne peuvent y penetrer."
+                }
+            ],
+            "requiredJobIds": [
+                "mage_blanc"
+            ]
+        },
+        {
+            "id": "tetragramme",
+            "name": "Tetragramme",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Soigne la cible de 1 blessure jusqu'aux moderees."
+                },
+                {
+                    "level": 2,
+                    "description": "Blessures majeures. Reduit de 2."
+                },
+                {
+                    "level": 3,
+                    "description": "Blessures critiques. Reduit de 2."
+                }
+            ],
+            "requiredJobIds": [
+                "mage_blanc"
+            ]
+        },
+        {
+            "id": "temperance",
+            "name": "Temperance",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 2,
+                    "description": "Reduit les degats subis des allies proches pendant 2 tours."
+                },
+                {
+                    "level": 3,
+                    "description": "Augmente egalement de 1 le rang des sorts."
+                }
+            ],
+            "requiredJobIds": [
+                "mage_blanc"
+            ],
+            "usageLimit": "OncePerEvent",
+            "startLevel": 2
+        },
+        {
+            "id": "benediction",
+            "name": "Benediction",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 3,
+                    "description": "Soigne toutes les blessures de la cible. Peut remettre debout un allie inconscient (recoit une blessure critique)."
+                }
+            ],
+            "requiredJobIds": [
+                "mage_blanc"
+            ],
+            "usageLimit": "OncePerEvent",
+            "startLevel": 3
+        },
+        {
+            "id": "lys_de_sang",
+            "name": "Lys de Sang",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 3,
+                    "description": "Puissante attaque de lumiere en zone. Devastatrice contre les morts-vivants de niveau moyen ou inferieur."
+                }
+            ],
+            "requiredJobIds": [
+                "mage_blanc"
+            ],
+            "usageLimit": "OncePerEvent",
+            "startLevel": 3
+        },
+        {
+            "id": "indulgence_pleniere",
+            "name": "Indulgence pleniere",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 2,
+                    "description": "Lien etheree avec un allie. Le prochain sort de soin soigne aussi cet allie."
+                }
+            ],
+            "requiredJobIds": [
+                "mage_blanc"
+            ],
+            "startLevel": 2
+        },
+        {
+            "id": "aquavoile",
+            "name": "Aquavoile",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Reduit les degats d'un allie visible pour le prochain tour."
+                },
+                {
+                    "level": 2,
+                    "description": "Reduit les degats de tous les allies visibles pour le prochain tour."
+                }
+            ],
+            "requiredJobIds": [
+                "mage_blanc"
+            ]
+        },
+        {
+            "id": "deplacement_ethereen_mb",
+            "name": "Deplacement ethereen",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Se deplace rapidement vers un allie."
+                }
+            ],
+            "requiredJobIds": [
+                "mage_blanc"
+            ]
+        },
+        {
+            "id": "lame_etripante",
+            "name": "Lame Etripante",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Attaque au corps a corps infligeant un saignement mineur."
+                },
+                {
+                    "level": 2,
+                    "description": "Applique desormais une Hemorragie."
+                }
+            ],
+            "requiredJobIds": [
+                "paladin"
+            ]
+        },
+        {
+            "id": "esprit_interieur",
+            "name": "Esprit Interieur",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Coup d'epee charge de magie divine, etourdit la cible."
+                },
+                {
+                    "level": 2,
+                    "description": "L'impact est plus grand et peut toucher plusieurs ennemis proches."
+                }
+            ],
+            "requiredJobIds": [
+                "paladin"
+            ]
+        },
+        {
+            "id": "schiltron",
+            "name": "Schiltron",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Reduit de un niveau une blessure Moderee recue."
+                },
+                {
+                    "level": 2,
+                    "description": "Fonctionne sur les blessures Majeures."
+                },
+                {
+                    "level": 3,
+                    "description": "Peut etre utilise sur un allie."
+                }
+            ],
+            "requiredJobIds": [
+                "paladin"
+            ],
+            "usageLimit": "OncePerCombat"
+        },
+        {
+            "id": "volonte_de_fer",
+            "name": "Volonte de fer",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Force un ennemi a vous attaquer."
+                },
+                {
+                    "level": 2,
+                    "description": "Force tous les ennemis alentours a vous attaquer."
+                }
+            ],
+            "requiredJobIds": [
+                "paladin"
+            ]
+        },
+        {
+            "id": "esprit_saint",
+            "name": "Esprit saint",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Attaque de magie divine sur un adversaire proche."
+                },
+                {
+                    "level": 2,
+                    "description": "Peut etre utilisee a distance."
+                },
+                {
+                    "level": 3,
+                    "description": "Touche plusieurs ennemis."
+                }
+            ],
+            "requiredJobIds": [
+                "paladin"
+            ]
+        },
+        {
+            "id": "clemence",
+            "name": "Clemence",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Guerit un poison/maladie/affaiblissement."
+                },
+                {
+                    "level": 2,
+                    "description": "Fait baisser la blessure d'une cible de un rang, jusqu'a Majeure."
+                }
+            ],
+            "requiredJobIds": [
+                "paladin"
+            ],
+            "usageLimit": "OncePerEvent"
+        },
+        {
+            "id": "lien_protection",
+            "name": "Lien de protection",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 2,
+                    "description": "Encaisse toutes les blessures d'un allie jusqu'aux Majeures pendant 2 tours."
+                },
+                {
+                    "level": 3,
+                    "description": "Inclut desormais les blessures critiques."
+                }
+            ],
+            "requiredJobIds": [
+                "paladin"
+            ],
+            "usageLimit": "OncePerCombat",
+            "startLevel": 2
+        },
+        {
+            "id": "invincible",
+            "name": "Invincible",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 3,
+                    "description": "Immunise a tout degats et blessures pour le tour suivant."
+                }
+            ],
+            "requiredJobIds": [
+                "paladin"
+            ],
+            "usageLimit": "OncePerEvent",
+            "startLevel": 3
+        },
+        {
+            "id": "confiteor",
+            "name": "Confiteor",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 3,
+                    "description": "Invoque une arme celeste tombant du ciel, causant de lourds degats dans son rayon."
+                }
+            ],
+            "requiredJobIds": [
+                "paladin"
+            ],
+            "usageLimit": "OncePerEvent",
+            "startLevel": 3
+        },
+        {
+            "id": "briseur_rocs",
+            "name": "Briseur de rocs",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Coup au sol faisant trembler la terre, desequilibrant les personnes autour."
+                },
+                {
+                    "level": 2,
+                    "description": "Fait tomber tous les ennemis terrestres. Peut faire s'effondrer des bouts de terrain."
+                }
+            ],
+            "requiredJobIds": [
+                "moine"
+            ]
+        },
+        {
+            "id": "coup_pied_tornade",
+            "name": "Coup de pied Tornade",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Coup de pied brutal sur la cible."
+                },
+                {
+                    "level": 2,
+                    "description": "Eruption de vent a l'impact, peut toucher plusieurs ennemis."
+                }
+            ],
+            "requiredJobIds": [
+                "moine"
+            ]
+        },
+        {
+            "id": "champ_elixir",
+            "name": "Champ-elixir",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Attaque magique autour de vous."
+                },
+                {
+                    "level": 2,
+                    "description": "Peut etre utilisee a distance."
+                }
+            ],
+            "requiredJobIds": [
+                "moine"
+            ]
+        },
+        {
+            "id": "enigme_feu",
+            "name": "Enigme du Feu",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 2,
+                    "description": "Attaques renforcees pendant 2 tours."
+                },
+                {
+                    "level": 3,
+                    "description": "Dure 3 tours."
+                }
+            ],
+            "requiredJobIds": [
+                "moine"
+            ],
+            "usageLimit": "OncePerEvent",
+            "startLevel": 2
+        },
+        {
+            "id": "enigme_vent",
+            "name": "Enigme du Vent",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Mobilite et vivacite drastiquement augmentees pendant 2 tours."
+                },
+                {
+                    "level": 2,
+                    "description": "Dure 3 tours."
+                }
+            ],
+            "requiredJobIds": [
+                "moine"
+            ],
+            "usageLimit": "OncePerEvent"
+        },
+        {
+            "id": "enigme_terre",
+            "name": "Enigme de la Terre",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Empeche de prendre une blessure moderee."
+                },
+                {
+                    "level": 2,
+                    "description": "Si une blessure est empechee, soigne une blessure mineure d'un allie."
+                }
+            ],
+            "requiredJobIds": [
+                "moine"
+            ],
+            "usageLimit": "OncePerEvent"
+        },
+        {
+            "id": "chakra_interdit",
+            "name": "Chakra interdit",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 2,
+                    "description": "Puissante attaque au corps a corps."
+                },
+                {
+                    "level": 3,
+                    "description": "Peut atteindre une cible a distance moderee."
+                }
+            ],
+            "requiredJobIds": [
+                "moine"
+            ],
+            "usageLimit": "OncePerCombat",
+            "startLevel": 2
+        },
+        {
+            "id": "rixe_evanescente",
+            "name": "Rixe evanescente",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 3,
+                    "description": "Serie d'attaques, puis coup final au tour suivant."
+                }
+            ],
+            "requiredJobIds": [
+                "moine"
+            ],
+            "usageLimit": "OncePerEvent",
+            "startLevel": 3
+        },
+        {
+            "id": "fraternite",
+            "name": "Fraternite",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 3,
+                    "description": "Coordination parfaite du groupe pour combiner ou enchainer les actions au tour suivant."
+                }
+            ],
+            "requiredJobIds": [
+                "moine"
+            ],
+            "usageLimit": "OncePerEvent",
+            "startLevel": 3
+        },
+        {
+            "id": "salve_tranchante",
+            "name": "Salve Tranchante",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Serie d'attaques physiques chargeant une Cartouche d'Ether."
+                },
+                {
+                    "level": 2,
+                    "description": "Reduit une blessure Majeure ou inferieure de un rang a la place."
+                }
+            ],
+            "requiredJobIds": [
+                "pistosabreur"
+            ]
+        },
+        {
+            "id": "barillet_tonnerre",
+            "name": "Barillet Tonnerre",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Attaque a distance sur la cible."
+                },
+                {
+                    "level": 2,
+                    "description": "Charge une Cartouche d'Ether."
+                }
+            ],
+            "requiredJobIds": [
+                "pistosabreur"
+            ]
+        },
+        {
+            "id": "frappe_explosive",
+            "name": "Frappe Explosive",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Consomme une Cartouche pour une frappe explosive au corps a corps."
+                },
+                {
+                    "level": 2,
+                    "description": "Continuation : Hypervitesse, seconde frappe ne consommant pas de cartouche."
+                }
+            ],
+            "requiredJobIds": [
+                "pistosabreur"
+            ]
+        },
+        {
+            "id": "croc_griffe_serre",
+            "name": "Croc, Griffe et Serre",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 2,
+                    "description": "Consomme une Cartouche pour trois attaques explosives."
+                },
+                {
+                    "level": 3,
+                    "description": "Continuation : Arrachage, Laceration et Perforation, nouvelle serie sans cartouche."
+                }
+            ],
+            "requiredJobIds": [
+                "pistosabreur"
+            ],
+            "usageLimit": "TwicePerEvent",
+            "startLevel": 2
+        },
+        {
+            "id": "arc_de_choc",
+            "name": "Arc de Choc",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Attaque etheree autour du lanceur, paralysant les cibles."
+                },
+                {
+                    "level": 2,
+                    "description": "Repousse egalement les cibles touchees."
+                }
+            ],
+            "requiredJobIds": [
+                "pistosabreur"
+            ]
+        },
+        {
+            "id": "cartouche_de_sang",
+            "name": "Cartouche de Sang",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 2,
+                    "description": "Charge deux Cartouches et force une cible a vous attaquer."
+                }
+            ],
+            "requiredJobIds": [
+                "pistosabreur"
+            ],
+            "usageLimit": "OncePerEvent",
+            "startLevel": 2
+        },
+        {
+            "id": "coeur_de_corindon",
+            "name": "Coeur de Corindon",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Bouclier absorbant une blessure inferieure a Majeure ou la reduisant de un rang."
+                },
+                {
+                    "level": 2,
+                    "description": "Peut etre utilise sur un allie. Arrete une blessure Majeure sur le lanceur."
+                },
+                {
+                    "level": 3,
+                    "description": "Peut affecter tous les allies a proximite."
+                }
+            ],
+            "requiredJobIds": [
+                "pistosabreur"
+            ],
+            "usageLimit": "TwicePerCombat"
+        },
+        {
+            "id": "camouflage_pisto",
+            "name": "Camouflage",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 2,
+                    "description": "Evite completement une attaque physique."
+                }
+            ],
+            "requiredJobIds": [
+                "pistosabreur"
+            ],
+            "usageLimit": "OncePerEvent",
+            "startLevel": 2
+        },
+        {
+            "id": "bolide",
+            "name": "Bolide",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 3,
+                    "description": "Passe en Blessure Letale. Pendant 3 tours, immunise aux degats et malus de blessures."
+                }
+            ],
+            "requiredJobIds": [
+                "pistosabreur"
+            ],
+            "usageLimit": "OncePerEvent",
+            "startLevel": 3
+        },
+        {
+            "id": "gachette_terminale",
+            "name": "Gachette Terminale",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 3,
+                    "description": "Serie d'attaques explosives. Chaque Cartouche prolonge l'attaque. Derniere frappe devastatrice sur une cible unique."
+                }
+            ],
+            "requiredJobIds": [
+                "pistosabreur"
+            ],
+            "usageLimit": "OncePerEvent",
+            "startLevel": 3
+        },
+        {
+            "id": "peinture_rouge",
+            "name": "Peinture Rouge",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Peint des attaques dans les tons Rouge."
+                },
+                {
+                    "level": 2,
+                    "description": "Palette Soustractive : tons Cyan."
+                }
+            ],
+            "requiredJobIds": [
+                "pictomancien"
+            ]
+        },
+        {
+            "id": "peinture_verte",
+            "name": "Peinture Verte",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Peint des attaques dans les tons Vert."
+                },
+                {
+                    "level": 2,
+                    "description": "Palette Soustractive : tons Jaune."
+                }
+            ],
+            "requiredJobIds": [
+                "pictomancien"
+            ]
+        },
+        {
+            "id": "peinture_bleue",
+            "name": "Peinture Bleue",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Peint des attaques dans les tons Bleu."
+                },
+                {
+                    "level": 2,
+                    "description": "Palette Soustractive : tons Magenta."
+                }
+            ],
+            "requiredJobIds": [
+                "pictomancien"
+            ]
+        },
+        {
+            "id": "peinture_blanche",
+            "name": "Peinture Blanche",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Peint des attaques dans les tons Blanc."
+                },
+                {
+                    "level": 2,
+                    "description": "Palette Soustractive : tons Noir."
+                }
+            ],
+            "requiredJobIds": [
+                "pictomancien"
+            ]
+        },
+        {
+            "id": "caricature",
+            "name": "Caricature",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Caricature grotesque destabilisant les adversaires intelligents."
+                }
+            ],
+            "requiredJobIds": [
+                "pictomancien"
+            ]
+        },
+        {
+            "id": "picto_animal",
+            "name": "Picto Animal",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Peint une partie d'animal et lui donne vie."
+                },
+                {
+                    "level": 2,
+                    "description": "Peint une creature entiere."
+                }
+            ],
+            "requiredJobIds": [
+                "pictomancien"
+            ],
+            "usageLimit": "TwicePerEvent"
+        },
+        {
+            "id": "picto_arme",
+            "name": "Picto Arme",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Peint une arme etheree sans competence requise, disparait au tour suivant."
+                },
+                {
+                    "level": 2,
+                    "description": "Peut peindre des armes a distance egalement."
+                }
+            ],
+            "requiredJobIds": [
+                "pictomancien"
+            ],
+            "usageLimit": "TwicePerEvent"
+        },
+        {
+            "id": "picto_paysage",
+            "name": "Picto Paysage",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 3,
+                    "description": "Enveloppe les personnes proches dans un paysage tangible. Bonus pour les allies. Impossible de se defendre pendant l'effet."
+                }
+            ],
+            "requiredJobIds": [
+                "pictomancien"
+            ],
+            "usageLimit": "OncePerEvent",
+            "startLevel": 3
+        },
+        {
+            "id": "barbouillage",
+            "name": "Barbouillage",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Trainee de peinture au sol pour se deplacer rapidement. Fait glisser les autres."
+                }
+            ],
+            "requiredJobIds": [
+                "pictomancien"
+            ]
+        },
+        {
+            "id": "prisme_etoiles",
+            "name": "Prisme d'Etoiles",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 3,
+                    "description": "Etoiles filantes tombant sur une cible visible, infligeant de lourds degats."
+                }
+            ],
+            "requiredJobIds": [
+                "pictomancien"
+            ],
+            "usageLimit": "OncePerEvent",
+            "startLevel": 3
+        },
+        {
+            "id": "malfaisance",
+            "name": "Malfaisance",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Affaiblissement sur une cible unique."
+                },
+                {
+                    "level": 2,
+                    "description": "Lance en zone autour d'une cible."
+                }
+            ],
+            "requiredJobIds": [
+                "astromancien"
+            ]
+        },
+        {
+            "id": "gravite",
+            "name": "Gravite",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Ralentit ou immobilise une cible pour le tour suivant."
+                },
+                {
+                    "level": 2,
+                    "description": "Affecte une zone autour de la cible."
+                }
+            ],
+            "requiredJobIds": [
+                "astromancien"
+            ]
+        },
+        {
+            "id": "etoile_terrestre",
+            "name": "Etoile Terrestre",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Invoque une etoile activable au tour suivant creant une explosion."
+                },
+                {
+                    "level": 2,
+                    "description": "N'inflige plus de degats aux allies et ameliore les allies proches."
+                }
+            ],
+            "requiredJobIds": [
+                "astromancien"
+            ],
+            "usageLimit": "OncePerEvent"
+        },
+        {
+            "id": "bienfaisance",
+            "name": "Bienfaisance",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Sort curatif soignant les blessures en dessous de Majeures."
+                },
+                {
+                    "level": 2,
+                    "description": "Se redeclenche a la prochaine blessure de la cible, reduisant de 1."
+                }
+            ],
+            "requiredJobIds": [
+                "astromancien"
+            ]
+        },
+        {
+            "id": "inconscient_collectif",
+            "name": "Inconscient Collectif",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 2,
+                    "description": "Dome de protection empechant l'entree/sortie et les attaques. Le lanceur ne peut rien faire d'autre."
+                }
+            ],
+            "requiredJobIds": [
+                "astromancien"
+            ],
+            "usageLimit": "OncePerEvent",
+            "startLevel": 2
+        },
+        {
+            "id": "tirage_astral",
+            "name": "Tirage Astral",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Lance 1d2 : Balance ou Fleche."
+                },
+                {
+                    "level": 2,
+                    "description": "Lance 1d3 : ajoute la Tour."
+                },
+                {
+                    "level": 3,
+                    "description": "Lance 1d4 : ajoute le Roi."
+                }
+            ],
+            "requiredJobIds": [
+                "astromancien"
+            ]
+        },
+        {
+            "id": "tirage_ombral",
+            "name": "Tirage Ombral",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Lance 1d2 : Epieu ou Tronc."
+                },
+                {
+                    "level": 2,
+                    "description": "Lance 1d3 : ajoute l'Aiguiere."
+                },
+                {
+                    "level": 3,
+                    "description": "Lance 1d4 : ajoute la Reine."
+                }
+            ],
+            "requiredJobIds": [
+                "astromancien"
+            ]
+        },
+        {
+            "id": "synastrie",
+            "name": "Synastrie",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Lie deux entites : soigner l'une soigne l'autre, blesser l'une blesse l'autre."
+                }
+            ],
+            "requiredJobIds": [
+                "astromancien"
+            ]
+        },
+        {
+            "id": "opposition_celeste",
+            "name": "Opposition Celeste",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Aveugle les ennemis proches pendant un tour."
+                },
+                {
+                    "level": 2,
+                    "description": "Repousse egalement les ennemis."
+                }
+            ],
+            "requiredJobIds": [
+                "astromancien"
+            ]
+        },
+        {
+            "id": "divination",
+            "name": "Divination",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 3,
+                    "description": "Predit les deux prochains tours, augmentant les capacites offensives et defensives du groupe."
+                }
+            ],
+            "requiredJobIds": [
+                "astromancien"
+            ],
+            "usageLimit": "OncePerEvent",
+            "startLevel": 3
+        },
+        {
+            "id": "macrocosme",
+            "name": "Macrocosme",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 3,
+                    "description": "Infuse les allies proches d'energie cosmique. Apres 2 tours, annule tous les degats subis pendant ces 2 tours."
+                }
+            ],
+            "requiredJobIds": [
+                "astromancien"
+            ],
+            "usageLimit": "OncePerEvent",
+            "startLevel": 3
+        },
+        {
+            "id": "shifu",
+            "name": "Shifu",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Serie d'attaques rapides au katana."
+                },
+                {
+                    "level": 2,
+                    "description": "Permet d'utiliser Kasha au tour suivant, frappe etheree multiple."
+                }
+            ],
+            "requiredJobIds": [
+                "samourai"
+            ]
+        },
+        {
+            "id": "jinpu",
+            "name": "Jinpu",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Serie d'attaques lentes mais puissantes au katana."
+                },
+                {
+                    "level": 2,
+                    "description": "Permet d'utiliser Gekko, frappe etheree bonus si attaque ce tour."
+                }
+            ],
+            "requiredJobIds": [
+                "samourai"
+            ]
+        },
+        {
+            "id": "yukikaze",
+            "name": "Yukikaze",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 2,
+                    "description": "Attaque lente et perforante infusee de glace. Plus efficace si la cible porte une armure."
+                }
+            ],
+            "requiredJobIds": [
+                "samourai"
+            ],
+            "startLevel": 2
+        },
+        {
+            "id": "hissatsu",
+            "name": "Hissatsu",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Infuse la lame d'ether pour la prochaine action d'attaque."
+                }
+            ],
+            "requiredJobIds": [
+                "samourai"
+            ],
+            "usageLimit": "ThreeTimesPerEvent"
+        },
+        {
+            "id": "troisieme_oeil",
+            "name": "Troisieme Oeil",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Voit la presence des etres vivants dans l'obscurite ou dissimules."
+                },
+                {
+                    "level": 2,
+                    "description": "Sent les emotions et la puissance des autres."
+                },
+                {
+                    "level": 3,
+                    "description": "Predit les intentions en se concentrant."
+                }
+            ],
+            "requiredJobIds": [
+                "samourai"
+            ]
+        },
+        {
+            "id": "enpi",
+            "name": "Enpi",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Iaijutsu : lance un projectile etheree a portee moyenne, faible puissance."
+                },
+                {
+                    "level": 2,
+                    "description": "Permet de lancer Guren, serie de projectiles."
+                }
+            ],
+            "requiredJobIds": [
+                "samourai"
+            ]
+        },
+        {
+            "id": "higanbana",
+            "name": "Higanbana",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 2,
+                    "description": "Iaijutsu : cree une breche etheree affaiblissant la cible au fil du temps."
+                }
+            ],
+            "requiredJobIds": [
+                "samourai"
+            ],
+            "usageLimit": "OncePerEvent",
+            "startLevel": 2
+        },
+        {
+            "id": "tenka_goken",
+            "name": "Tenka Goken",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 2,
+                    "description": "Iaijutsu : invoque cinq epees etherees frappant dans une direction."
+                }
+            ],
+            "requiredJobIds": [
+                "samourai"
+            ],
+            "usageLimit": "OncePerEvent",
+            "startLevel": 2
+        },
+        {
+            "id": "midare_setsugekka",
+            "name": "Midare Setsugekka",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 3,
+                    "description": "Iaijutsu : coupe le fil de l'ame. Peut tuer instantanement la plupart des ennemis vivants."
+                }
+            ],
+            "requiredJobIds": [
+                "samourai"
+            ],
+            "usageLimit": "OncePerEvent",
+            "startLevel": 3
+        },
+        {
+            "id": "tsubame_gaeshi",
+            "name": "Tsubame Gaeshi",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 3,
+                    "description": "Iaijutsu : copie l'effet du dernier Iaijutsu utilise."
+                }
+            ],
+            "requiredJobIds": [
+                "samourai"
+            ],
+            "usageLimit": "OncePerEvent",
+            "startLevel": 3
+        },
+        {
+            "id": "shoha",
+            "name": "Shoha",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 2,
+                    "description": "Attaque de suivi renforçant l'esprit, immunisant aux attaques mentales pour le tour suivant. Uniquement apres un Iaijutsu."
+                }
+            ],
+            "requiredJobIds": [
+                "samourai"
+            ],
+            "startLevel": 2
+        },
+        {
+            "id": "ruine",
+            "name": "Ruine",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Attaque arcanique a distance moyenne."
+                },
+                {
+                    "level": 2,
+                    "description": "Permet de lancer Mega Ruine, attaque longue distance controlable."
+                },
+                {
+                    "level": 3,
+                    "description": "Permet de lancer Giga Ruine, attaque de zone longue distance."
+                }
+            ],
+            "requiredJobIds": [
+                "invocateur"
+            ]
+        },
+        {
+            "id": "tri_entrave",
+            "name": "Tri-Entrave",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Immobilise les entites dans une zone pendant 2 tours."
+                },
+                {
+                    "level": 2,
+                    "description": "Permet de lancer Tri-Desastre, attaque tri-elementaire."
+                }
+            ],
+            "requiredJobIds": [
+                "invocateur"
+            ]
+        },
+        {
+            "id": "drain_energie",
+            "name": "Drain d'energie",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Attaque drainant les forces de la cible pour se renforcer."
+                },
+                {
+                    "level": 2,
+                    "description": "Peut affecter plusieurs cibles autour de la principale."
+                }
+            ],
+            "requiredJobIds": [
+                "invocateur"
+            ]
+        },
+        {
+            "id": "flamme_vie",
+            "name": "Flamme de la Vie",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 3,
+                    "description": "Attaque de Phenix en zone, augmentant les capacites curatives des allies pendant 3 tours."
+                }
+            ],
+            "requiredJobIds": [
+                "invocateur"
+            ]
+        },
+        {
+            "id": "invocation_familier_1",
+            "name": "Invocation de Familier 1",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Carbuncle elementaire, detruit si blessure moderee."
+                },
+                {
+                    "level": 2,
+                    "description": "Egi, detruit si blessure majeure."
+                }
+            ],
+            "requiredJobIds": [
+                "invocateur"
+            ],
+            "usageLimit": "TwicePerCombat"
+        },
+        {
+            "id": "invocation_familier_2",
+            "name": "Invocation de Familier 2",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Carbuncle elementaire, detruit si blessure moderee."
+                },
+                {
+                    "level": 2,
+                    "description": "Egi, detruit si blessure majeure."
+                }
+            ],
+            "requiredJobIds": [
+                "invocateur"
+            ],
+            "usageLimit": "TwicePerCombat"
+        },
+        {
+            "id": "invocation_familier_3",
+            "name": "Invocation de Familier 3",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Carbuncle elementaire, detruit si blessure moderee."
+                },
+                {
+                    "level": 2,
+                    "description": "Egi, detruit si blessure majeure."
+                }
+            ],
+            "requiredJobIds": [
+                "invocateur"
+            ],
+            "usageLimit": "TwicePerCombat"
+        },
+        {
+            "id": "eclat_gemmes",
+            "name": "Eclat des Gemmes",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Altere les sorts pour leur donner l'element du familier."
+                }
+            ],
+            "requiredJobIds": [
+                "invocateur"
+            ]
+        },
+        {
+            "id": "attaque_familier",
+            "name": "Attaque de Familier",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Le familier effectue une attaque elementaire."
+                },
+                {
+                    "level": 2,
+                    "description": "L'attaque gagne en puissance et peut toucher plusieurs ennemis."
+                }
+            ],
+            "requiredJobIds": [
+                "invocateur"
+            ]
+        },
+        {
+            "id": "egide_radiante",
+            "name": "Egide radiante",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Le familier cree un bouclier absorbant une blessure moderee."
+                },
+                {
+                    "level": 2,
+                    "description": "Si l'attaque est du meme element que le familier, redonne une utilisation."
+                }
+            ],
+            "requiredJobIds": [
+                "invocateur"
+            ],
+            "usageLimit": "OncePerCombat"
+        },
+        {
+            "id": "transe_primordiale",
+            "name": "Transe-Primordiale",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 3,
+                    "description": "Puise dans l'essence d'un primordial, amplifiant les sorts pendant 3 tours et invoquant un Demi-Primordial."
+                }
+            ],
+            "requiredJobIds": [
+                "invocateur"
+            ]
+        },
+        {
+            "id": "morsure_caustique",
+            "name": "Morsure Caustique",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Fleche infligeant un faible empoisonnement."
+                },
+                {
+                    "level": 2,
+                    "description": "Empoisonnement plus puissant, empeche la cible de se soigner."
+                }
+            ],
+            "requiredJobIds": [
+                "barde"
+            ]
+        },
+        {
+            "id": "morsure_tempete",
+            "name": "Morsure de la Tempete",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Fleche de vent desequilibrant la cible, repousse les petits ennemis."
+                },
+                {
+                    "level": 2,
+                    "description": "Desequilibre et repousse les ennemis de taille moyenne."
+                }
+            ],
+            "requiredJobIds": [
+                "barde"
+            ]
+        },
+        {
+            "id": "fleche_rayonnante",
+            "name": "Fleche Rayonnante",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 2,
+                    "description": "Serie de fleches lumineuses suivant une cible en mouvement."
+                }
+            ],
+            "requiredJobIds": [
+                "barde"
+            ],
+            "usageLimit": "OncePerCombat",
+            "startLevel": 2
+        },
+        {
+            "id": "pluie_mortelle",
+            "name": "Pluie Mortelle",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 2,
+                    "description": "Pluie de fleches magiques en zone autour de la cible."
+                }
+            ],
+            "requiredJobIds": [
+                "barde"
+            ],
+            "startLevel": 2
+        },
+        {
+            "id": "fleche_harmonique",
+            "name": "Fleche harmonique",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 2,
+                    "description": "Fleche rebondissant entre cibles. Degats augmentant avec les rebonds."
+                }
+            ],
+            "requiredJobIds": [
+                "barde"
+            ],
+            "usageLimit": "OncePerCombat",
+            "startLevel": 2
+        },
+        {
+            "id": "ballade_mage",
+            "name": "Ballade du mage",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Chant augmentant l'efficacite des sorts de 2 allies."
+                },
+                {
+                    "level": 2,
+                    "description": "Peut faire d'autres actions, affecte 5 personnes."
+                },
+                {
+                    "level": 3,
+                    "description": "Affecte tous les equipiers a portee."
+                }
+            ],
+            "requiredJobIds": [
+                "barde"
+            ]
+        },
+        {
+            "id": "pean_martial",
+            "name": "Pean martial",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Chant augmentant la force physique de 2 allies."
+                },
+                {
+                    "level": 2,
+                    "description": "Peut faire d'autres actions, affecte 5 personnes."
+                },
+                {
+                    "level": 3,
+                    "description": "Affecte tous les equipiers a portee."
+                }
+            ],
+            "requiredJobIds": [
+                "barde"
+            ]
+        },
+        {
+            "id": "menuet_vagabond",
+            "name": "Menuet du Vagabond",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Chant offrant un bonus de vitesse a 2 allies."
+                },
+                {
+                    "level": 2,
+                    "description": "Peut faire d'autres actions, 5 personnes. Fin du chant : attaque sur un ennemi."
+                },
+                {
+                    "level": 3,
+                    "description": "Affecte tous les equipiers a portee."
+                }
+            ],
+            "requiredJobIds": [
+                "barde"
+            ]
+        },
+        {
+            "id": "pean_contemplateur",
+            "name": "Pean du Contemplateur",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 2,
+                    "description": "Soigne un affaiblissement/empoisonnement modere chez le lanceur ou un allie."
+                }
+            ],
+            "requiredJobIds": [
+                "barde"
+            ],
+            "usageLimit": "TwicePerCombat",
+            "startLevel": 2
+        },
+        {
+            "id": "nocturne_muet",
+            "name": "Nocturne Muet",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 2,
+                    "description": "Inflige silence a une cible."
+                }
+            ],
+            "requiredJobIds": [
+                "barde"
+            ],
+            "usageLimit": "TwicePerCombat",
+            "startLevel": 2
+        },
+        {
+            "id": "fantaisie_finale",
+            "name": "Fantaisie Finale",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 3,
+                    "description": "Chant heroique augmentant drastiquement les capacites de combat du groupe pendant 4 tours."
+                }
+            ],
+            "requiredJobIds": [
+                "barde"
+            ],
+            "usageLimit": "OncePerCombat",
+            "startLevel": 3
+        },
+        {
+            "id": "trait_alpha",
+            "name": "Trait Alpha",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 3,
+                    "description": "Fleche surchargee d'ether repoussant toute personne dans son champ et ignorant les resistances."
+                }
+            ],
+            "requiredJobIds": [
+                "barde"
+            ],
+            "usageLimit": "OncePerCombat",
+            "startLevel": 3
+        },
+        {
+            "id": "feu_mn",
+            "name": "Feu",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Attaque magique de feu. Peut enflammer des objets."
+                },
+                {
+                    "level": 2,
+                    "description": "Permet de lancer Mega Feu, puissante attaque avec degats autour de la cible."
+                },
+                {
+                    "level": 3,
+                    "description": "Permet de lancer Giga Feu, attaque de zone."
+                }
+            ],
+            "requiredJobIds": [
+                "mage_noir"
+            ]
+        },
+        {
+            "id": "glace_mn",
+            "name": "Glace",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Attaque magique de glace. Peut geler des objets."
+                },
+                {
+                    "level": 2,
+                    "description": "Permet de lancer Mega Glace."
+                },
+                {
+                    "level": 3,
+                    "description": "Permet de lancer Giga Glace, attaque de zone."
+                }
+            ],
+            "requiredJobIds": [
+                "mage_noir"
+            ]
+        },
+        {
+            "id": "foudre_mn",
+            "name": "Foudre",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Attaque magique de foudre. Peut electrocuter des objets."
+                },
+                {
+                    "level": 2,
+                    "description": "Permet de lancer Mega Foudre."
+                },
+                {
+                    "level": 3,
+                    "description": "Permet de lancer Giga Foudre, attaque de zone."
+                }
+            ],
+            "requiredJobIds": [
+                "mage_noir"
+            ]
+        },
+        {
+            "id": "vasque_de_mana",
+            "name": "Vasque de Mana",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Ignore les affaiblissements, augmente le rang du prochain sort de 1."
+                },
+                {
+                    "level": 2,
+                    "description": "Augmente le rang du prochain sort de 2."
+                }
+            ],
+            "requiredJobIds": [
+                "mage_noir"
+            ],
+            "usageLimit": "OncePerCombat"
+        },
+        {
+            "id": "manalignements",
+            "name": "Manalignements",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Cercle magique permettant de lancer deux sorts de rang 1 en meme temps."
+                },
+                {
+                    "level": 2,
+                    "description": "Immunise aux effets de controle dans le cercle. Deplacement rapide sur le cercle."
+                }
+            ],
+            "requiredJobIds": [
+                "mage_noir"
+            ]
+        },
+        {
+            "id": "triple_sort",
+            "name": "Triple Sort",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 2,
+                    "description": "Lance les trois prochains sorts instantanement sans incantation."
+                }
+            ],
+            "requiredJobIds": [
+                "mage_noir"
+            ],
+            "usageLimit": "OncePerCombat",
+            "startLevel": 2
+        },
+        {
+            "id": "manipulation_ether_mn",
+            "name": "Manipulation de l'Ether",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Se deplace rapidement vers un allie visible."
+                }
+            ],
+            "requiredJobIds": [
+                "mage_noir"
+            ]
+        },
+        {
+            "id": "brasier",
+            "name": "Brasier",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 3,
+                    "description": "Attaque de feu devastatrice en zone. Necessite un tour de canalisation. Place en blessure letale si blesse pendant."
+                }
+            ],
+            "requiredJobIds": [
+                "mage_noir"
+            ],
+            "usageLimit": "OncePerEvent",
+            "startLevel": 3
+        },
+        {
+            "id": "transfert_ether",
+            "name": "Transfert d'ether",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 3,
+                    "description": "Insuffle de l'ether a un allie lui permettant de relancer une capacite outrepassant les limites."
+                }
+            ],
+            "requiredJobIds": [
+                "mage_noir"
+            ],
+            "usageLimit": "OncePerEvent",
+            "startLevel": 3
+        },
+        {
+            "id": "harpe",
+            "name": "Harpé",
+            "category": "Job",
+            "requiredJobIds": [ "faucheur" ],
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Incantation d'une attaque magique à distance, en restant immobile."
+                },
+                {
+                    "level": 2,
+                    "description": "Le sort est instantané et peut être utilisé en déplacement."
+                }
+            ]
+        },
+        {
+            "id": "intrusion",
+            "name": "Intrusion",
+            "category": "Job",
+            "requiredJobIds": [ "faucheur" ],
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Vous téléporte sur une moyenne distance, à un endroit que vous pouvez voir."
+                },
+                {
+                    "level": 2,
+                    "description": "Vous pouvez revenir à votre point de départ au tour suivant."
+                }
+            ]
+        },
+        {
+            "id": "Arrêt de Mort",
+            "name": "arret_de_mort",
+            "category": "Job",
+            "requiredJobIds": [ "faucheur" ],
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Vous pouvez maudire votre cible, qui prendra des dégâts au tour suivant, peu importe sa distance."
+                }
+            ]
+        },
+        {
+            "id": " Blason Arcanique",
+            "name": "blason_arcanique",
+            "category": "Job",
+            "requiredJobIds": [ "faucheur" ],
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Vous empêche de prendre une blessure modérée."
+                }
+            ],
+            "usageLimit": "OncePerCombat"
+        },
+        {
+            "id": "invocation_avatar",
+            "name": "Invocation d'Avatar",
+            "category": "Job",
+            "requiredJobIds": [ "faucheur" ],
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Vous pouvez invoquer votre Avatar pour attaquer."
+                },
+                {
+                    "level": 2,
+                    "description": "L'invocation peut être faite à distance, à un endroit que vous pouvez voir."
+                }
+            ]
+        },
+        {
+            "id": "cercle_arcanique",
+            "name": "Cercle Arcanique",
+            "category": "Job",
+            "requiredJobIds": [ "faucheur" ],
+            "levels": [
+                {
+                    "level": 3,
+                    "description": "Renforce l'âme et les armes de vos alliés pour accroître les dégâts de votre groupe pour le tour suivant."
+                }
+            ],
+            "startLevel": 3,
+            "usageLimit": "OncePerEvent"
+        },
+        {
+            "id": "Moisson Abondante",
+            "name": "Moisson Abondante",
+            "category": "Job",
+            "requiredJobIds": [ "faucheur" ],
+            "levels": [
+                {
+                    "level": 2,
+                    "description": "Vous déclenchez une attaque simultanée avec votre avatar."
+                },
+                {
+                    "level": 3,
+                    "description": "L'attaque déclenche Perfectio, une explosion magique à son point d'arrivée."
+                }
+            ],
+            "startLevel": 2,
+            "usageLimit": "OncePerEvent"
+        },
+        {
+            "id": "terreur",
+            "name": "Terreur ",
+            "category": "Job",
+            "requiredJobIds": [ "faucheur" ],
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Permet d'effrayer les ennemis de petite taille avec votre avatar."
+                },
+                {
+                    "level": 2,
+                    "description": "Fonctionne sur les ennemis de taille moyenne."
+                }
+            ]
+        },
+        {
+            "id": "linceul",
+            "name": "Linceul ",
+            "category": "Job",
+            "requiredJobIds": [ "faucheur" ],
+            "levels": [
+                {
+                    "level": 3,
+                    "description": "Vous offrez votre enveloppe corporelle à votre avatar, renforçant ainsi toutes vos capacités et permettant d'utiliser Communio, une explosion magique à distance."
+                }
+            ],
+            "startLevel": 3,
+            "usageLimit": "OncePerEvent"
+        },
+        {
+            "id": "frappe_siphon",
+            "name": "Frappe Siphon",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Serie de frappes a l'epee lourde drainant energie et vitalite."
+                },
+                {
+                    "level": 2,
+                    "description": "Permet de se renforcer en affaiblissant un adversaire."
+                }
+            ],
+            "requiredJobIds": [
+                "chevalier_noir"
+            ]
+        },
+        {
+            "id": "deterioration",
+            "name": "Deterioration",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Attaque magique a distance sur un ennemi unique."
+                },
+                {
+                    "level": 2,
+                    "description": "Contraint la cible a vous attaquer."
+                }
+            ],
+            "requiredJobIds": [
+                "chevalier_noir"
+            ]
+        },
+        {
+            "id": "dechainement",
+            "name": "Dechainement",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Plante l'epee au sol, creant une mare d'ombre attaquant les cibles."
+                },
+                {
+                    "level": 2,
+                    "description": "Manipule la mare et augmente la puissance des attaques."
+                }
+            ],
+            "requiredJobIds": [
+                "chevalier_noir"
+            ]
+        },
+        {
+            "id": "nuit_noirissime",
+            "name": "Nuit Noirissime",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Bouclier absorbant une blessure Moderee ou la reduisant de un rang."
+                },
+                {
+                    "level": 2,
+                    "description": "Le bouclier peut absorber une blessure Majeure."
+                },
+                {
+                    "level": 3,
+                    "description": "Peut etre utilise sur un allie."
+                }
+            ],
+            "requiredJobIds": [
+                "chevalier_noir"
+            ],
+            "usageLimit": "OncePerCombat"
+        },
+        {
+            "id": "mort_vivant_cn",
+            "name": "Mort-Vivant",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 3,
+                    "description": "En atteignant une blessure letale, lancez un de. Diminuez votre blessure de 1 par succes."
+                }
+            ],
+            "requiredJobIds": [
+                "chevalier_noir"
+            ],
+            "usageLimit": "OncePerEvent",
+            "startLevel": 3
+        },
+        {
+            "id": "terre_salee",
+            "name": "Terre Salee",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 2,
+                    "description": "Maudit une zone, infligeant degats et affaiblissement aux personnes dedans hors lanceur."
+                },
+                {
+                    "level": 3,
+                    "description": "Zone plus grande. Peut etre detonee pour infliger des degats a l'interieur."
+                }
+            ],
+            "requiredJobIds": [
+                "chevalier_noir"
+            ],
+            "startLevel": 2
+        },
+        {
+            "id": "porteur_ombre",
+            "name": "Porteur d'Ombre",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Frappe chargee en energie obscure etourdir un ennemi."
+                },
+                {
+                    "level": 2,
+                    "description": "La frappe peut toucher en zone face au lanceur."
+                }
+            ],
+            "requiredJobIds": [
+                "chevalier_noir"
+            ]
+        },
+        {
+            "id": "ombre_vivante",
+            "name": "Ombre Vivante",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 3,
+                    "description": "Invoque la part d'ombre du lanceur pendant 3 tours, agissant comme un joueur supplementaire."
+                }
+            ],
+            "requiredJobIds": [
+                "chevalier_noir"
+            ],
+            "usageLimit": "OncePerEvent",
+            "startLevel": 3
+        },
+        {
+            "id": "esprit_tenebreux",
+            "name": "Esprit Tenebreux",
+            "category": "Job",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Absorbe une attaque magique dirigee contre le lanceur."
+                },
+                {
+                    "level": 2,
+                    "description": "Peut affecter un autre personnage en meme temps."
+                }
+            ],
+            "requiredJobIds": [
+                "chevalier_noir"
+            ],
+            "usageLimit": "OncePerEvent"
         }
     ]
 }

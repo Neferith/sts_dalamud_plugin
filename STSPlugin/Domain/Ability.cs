@@ -19,6 +19,8 @@ public enum UsageLimit
     OncePerCombat,
     TwicePerCombat,
     OncePerEvent,
+    TwicePerEvent,
+    ThreeTimesPerEvent,
 }
 
 /// <summary>Description d'un niveau de compétence.</summary>
@@ -33,7 +35,14 @@ public record Ability(
     string Name,
     AbilityCategory Category,
     IReadOnlyList<AbilityLevel> Levels,
-    string? RequiredJobId = null,
+
+    /// <summary>
+    /// Identifiants des jobs requis pour cette compétence.
+    /// Null ou vide = accessible sans job.
+    /// Plusieurs jobs = accessible à tous les jobs listés.
+    /// </summary>
+    IReadOnlyList<string>? RequiredJobIds = null,
+
     UsageLimit UsageLimit = UsageLimit.None,
     int StartLevel = 1
 )
@@ -41,10 +50,7 @@ public record Ability(
     public int MaxLevel => Levels.Count > 0 ? Levels[^1].Level : 1;
 }
 
-/// <summary>
-/// Compétence équipée sur un personnage avec le niveau atteint.
-/// Les points gratuits sont désormais portés par les Certifications.
-/// </summary>
+/// <summary>Compétence équipée sur un personnage.</summary>
 public class EquippedAbility
 {
     public string AbilityId { get; set; } = string.Empty;
