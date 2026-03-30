@@ -707,6 +707,9 @@
             "name": "Attaque",
             "contexts": [
                 "attaque"
+            ],
+            "requirements": [
+                "Weapon"
             ]
         },
         {
@@ -715,6 +718,9 @@
             "contexts": [
                 "attaque",
                 "attaque_magique"
+            ],
+            "requirements": [
+                "Weapon"
             ]
         },
         {
@@ -723,6 +729,9 @@
             "contexts": [
                 "attaque",
                 "attaque_melee"
+            ],
+            "requirements": [
+                "Weapon"
             ]
         },
         {
@@ -731,6 +740,9 @@
             "contexts": [
                 "attaque",
                 "attaque_distance"
+            ],
+            "requirements": [
+                "Weapon"
             ]
         },
         {
@@ -739,6 +751,9 @@
             "contexts": [
                 "attaque",
                 "attaque_surprise"
+            ],
+            "requirements": [
+                "Weapon"
             ]
         },
         {
@@ -746,7 +761,8 @@
             "name": "Défense",
             "contexts": [
                 "defense"
-            ]
+            ],
+            "requirements": []
         },
         {
             "id": "defense_magique",
@@ -754,70 +770,80 @@
             "contexts": [
                 "defense",
                 "defense_magique"
-            ]
+            ],
+            "requirements": []
         },
         {
             "id": "discretion",
             "name": "Discrétion",
             "contexts": [
                 "discretion"
-            ]
+            ],
+            "requirements": []
         },
         {
             "id": "intimidation",
             "name": "Intimidation",
             "contexts": [
                 "intimidation"
-            ]
+            ],
+            "requirements": []
         },
         {
             "id": "connaissance_vie",
             "name": "Connaissance — Vie",
             "contexts": [
                 "connaissance_vie"
-            ]
+            ],
+            "requirements": []
         },
         {
             "id": "connaissance_technologie",
             "name": "Connaissance — Technologie",
             "contexts": [
                 "connaissance_technologie"
-            ]
+            ],
+            "requirements": []
         },
         {
             "id": "connaissance_monde",
             "name": "Connaissance — Monde",
             "contexts": [
                 "connaissance_monde"
-            ]
+            ],
+            "requirements": []
         },
         {
             "id": "connaissance_arcane",
             "name": "Connaissance — Arcane",
             "contexts": [
                 "connaissance_arcane"
-            ]
+            ],
+            "requirements": []
         },
         {
             "id": "marchandage",
             "name": "Marchandage",
             "contexts": [
                 "marchandage"
-            ]
+            ],
+            "requirements": []
         },
         {
             "id": "alchimie",
             "name": "Alchimie",
             "contexts": [
                 "alchimie"
-            ]
+            ],
+            "requirements": []
         },
         {
             "id": "magitek",
             "name": "Ingénierie magitek",
             "contexts": [
                 "magitek"
-            ]
+            ],
+            "requirements": []
         }
     ],
     "abilities": [
@@ -900,6 +926,25 @@
         {
             "id": "arc",
             "name": "Arc",
+            "category": "Weapon",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Connaissances théoriques suffisantes pour manier son arme en se concentrant."
+                },
+                {
+                    "level": 2,
+                    "description": "Peut désormais utiliser son arme de manière fiable peu importe la situation."
+                },
+                {
+                    "level": 3,
+                    "description": "Passé maître dans l'art d'utiliser son arme, peut désormais utiliser des techniques avancées."
+                }
+            ]
+        },
+        {
+            "id": "hache",
+            "name": "Hache",
             "category": "Weapon",
             "levels": [
                 {

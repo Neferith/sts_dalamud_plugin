@@ -120,4 +120,7 @@ public class ActionData
 
     [JsonPropertyName("contexts")]
     public List<string> Contexts { get; set; } = [];
+
+    [JsonPropertyName("requirements")]
+    public List<string> Requirements { get; set; } = [];
 }

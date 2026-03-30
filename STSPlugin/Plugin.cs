@@ -32,6 +32,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IChatGui ChatGui { get; private set; } = null!;
     [PluginService] internal static IClientState ClientState { get; private set; } = null!;
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
+    [PluginService] internal static ITextureProvider TextureProvider { get; private set; } = null!;
 
     public Configuration Configuration { get; init; }
     public StsEngine Engine { get; init; }
@@ -68,6 +69,13 @@ public sealed class Plugin : IDalamudPlugin
     // --- use cases certifications ---
     public AddCertificationUseCase AddCertification { get; init; }
     public RemoveCertificationUseCase RemoveCertification { get; init; }
+
+    // --- use cases inventaire ---
+    public AddInventoryItemUseCase AddInventoryItem { get; init; }
+    public RemoveInventoryItemUseCase RemoveInventoryItem { get; init; }
+    public SetItemSlotUseCase SetItemSlot { get; init; }
+    public ReorderInventoryUseCase ReorderInventory { get; init; }
+    public SetItemIconUseCase SetItemIcon { get; init; }
 
     private readonly WindowSystem windowSystem = new("STSPlugin");
     private readonly MainWindow mainWindow;
@@ -127,6 +135,13 @@ public sealed class Plugin : IDalamudPlugin
         // --- Use cases certifications ---
         AddCertification = new DefaultAddCertificationUseCase(CharacterRepository);
         RemoveCertification = new DefaultRemoveCertificationUseCase(CharacterRepository);
+
+        // --- Use cases inventaire ---
+        AddInventoryItem = new DefaultAddInventoryItemUseCase(CharacterRepository);
+        RemoveInventoryItem = new DefaultRemoveInventoryItemUseCase(CharacterRepository);
+        SetItemSlot = new DefaultSetItemSlotUseCase(CharacterRepository);
+        ReorderInventory = new DefaultReorderInventoryUseCase(CharacterRepository);
+        SetItemIcon = new DefaultSetItemIconUseCase(CharacterRepository);
 
         // --- Appliquer le personnage actif au démarrage ---
         var active = GetActiveCharacter.Execute();
@@ -262,6 +277,15 @@ public sealed class Plugin : IDalamudPlugin
     {
         mainWindow.IsOpen = true;
 
+        // Évaluer les prérequis de l'action avant le jet
+        Engine.PalierOverride = null;
+        if (action != null)
+        {
+            var active = GetActiveCharacter.Execute();
+            if (active != null)
+                Engine.PalierOverride = EvaluateRequirements(action, active);
+        }
+
         if (Configuration.RollSource == RollSource.GameRandom)
         {
             if (action != null) Engine.BeginRoll(action);
@@ -274,6 +298,27 @@ public sealed class Plugin : IDalamudPlugin
             else Engine.Roll();
             OnRollComplete();
         }
+    }
+
+    /// <summary>
+    /// Évalue les prérequis d'une action et retourne un palier forcé si une règle s'applique.
+    /// Null = pas de forçage.
+    /// </summary>
+    private int? EvaluateRequirements(RollAction action, Character character)
+    {
+        foreach (var req in action.Requirements)
+        {
+            switch (req)
+            {
+                case ActionRequirementType.Weapon:
+                    var equipped = character.EquippedWeapons.ToList();
+                    // Pas d'arme équipée ou toutes non maîtrisées → palier 8
+                    if (equipped.Count == 0 || equipped.All(w => character.IsWeaponUnmastered(w)))
+                        return 8;
+                    break;
+            }
+        }
+        return null;
     }
 
     private void StartReroll()
