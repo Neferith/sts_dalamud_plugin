@@ -53,8 +53,15 @@ public class StsEngine
         set => _session.Modifier = value;
     }
 
-    /// <summary>Palier effectif après application du modificateur.</summary>
-    public int EffectivePalier => _computePalier.Execute(_session.Rank, _session.Modifier);
+    /// <summary>
+    /// Palier forcé par une règle externe (ex : arme non maîtrisée → 8).
+    /// Null = palier normal calculé depuis le rang et le modificateur MJ.
+    /// Automatiquement remis à null à chaque nouveau jet et à ResetEvent().
+    /// </summary>
+    public int? PalierOverride { get; set; } = null;
+
+    /// <summary>Palier effectif — override prioritaire sur le calcul normal.</summary>
+    public int EffectivePalier => PalierOverride ?? _computePalier.Execute(_session.Rank, _session.Modifier);
 
     /// <summary>Indique si un jet a déjà été effectué.</summary>
     public bool HasRolled => _session.HasRolled;
@@ -189,6 +196,7 @@ public class StsEngine
         State = EngineState.Idle;
         _pendingRejected = null;
         _pendingAction = null;
+        PalierOverride = null;
     }
 
     // --- calcul des effets de traits ---
@@ -292,6 +300,7 @@ public class StsEngine
         var effects = ComputeTraitEffects(action);
         _session.LastResult = ResolveNewRoll(null, action, effects);
         PushHistory(_session.LastResult);
+        PalierOverride = null;
     }
 
     private void BeginRollWithAction(RollAction? action)

@@ -35,6 +35,29 @@ public class Character
     /// <summary>Certifications accordées par un officier.</summary>
     public List<Certification> Certifications { get; set; } = [];
 
+    /// <summary>Inventaire du personnage (armes et objets divers).</summary>
+    public List<CharacterItem> Inventory { get; set; } = [];
+
+    /// <summary>Id de l'arme équipée en main principale. Null si vide.</summary>
+    public string? MainHandItemId { get; set; } = null;
+
+    /// <summary>Id de l'arme équipée en main secondaire. Null si vide.</summary>
+    public string? OffHandItemId { get; set; } = null;
+
+    // --- helpers inventaire ---
+
+    /// <summary>Retourne les armes équipées.</summary>
+    public IEnumerable<CharacterItem> EquippedWeapons
+        => Inventory.Where(i => i.Category == ItemCategory.Weapon && i.IsEquipped);
+
+    /// <summary>
+    /// Indique si une arme équipée n'a pas la compétence requise (palier → 8).
+    /// </summary>
+    public bool IsWeaponUnmastered(CharacterItem weapon)
+        => weapon.Category == ItemCategory.Weapon
+        && weapon.LinkedAbilityId != null
+        && GetAbilityLevel(weapon.LinkedAbilityId) == 0;
+
     // --- helpers traits ---
 
     public int TraitSlots => Rank.Get(RankKey).Traits;
