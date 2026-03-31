@@ -490,6 +490,7 @@ public class CharacterWindow : Window, IDisposable
     {
         ImGui.TextColored(ColMuted, $"CERTIFICATIONS  ({_character.Certifications.Count})");
         ImGui.TextColored(ColMuted, "(accordées par un officier uniquement)"); ImGui.Spacing();
+
         foreach (var cert in _character.Certifications.ToList())
         {
             ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.64f, 0.17f, 0.17f, 0.20f));
@@ -501,49 +502,95 @@ public class CharacterWindow : Window, IDisposable
             if (cert.LinkedOriginTraitId != null) { var t = _plugin.TraitRepository.GetById(cert.LinkedOriginTraitId); ImGui.SameLine(); ImGui.TextColored(ColMuted, $"[Trait : {t?.Name ?? cert.LinkedOriginTraitId}]"); }
             if (cert.LinkedAbilityId != null && cert.FreePoints > 0) { var a = _plugin.AbilityRepository.GetById(cert.LinkedAbilityId); ImGui.SameLine(); ImGui.TextColored(ColMuted, $"[{cert.FreePoints} pt(s) : {a?.Name ?? cert.LinkedAbilityId}]"); }
         }
+
         ImGui.Spacing();
-        if (ImGui.CollapsingHeader("+ Ajouter une certification##cert_add"))
+
+        // Bouton d'ouverture du popup
+        ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.09f, 0.37f, 0.65f, 0.20f));
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.09f, 0.37f, 0.65f, 0.40f));
+        ImGui.PushStyleColor(ImGuiCol.Text, ColInfo);
+        if (ImGui.Button("+ Ajouter une certification##cert_open"))
         {
-            ImGui.Spacing(); ImGui.SetNextItemWidth(200); ImGui.InputText("Nom##cert_name", ref _newCertName, 128);
-            ImGui.Spacing(); ImGui.TextColored(ColMuted, "Trait d'origine lié (optionnel) :"); ImGui.Spacing();
-            var noOr = string.IsNullOrEmpty(_newCertOriginTraitId);
-            if (noOr) { ImGui.PushStyleColor(ImGuiCol.Button, ColActive); ImGui.PushStyleColor(ImGuiCol.ButtonHovered, ColActive); }
-            if (ImGui.Button("Aucun##cert_orig_none")) _newCertOriginTraitId = string.Empty;
-            if (noOr) ImGui.PopStyleColor(2); ImGui.SameLine();
-            foreach (var t in _plugin.TraitRepository.GetByCategory(TraitCategory.Origine))
-            {
-                var sel = _newCertOriginTraitId == t.Id;
-                if (sel) { ImGui.PushStyleColor(ImGuiCol.Button, ColActive); ImGui.PushStyleColor(ImGuiCol.ButtonHovered, ColActive); }
-                if (ImGui.Button(t.Name + "##cert_orig_" + t.Id)) _newCertOriginTraitId = sel ? string.Empty : t.Id;
-                if (sel) ImGui.PopStyleColor(2);
-                if (ImGui.IsItemHovered()) ImGui.SetTooltip(t.Description);
-            }
-            ImGui.Spacing(); ImGui.TextColored(ColMuted, "Arme avec points gratuits (optionnel) :"); ImGui.Spacing();
-            var noAb = string.IsNullOrEmpty(_newCertAbilityId);
-            if (noAb) { ImGui.PushStyleColor(ImGuiCol.Button, ColActive); ImGui.PushStyleColor(ImGuiCol.ButtonHovered, ColActive); }
-            if (ImGui.Button("Aucune##cert_ab_none")) { _newCertAbilityId = string.Empty; _newCertFreePoints = 0; }
-            if (noAb) ImGui.PopStyleColor(2); ImGui.SameLine();
-            foreach (var a in _plugin.AbilityRepository.GetWeapons())
-            {
-                var sel = _newCertAbilityId == a.Id;
-                if (sel) { ImGui.PushStyleColor(ImGuiCol.Button, ColActive); ImGui.PushStyleColor(ImGuiCol.ButtonHovered, ColActive); }
-                if (ImGui.Button(a.Name + "##cert_ab_" + a.Id)) _newCertAbilityId = sel ? string.Empty : a.Id;
-                if (sel) ImGui.PopStyleColor(2);
-            }
-            if (!string.IsNullOrEmpty(_newCertAbilityId)) { ImGui.SameLine(); ImGui.SetNextItemWidth(60); ImGui.InputInt("pts gratuits##cert_free", ref _newCertFreePoints, 1, 1); if (_newCertFreePoints < 0) _newCertFreePoints = 0; }
-            ImGui.Spacing();
-            var canAdd = !string.IsNullOrWhiteSpace(_newCertName);
-            if (!canAdd) { ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.3f, 0.3f, 0.3f, 0.3f)); ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.3f, 0.3f, 0.3f, 0.3f)); }
-            if (ImGui.Button("✓ Ajouter##cert_confirm") && canAdd)
-            {
-                _plugin.AddCertification.Execute(_character, _newCertName,
-                    string.IsNullOrEmpty(_newCertOriginTraitId) ? null : _newCertOriginTraitId,
-                    string.IsNullOrEmpty(_newCertAbilityId) ? null : _newCertAbilityId, _newCertFreePoints);
-                _newCertName = _newCertOriginTraitId = _newCertAbilityId = string.Empty; _newCertFreePoints = 0;
-            }
-            if (!canAdd) ImGui.PopStyleColor(2);
-            ImGui.Spacing();
+            _newCertName = _newCertOriginTraitId = _newCertAbilityId = string.Empty;
+            _newCertFreePoints = 0;
+            ImGui.OpenPopup("Nouvelle certification##cert_modal");
         }
+        ImGui.PopStyleColor(3);
+
+        DrawCertificationPopup();
+    }
+
+    private void DrawCertificationPopup()
+    {
+        var center = ImGui.GetMainViewport().GetCenter();
+        ImGui.SetNextWindowPos(center, ImGuiCond.Appearing, new Vector2(0.5f, 0.5f));
+        ImGui.SetNextWindowSize(new Vector2(520, 0), ImGuiCond.Appearing); // hauteur auto
+
+        if (!ImGui.BeginPopupModal("Nouvelle certification##cert_modal", ImGuiWindowFlags.AlwaysAutoResize))
+            return;
+
+        ImGui.TextColored(ColMuted, "NOM"); ImGui.Spacing();
+        ImGui.SetNextItemWidth(300); ImGui.InputText("##cert_name", ref _newCertName, 128);
+
+        ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
+        ImGui.TextColored(ColMuted, "Trait d'origine lié (optionnel) :"); ImGui.Spacing();
+
+        var noOr = string.IsNullOrEmpty(_newCertOriginTraitId);
+        if (noOr) { ImGui.PushStyleColor(ImGuiCol.Button, ColActive); ImGui.PushStyleColor(ImGuiCol.ButtonHovered, ColActive); }
+        if (ImGui.Button("Aucun##cert_orig_none")) _newCertOriginTraitId = string.Empty;
+        if (noOr) ImGui.PopStyleColor(2); ImGui.SameLine();
+        foreach (var t in _plugin.TraitRepository.GetByCategory(TraitCategory.Origine))
+        {
+            var sel = _newCertOriginTraitId == t.Id;
+            if (sel) { ImGui.PushStyleColor(ImGuiCol.Button, ColActive); ImGui.PushStyleColor(ImGuiCol.ButtonHovered, ColActive); }
+            if (ImGui.Button(t.Name + "##cert_orig_" + t.Id)) _newCertOriginTraitId = sel ? string.Empty : t.Id;
+            if (sel) ImGui.PopStyleColor(2);
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip(t.Description);
+        }
+
+        ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
+        ImGui.TextColored(ColMuted, "Compétence d'arme avec points gratuits (optionnel) :"); ImGui.Spacing();
+
+        var noAb = string.IsNullOrEmpty(_newCertAbilityId);
+        if (noAb) { ImGui.PushStyleColor(ImGuiCol.Button, ColActive); ImGui.PushStyleColor(ImGuiCol.ButtonHovered, ColActive); }
+        if (ImGui.Button("Aucune##cert_ab_none")) { _newCertAbilityId = string.Empty; _newCertFreePoints = 0; }
+        if (noAb) ImGui.PopStyleColor(2); ImGui.SameLine();
+        foreach (var a in _plugin.AbilityRepository.GetWeapons())
+        {
+            var sel = _newCertAbilityId == a.Id;
+            if (sel) { ImGui.PushStyleColor(ImGuiCol.Button, ColActive); ImGui.PushStyleColor(ImGuiCol.ButtonHovered, ColActive); }
+            if (ImGui.Button(a.Name + "##cert_ab_" + a.Id)) _newCertAbilityId = sel ? string.Empty : a.Id;
+            if (sel) ImGui.PopStyleColor(2);
+        }
+        if (!string.IsNullOrEmpty(_newCertAbilityId))
+        {
+            ImGui.Spacing();
+            ImGui.SetNextItemWidth(140);
+            ImGui.InputInt("pts gratuits##cert_free", ref _newCertFreePoints, 1, 1);
+            if (_newCertFreePoints < 0) _newCertFreePoints = 0;
+        }
+
+        ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
+
+        var canAdd = !string.IsNullOrWhiteSpace(_newCertName);
+        if (!canAdd) { ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.3f, 0.3f, 0.3f, 0.3f)); ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.3f, 0.3f, 0.3f, 0.3f)); }
+        ImGui.PushStyleColor(ImGuiCol.Text, canAdd ? ColSuccess : ColMuted);
+        if (ImGui.Button("✓ Confirmer##cert_confirm") && canAdd)
+        {
+            _plugin.AddCertification.Execute(_character, _newCertName,
+                string.IsNullOrEmpty(_newCertOriginTraitId) ? null : _newCertOriginTraitId,
+                string.IsNullOrEmpty(_newCertAbilityId) ? null : _newCertAbilityId,
+                _newCertFreePoints);
+            _newCertName = _newCertOriginTraitId = _newCertAbilityId = string.Empty;
+            _newCertFreePoints = 0;
+            ImGui.CloseCurrentPopup();
+        }
+        ImGui.PopStyleColor(canAdd ? 1 : 3);
+
+        ImGui.SameLine();
+        if (ImGui.Button("Annuler##cert_cancel")) ImGui.CloseCurrentPopup();
+
+        ImGui.EndPopup();
     }
 
     private void DrawEditAbilities(Rank rank)
