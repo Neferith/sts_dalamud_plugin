@@ -1598,6 +1598,63 @@
             ]
         },
         {
+            "id": "dague",
+            "name": "Dague",
+            "category": "Weapon",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Connaissances theoriques suffisantes pour manier son arme en se concentrant."
+                },
+                {
+                    "level": 2,
+                    "description": "Peut desormais utiliser son arme de maniere fiable peu importe la situation."
+                },
+                {
+                    "level": 3,
+                    "description": "Passe maitre dans l'art d'utiliser son arme, peut desormais utiliser des techniques avancees."
+                }
+            ]
+        },
+        {
+            "id": "pistolame",
+            "name": "Pistolame",
+            "category": "Weapon",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Connaissances theoriques suffisantes pour manier son arme en se concentrant."
+                },
+                {
+                    "level": 2,
+                    "description": "Peut desormais utiliser son arme de maniere fiable peu importe la situation."
+                },
+                {
+                    "level": 3,
+                    "description": "Passe maitre dans l'art d'utiliser son arme, peut desormais utiliser des techniques avancees."
+                }
+            ]
+        },
+        {
+            "id": "arc",
+            "name": "Arc",
+            "category": "Weapon",
+            "levels": [
+                {
+                    "level": 1,
+                    "description": "Connaissances theoriques suffisantes pour manier son arme en se concentrant."
+                },
+                {
+                    "level": 2,
+                    "description": "Peut desormais utiliser son arme de maniere fiable peu importe la situation."
+                },
+                {
+                    "level": 3,
+                    "description": "Passe maitre dans l'art d'utiliser son arme, peut desormais utiliser des techniques avancees."
+                }
+            ]
+        },
+        {
             "id": "faux",
             "name": "Faux",
             "category": "Weapon",

@@ -414,32 +414,6 @@ public class MainWindow : Window, IDisposable
             ImGui.TextColored(ColMuted, $"Sélectionné : {selected.Name}");
             ImGui.Spacing();
 
-            // Changer le rang
-            ImGui.TextColored(ColMuted, "Rang :");
-            ImGui.SameLine();
-            foreach (var rankKey in Enum.GetValues<RankKey>())
-            {
-                var rank = Rank.Get(rankKey);
-                var current = selected.RankKey == rankKey;
-                if (current)
-                {
-                    ImGui.PushStyleColor(ImGuiCol.Button, ColActive);
-                    ImGui.PushStyleColor(ImGuiCol.ButtonHovered, ColActive);
-                }
-                if (ImGui.Button(rank.Label + "##cr_" + rankKey))
-                {
-                    selected.RankKey = rankKey;
-                    plugin.UpdateCharacter.Execute(selected);
-                    // Si c'est le personnage actif, synchroniser l'engine
-                    if (isActive)
-                        Engine.ChangeRank(rankKey);
-                }
-                if (current) ImGui.PopStyleColor(2);
-                ImGui.SameLine();
-            }
-            ImGui.NewLine();
-            ImGui.Spacing();
-
             // Activer / Désactiver
             var avail = ImGui.GetContentRegionAvail().X;
             if (!isActive)
