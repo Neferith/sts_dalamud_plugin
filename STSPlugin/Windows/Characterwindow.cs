@@ -348,11 +348,19 @@ public class CharacterWindow : Window, IDisposable
         {
             var ab = _plugin.AbilityRepository.GetById(eq.AbilityId); if (ab is null) continue;
             var fp = _character.GetFreePointsForAbility(eq.AbilityId);
-            var ld = ab.Levels.FirstOrDefault(l => l.Level == eq.Level);
             ImGui.Text($"● {ab.Name}"); ImGui.SameLine(); ImGui.TextColored(ColInfo, $"Lv{eq.Level}");
             if (fp > 0) { ImGui.SameLine(); ImGui.TextColored(ColSuccess, $"({fp} pt(s) certif.)"); }
             if (ab.UsageLimit != UsageLimit.None) { ImGui.SameLine(); ImGui.TextColored(ColWarn, UsageLimitLabel(ab.UsageLimit)); }
-            if (ld != null) { ImGui.PushStyleColor(ImGuiCol.Text, ColMuted); ImGui.TextWrapped(ld.Description); ImGui.PopStyleColor(); }
+
+            var levelsToShow = ab.Levels.Where(l => l.Level <= eq.Level).OrderBy(l => l.Level);
+            foreach (var ld in levelsToShow)
+            {
+                ImGui.PushStyleColor(ImGuiCol.Text, ColMuted);
+                if (eq.Level > 1) ImGui.TextColored(ColInfo, $"  Lv{ld.Level} :");  // label si plusieurs niveaux
+                ImGui.TextWrapped(ld.Description);
+                ImGui.PopStyleColor();
+            }
+
             ImGui.Spacing();
         }
     }
