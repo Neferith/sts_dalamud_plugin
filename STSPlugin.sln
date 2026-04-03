@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "STS.Domain", "STS.Domain\ST
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "STS.Domain.Tests", "STS.Domain.Tests\STS.Domain.Tests.csproj", "{8F10E9A3-84C8-438D-8557-52102B1CA4B5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "STS.Api", "STS.Api\STS.Api.csproj", "{47D127F5-8468-461A-997A-6277875B04F8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -55,6 +57,18 @@ Global
 		{8F10E9A3-84C8-438D-8557-52102B1CA4B5}.Release|Any CPU.Build.0 = Release|Any CPU
 		{8F10E9A3-84C8-438D-8557-52102B1CA4B5}.Release|x86.ActiveCfg = Release|Any CPU
 		{8F10E9A3-84C8-438D-8557-52102B1CA4B5}.Release|x86.Build.0 = Release|Any CPU
+		{47D127F5-8468-461A-997A-6277875B04F8}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{47D127F5-8468-461A-997A-6277875B04F8}.Debug|x64.Build.0 = Debug|Any CPU
+		{47D127F5-8468-461A-997A-6277875B04F8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{47D127F5-8468-461A-997A-6277875B04F8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{47D127F5-8468-461A-997A-6277875B04F8}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{47D127F5-8468-461A-997A-6277875B04F8}.Debug|x86.Build.0 = Debug|Any CPU
+		{47D127F5-8468-461A-997A-6277875B04F8}.Release|x64.ActiveCfg = Release|Any CPU
+		{47D127F5-8468-461A-997A-6277875B04F8}.Release|x64.Build.0 = Release|Any CPU
+		{47D127F5-8468-461A-997A-6277875B04F8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{47D127F5-8468-461A-997A-6277875B04F8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{47D127F5-8468-461A-997A-6277875B04F8}.Release|x86.ActiveCfg = Release|Any CPU
+		{47D127F5-8468-461A-997A-6277875B04F8}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
