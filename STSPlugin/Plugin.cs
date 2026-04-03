@@ -8,9 +8,10 @@ using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.System.String;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using STSPlugin.DataSource;
-using STSPlugin.Domain;
+using Sts.Domain;
 using STSPlugin.Repository;
-using STSPlugin.UseCases;
+using STSPlugin.CharacterUseCases;
+using Sts.Domain.UseCases;
 using STSPlugin.Windows;
 using System;
 using System.Collections.Generic;
@@ -18,6 +19,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using STSPlugin.ConfigDomain;
 
 namespace STSPlugin;
 

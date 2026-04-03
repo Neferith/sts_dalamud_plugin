@@ -1,10 +1,9 @@
 using System.Collections.Generic;
 
-namespace STSPlugin.Domain;
+namespace Sts.Domain;
 
 /// <summary>
 /// Type de prérequis matériel pour une action de jet.
-/// Extensible — chaque valeur peut modifier les conditions du jet si non remplie.
 /// </summary>
 public enum ActionRequirementType
 {

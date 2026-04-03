@@ -1,7 +1,8 @@
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Windowing;
-using STSPlugin.Domain;
-using STSPlugin.UseCases;
+using Sts.Domain;
+using STSPlugin.CharacterUseCases;
+using Sts.Domain.UseCases;
 using System;
 using System.Collections.Generic;
 using System.Linq;

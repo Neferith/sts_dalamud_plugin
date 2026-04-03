@@ -1,6 +1,6 @@
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Windowing;
-using STSPlugin.Domain;
+using Sts.Domain;
 using System;
 using System.Linq;
 using System.Numerics;
@@ -103,7 +103,7 @@ public class MainWindow : Window, IDisposable
 
     // ------------------------------------------------------------------ En-tête personnage actif
 
-    private void DrawActiveCharacterHeader(Domain.Character active)
+    private void DrawActiveCharacterHeader(Character active)
     {
         var rank = Rank.Get(active.RankKey);
 

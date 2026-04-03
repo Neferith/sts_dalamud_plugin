@@ -1,4 +1,6 @@
-namespace STSPlugin.Domain;
+using System;
+
+namespace Sts.Domain;
 
 /// <summary>Catégorie d'un objet d'inventaire.</summary>
 public enum ItemCategory
@@ -16,7 +18,7 @@ public enum ItemCategory
 public class CharacterItem
 {
     /// <summary>Identifiant unique (guid).</summary>
-    public string Id { get; set; } = System.Guid.NewGuid().ToString();
+    public string Id { get; set; } = Guid.NewGuid().ToString();
 
     /// <summary>Nom de l'objet.</summary>
     public string Name { get; set; } = string.Empty;
@@ -47,7 +49,7 @@ public class CharacterItem
     public uint IconId { get; set; } = 21001;
 
     /// <summary>
-    /// Ordre d'affichage dans la grille. Modifiable par drag & drop.
+    /// Ordre d'affichage dans la grille. Modifiable par drag &amp; drop.
     /// </summary>
     public int SortIndex { get; set; } = 0;
 }

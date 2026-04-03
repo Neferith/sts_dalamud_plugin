@@ -1,6 +1,6 @@
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Windowing;
-using STSPlugin.Domain;
+using Sts.Domain;
 using System;
 using System.Linq;
 using System.Numerics;

@@ -1,4 +1,6 @@
-namespace STSPlugin.Domain;
+using System;
+
+namespace Sts.Domain;
 
 /// <summary>
 /// Certification accordée par un officier à un personnage.
@@ -8,7 +10,7 @@ namespace STSPlugin.Domain;
 public class Certification
 {
     /// <summary>Identifiant unique de cette certification (guid).</summary>
-    public string Id { get; set; } = System.Guid.NewGuid().ToString();
+    public string Id { get; set; } = Guid.NewGuid().ToString();
 
     /// <summary>Nom affiché (ex : "Machiniste — Arme à feu", "Enfant des bois").</summary>
     public string Name { get; set; } = string.Empty;

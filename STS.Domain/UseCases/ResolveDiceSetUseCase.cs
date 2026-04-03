@@ -1,11 +1,8 @@
 using System.Linq;
-using Sts.Domain;
 
-namespace STSPlugin.UseCases;
+namespace Sts.Domain.UseCases;
 
-/// <summary>
-/// Résultat de l'évaluation d'un set de dés contre un palier.
-/// </summary>
+/// <summary>Résultat de l'évaluation d'un set de dés contre un palier.</summary>
 /// <param name="Hits">Tableau de 3 booléens indiquant si chaque dé est un succès.</param>
 /// <param name="Successes">Nombre total de dés ayant atteint ou dépassé le palier.</param>
 public record DiceResolution(bool[] Hits, int Successes);
@@ -14,7 +11,7 @@ public record DiceResolution(bool[] Hits, int Successes);
 /// Cas d'usage : évaluer un set de 3 dés contre un palier effectif.
 /// Retourne les succès individuels et le total.
 /// </summary>
-public interface ResolveDiceSetUseCase
+public interface IResolveDiceSetUseCase
 {
     /// <summary>
     /// Évalue chaque dé du set contre le palier fourni.
@@ -27,9 +24,9 @@ public interface ResolveDiceSetUseCase
 }
 
 /// <summary>
-/// Implémentation par défaut de <see cref="ResolveDiceSetUseCase"/>.
+/// Implémentation par défaut de <see cref="IResolveDiceSetUseCase"/>.
 /// </summary>
-public class DefaultResolveDiceSetUseCase : ResolveDiceSetUseCase
+public class DefaultResolveDiceSetUseCase : IResolveDiceSetUseCase
 {
     /// <inheritdoc/>
     public DiceResolution Execute(DiceSet diceSet, int palier)

@@ -1,8 +1,8 @@
 using System.Linq;
-using STSPlugin.Domain;
+using Sts.Domain;
 using STSPlugin.Repository;
 
-namespace STSPlugin.UseCases;
+namespace STSPlugin.CharacterUseCases;
 
 /// <summary>Résultat de la tentative d'équipement d'une compétence.</summary>
 public enum EquipAbilityResult

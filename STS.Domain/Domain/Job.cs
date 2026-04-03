@@ -1,4 +1,4 @@
-namespace STSPlugin.Domain;
+namespace Sts.Domain;
 
 /// <summary>
 /// Représente un job jouable.

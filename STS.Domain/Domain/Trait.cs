@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace STSPlugin.Domain;
+namespace Sts.Domain;
 
 /// <summary>Type d'effet mécanique d'un trait sur les jets de dés.</summary>
 public enum TraitEffectType

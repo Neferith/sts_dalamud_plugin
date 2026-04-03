@@ -1,6 +1,8 @@
 using Dalamud.Configuration;
-using STSPlugin.Domain;
+using Sts.Domain;
 using System;
+using Sts.Domain;
+using STSPlugin.ConfigDomain;
 
 namespace STSPlugin;
 

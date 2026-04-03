@@ -1,10 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using STSPlugin.Domain;
-using STSPlugin.UseCases;
+using Sts.Domain.UseCases;
 
-namespace STSPlugin;
+namespace Sts.Domain;
 
 /// <summary>
 /// Moteur principal du STS. Orchestre les use cases et maintient l'état de la session.
@@ -13,40 +12,32 @@ namespace STSPlugin;
 /// </summary>
 public class StsEngine
 {
-    // --- dépendances injectées ---
-    private readonly ComputePalierUseCase _computePalier;
-    private readonly ResolveDiceSetUseCase _resolveDiceSet;
-    private readonly PickDiceSetUseCase _pickDiceSet;
-    private readonly CheckRerollUseCase _checkReroll;
+    private readonly IComputePalierUseCase _computePalier;
+    private readonly IResolveDiceSetUseCase _resolveDiceSet;
+    private readonly IPickDiceSetUseCase _pickDiceSet;
+    private readonly ICheckRerollUseCase _checkReroll;
 
-    // --- état courant ---
     private readonly RollSession _session = new();
-
-    // --- traits équipés du personnage actif ---
     private IReadOnlyList<Trait> _equippedTraits = [];
 
-    // --- état GameRandom ---
     private DiceSet? _pendingRejected;
     private RollAction? _pendingAction;
+    private bool _isPendingReroll;
 
-    // --- random interne ---
     private static readonly Random Rng = new();
     private static int Roll1() => Rng.Next(1, 11);
     private static DiceSet Roll3() => new([Roll1(), Roll1(), Roll1()]);
 
     // --- propriétés publiques ---
 
-    /// <summary>Rang courant du personnage.</summary>
     public Rank CurrentRank => _session.Rank;
 
-    /// <summary>Mode de jet actif.</summary>
     public RollMode Mode
     {
         get => _session.Mode;
         set => _session.Mode = value;
     }
 
-    /// <summary>Modificateur MJ appliqué au palier. Positif = facilite.</summary>
     public int Modifier
     {
         get => _session.Modifier;
@@ -60,19 +51,11 @@ public class StsEngine
     /// </summary>
     public int? PalierOverride { get; set; } = null;
 
-    /// <summary>Palier effectif — override prioritaire sur le calcul normal.</summary>
     public int EffectivePalier => PalierOverride ?? _computePalier.Execute(_session.Rank, _session.Modifier);
 
-    /// <summary>Indique si un jet a déjà été effectué.</summary>
     public bool HasRolled => _session.HasRolled;
-
-    /// <summary>Résultat du dernier jet résolu.</summary>
     public RollResult? LastResult => _session.LastResult;
 
-    /// <summary>
-    /// Nombre de rerolls restants pour l'event en cours.
-    /// Inclut les bonus permanents des traits (context null).
-    /// </summary>
     public int RerollsLeft
     {
         get
@@ -82,17 +65,15 @@ public class StsEngine
         }
     }
 
-    /// <summary>État vis-à-vis du mode GameRandom.</summary>
     public EngineState State { get; private set; } = EngineState.Idle;
 
-    /// <summary>Historique des 8 derniers jets.</summary>
     public List<RollEntry> History { get; } = [];
 
     public StsEngine(
-        ComputePalierUseCase computePalier,
-        ResolveDiceSetUseCase resolveDiceSet,
-        PickDiceSetUseCase pickDiceSet,
-        CheckRerollUseCase checkReroll)
+        IComputePalierUseCase computePalier,
+        IResolveDiceSetUseCase resolveDiceSet,
+        IPickDiceSetUseCase pickDiceSet,
+        ICheckRerollUseCase checkReroll)
     {
         _computePalier = computePalier;
         _resolveDiceSet = resolveDiceSet;
@@ -100,12 +81,15 @@ public class StsEngine
         _checkReroll = checkReroll;
     }
 
+    /// <summary>Factory method pratique avec les implémentations par défaut.</summary>
+    public static StsEngine CreateDefault() => new(
+        new DefaultComputePalierUseCase(),
+        new DefaultResolveDiceSetUseCase(),
+        new DefaultPickDiceSetUseCase(),
+        new DefaultCheckRerollUseCase());
+
     // --- configuration ---
 
-    /// <summary>
-    /// Met à jour les traits équipés du personnage actif.
-    /// À appeler quand le personnage actif change ou quand ses traits sont modifiés.
-    /// </summary>
     public void SetEquippedTraits(IReadOnlyList<Trait> traits)
         => _equippedTraits = traits;
 
@@ -116,23 +100,15 @@ public class StsEngine
         State = EngineState.Idle;
     }
 
-    // --- actions mode Internal ---
+    // --- mode Internal ---
 
-    /// <summary>
-    /// [Mode Internal] Jet manuel sans action — pas d'effets de traits calculés.
-    /// </summary>
-    public void Roll()
-        => RollWithAction(null);
+    /// <summary>[Mode Internal] Jet manuel sans action.</summary>
+    public void Roll() => RollWithAction(null);
 
-    /// <summary>
-    /// [Mode Internal] Jet avec une action — effets de traits calculés selon les contextes.
-    /// </summary>
-    public void Roll(RollAction action)
-        => RollWithAction(action);
+    /// <summary>[Mode Internal] Jet avec une action — effets de traits calculés.</summary>
+    public void Roll(RollAction action) => RollWithAction(action);
 
-    /// <summary>
-    /// [Mode Internal] Relance les 3 dés si un reroll est disponible.
-    /// </summary>
+    /// <summary>[Mode Internal] Relance les 3 dés si un reroll est disponible.</summary>
     public bool Reroll()
     {
         var baseRerolls = _session.Rank.Rerolls + PermanentBonusRerolls();
@@ -144,7 +120,6 @@ public class StsEngine
         var effects = ComputeTraitEffects(action, isReroll: true);
         var result = ResolveWithSet(Roll3(), _session.LastResult?.Rejected, action, effects);
 
-        // Appliquer les bonus post-reroll (ex : Acharnement)
         var rerollBonus = ComputeRerollBonuses(action);
         if (rerollBonus > 0)
             result = result with { TraitEffects = result.TraitEffects with { BonusSuccesses = result.TraitEffects.BonusSuccesses + rerollBonus } };
@@ -154,15 +129,13 @@ public class StsEngine
         return true;
     }
 
-    // --- actions mode GameRandom ---
+    // --- mode GameRandom ---
 
     /// <summary>[Mode GameRandom] Prépare l'engine pour un jet manuel.</summary>
-    public void BeginRoll()
-        => BeginRollWithAction(null);
+    public void BeginRoll() => BeginRollWithAction(null);
 
     /// <summary>[Mode GameRandom] Prépare l'engine pour un jet avec action.</summary>
-    public void BeginRoll(RollAction action)
-        => BeginRollWithAction(action);
+    public void BeginRoll(RollAction action) => BeginRollWithAction(action);
 
     /// <summary>[Mode GameRandom] Prépare l'engine pour un reroll.</summary>
     public bool BeginReroll()
@@ -174,6 +147,7 @@ public class StsEngine
         _session.RerollsUsed++;
         _pendingRejected = _session.LastResult?.Rejected;
         _pendingAction = _session.LastResult?.Action;
+        _isPendingReroll = true;
         State = EngineState.WaitingDice;
         return true;
     }
@@ -185,7 +159,7 @@ public class StsEngine
     {
         if (State != EngineState.WaitingDice) return false;
 
-        var isReroll = _pendingRejected != null;
+        var isReroll = _isPendingReroll;
         var effects = ComputeTraitEffects(_pendingAction, isReroll: isReroll);
         var diceSet = ParseRandomToDiceSet(randomValue);
         var result = ResolveWithSet(diceSet, _pendingRejected, _pendingAction, effects);
@@ -202,10 +176,9 @@ public class StsEngine
         State = EngineState.Idle;
         _pendingRejected = null;
         _pendingAction = null;
+        _isPendingReroll = false;
         return true;
     }
-
-    // --- reset ---
 
     public void ResetEvent()
     {
@@ -213,15 +186,12 @@ public class StsEngine
         State = EngineState.Idle;
         _pendingRejected = null;
         _pendingAction = null;
+        _isPendingReroll = false;
         PalierOverride = null;
     }
 
     // --- calcul des effets de traits ---
 
-    /// <summary>
-    /// Calcule les bonus de réussites accordés sur reroll (BonusSuccessOnReroll).
-    /// Appelé après le reroll pour ajouter les bonus post-lancer.
-    /// </summary>
     private int ComputeRerollBonuses(RollAction? action)
     {
         if (_equippedTraits.Count == 0) return 0;
@@ -234,16 +204,12 @@ public class StsEngine
             .Sum(e => e.Value);
     }
 
-    /// <summary>
-    /// Calcule les effets de traits applicables pour une action donnée.
-    /// </summary>
     private AppliedTraitEffects ComputeTraitEffects(RollAction? action, bool isReroll = false)
     {
         if (_equippedTraits.Count == 0)
             return AppliedTraitEffects.None;
 
         var contexts = action?.Contexts ?? [];
-
         var bonusRerolls = 0;
         var bonusSuccess = 0;
         var malusSuccess = 0;
@@ -255,11 +221,7 @@ public class StsEngine
 
             foreach (var effect in trait.Effects)
             {
-                // Un effet s'applique si son context est null (permanent)
-                // ou présent dans les contextes de l'action
-                var matches = effect.Context == null
-                    || contexts.Contains(effect.Context);
-
+                var matches = effect.Context == null || contexts.Contains(effect.Context);
                 if (!matches) continue;
 
                 switch (effect.Type)
@@ -267,28 +229,18 @@ public class StsEngine
                     case TraitEffectType.BonusRerolls:
                         bonusRerolls += effect.Value;
                         break;
-
-                    case TraitEffectType.BonusPalier when isReroll:
-                        // Géré dans EffectivePalier lors du reroll — stocké séparément
-                        break;
-
                     case TraitEffectType.ForceRollMode:
-                        // Dernier trait qui force le mode gagne
                         forcedMode = effect.ForcedMode;
                         break;
-
                     case TraitEffectType.BonusSuccess:
                         bonusSuccess += effect.Value;
                         break;
-
                     case TraitEffectType.MalusSuccess:
                         malusSuccess += effect.Value;
                         break;
-
+                    case TraitEffectType.BonusPalier when isReroll:
                     case TraitEffectType.BonusSuccessOnZero:
-                        // Sera calculé après résolution des dés
-                        break;
-
+                    case TraitEffectType.BonusSuccessOnReroll:
                     case TraitEffectType.Manual:
                         break;
                 }
@@ -298,16 +250,11 @@ public class StsEngine
         return new AppliedTraitEffects(bonusSuccess, malusSuccess, bonusRerolls, forcedMode);
     }
 
-    /// <summary>
-    /// Calcule les bonus de réussites liés aux 0 dans les dés (BonusSuccessOnZero).
-    /// Appelé après résolution des dés.
-    /// </summary>
     private int ComputeZeroBonuses(DiceSet dice, RollAction? action)
     {
         if (_equippedTraits.Count == 0) return 0;
-
         var contexts = action?.Contexts ?? [];
-        var hasZero = dice.Values.Any(v => v == 10); // 10 s'affiche "0"
+        var hasZero = dice.Values.Any(v => v == 10);
         if (!hasZero) return 0;
 
         return _equippedTraits
@@ -318,7 +265,6 @@ public class StsEngine
             .Sum(e => e.Value);
     }
 
-    /// <summary>Rerolls permanents accordés par les traits (context null).</summary>
     private int PermanentBonusRerolls()
         => _equippedTraits
             .Where(t => t.Effects != null)
@@ -340,6 +286,7 @@ public class StsEngine
     {
         _pendingRejected = null;
         _pendingAction = action;
+        _isPendingReroll = false;
         State = EngineState.WaitingDice;
     }
 
@@ -349,8 +296,6 @@ public class StsEngine
     private RollResult ResolveWithSet(DiceSet set, DiceSet? previousRejected, RollAction? action, AppliedTraitEffects effects)
     {
         var palier = EffectivePalier;
-
-        // Le mode peut être forcé par un trait
         var effectiveMode = effects.ForcedMode ?? Mode;
 
         DiceSet chosen, rejected;
@@ -370,8 +315,6 @@ public class StsEngine
         }
 
         var resolution = _resolveDiceSet.Execute(chosen, palier);
-
-        // Ajouter les bonus de zéros
         var zeroBonuses = ComputeZeroBonuses(chosen, action);
         var finalEffects = effects with { BonusSuccesses = effects.BonusSuccesses + zeroBonuses };
 
@@ -385,7 +328,7 @@ public class StsEngine
         );
     }
 
-    private static DiceSet ParseRandomToDiceSet(int value)
+    public static DiceSet ParseRandomToDiceSet(int value)
     {
         var s = value.ToString("D3");
         var dice = new int[3];

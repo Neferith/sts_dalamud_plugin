@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace STSPlugin.Domain;
+namespace Sts.Domain;
 
 /// <summary>
 /// Représente un personnage joueur.
@@ -13,7 +13,6 @@ public class Character
     public string Name { get; set; } = string.Empty;
     public RankKey RankKey { get; set; } = RankKey.Novice;
     public string? JobId { get; set; } = null;
-
     public CharacterRace Race { get; set; } = CharacterRace.Hyur;
 
     /// <summary>Texte libre — résumé de l'histoire du personnage.</summary>
@@ -21,7 +20,6 @@ public class Character
 
     /// <summary>Niveau de réputation, borné entre -5 et 10.</summary>
     public int ReputationLevel { get; set; } = 0;
-
 
     /// <summary>Trait d'origine équipé. Gratuit si une certification le débloque.</summary>
     public string? OriginTraitId { get; set; } = null;

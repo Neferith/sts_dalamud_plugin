@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace STSPlugin.Domain;
+namespace Sts.Domain;
 
 /// <summary>Identifiant typé d'un rang STS.</summary>
 public enum RankKey { Novice, Aventurier, Veteran, Mentor }
@@ -16,15 +16,6 @@ public enum RollMode
     Avantage,
     /// <summary>Deux sets lancés, on retient celui avec le moins de succès.</summary>
     Desavantage
-}
-
-/// <summary>Source des valeurs de dés utilisées lors d'un jet.</summary>
-public enum RollSource
-{
-    /// <summary>RNG interne du plugin.</summary>
-    Internal,
-    /// <summary>/random du jeu — vérifiable par tous.</summary>
-    GameRandom
 }
 
 /// <summary>État de l'engine vis-à-vis du mode GameRandom.</summary>
@@ -45,10 +36,10 @@ public record Rank(string Label, int Palier, int Rerolls, int Traits, int MaxAbi
     /// </summary>
     public static readonly IReadOnlyDictionary<RankKey, Rank> All = new Dictionary<RankKey, Rank>
     {
-        [RankKey.Novice] = new("Novice", 7, 1, 2, 1, 0),
-        [RankKey.Aventurier] = new("Aventurier", 6, 1, 3, 3, 0),
-        [RankKey.Veteran] = new("Vétéran", 5, 2, 4, 10, 1),
-        [RankKey.Mentor] = new("Mentor", 4, 2, 5, -1, 3),
+        [RankKey.Novice]     = new("Novice",     7, 1, 2, 1,  0),
+        [RankKey.Aventurier] = new("Aventurier", 6, 1, 3, 3,  0),
+        [RankKey.Veteran]    = new("Vétéran",    5, 2, 4, 10, 1),
+        [RankKey.Mentor]     = new("Mentor",     4, 2, 5, -1, 3),
     };
 
     public static Rank Get(RankKey key) => All[key];

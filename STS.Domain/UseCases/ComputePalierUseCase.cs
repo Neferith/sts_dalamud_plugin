@@ -1,15 +1,14 @@
 using System;
-using Sts.Domain;
 
-namespace STSPlugin.UseCases;
+namespace Sts.Domain.UseCases;
 
 /// <summary>
-/// Cas d'usage : calculer le palier effectif d'un rang après application du modificateur MJ.
+/// Calcule le palier effectif d'un rang après application du modificateur MJ.
 /// Un modificateur positif facilite le jet en abaissant le palier.
 /// Un modificateur négatif le durcit en le remontant.
 /// Le palier effectif est toujours compris entre 1 et 10.
 /// </summary>
-public interface ComputePalierUseCase
+public interface IComputePalierUseCase
 {
     /// <summary>
     /// Calcule le palier effectif.
@@ -24,9 +23,9 @@ public interface ComputePalierUseCase
 }
 
 /// <summary>
-/// Implémentation par défaut de <see cref="ComputePalierUseCase"/>.
+/// Implémentation par défaut de <see cref="IComputePalierUseCase"/>.
 /// </summary>
-public class DefaultComputePalierUseCase : ComputePalierUseCase
+public class DefaultComputePalierUseCase : IComputePalierUseCase
 {
     /// <inheritdoc/>
     public int Execute(Rank rank, int modifier)

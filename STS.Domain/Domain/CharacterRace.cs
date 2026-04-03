@@ -1,8 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace STSPlugin.Domain;
+namespace Sts.Domain;
 
 public enum CharacterRace
 {
@@ -21,15 +17,15 @@ public static class CharacterRaceExtensions
 {
     public static string Label(this CharacterRace race) => race switch
     {
-        CharacterRace.Hyur => "Hyur",
-        CharacterRace.Elezen => "Elezen",
-        CharacterRace.Miqote => "Miqo'te",
+        CharacterRace.Hyur     => "Hyur",
+        CharacterRace.Elezen   => "Elezen",
+        CharacterRace.Miqote   => "Miqo'te",
         CharacterRace.Lalafell => "Lalafell",
         CharacterRace.Roegadyn => "Roegadyn",
-        CharacterRace.AuRa => "Au Ra",
+        CharacterRace.AuRa     => "Au Ra",
         CharacterRace.Hrothgar => "Hrothgar",
-        CharacterRace.Viera => "Viera",
-        CharacterRace.Garlean => "Garlemaldais(e)",
-        _ => race.ToString(),
+        CharacterRace.Viera    => "Viera",
+        CharacterRace.Garlean  => "Garlemaldais(e)",
+        _                      => race.ToString(),
     };
 }

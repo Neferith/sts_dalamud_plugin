@@ -1,7 +1,8 @@
 using System;
 using STSPlugin.Repository;
+using Sts.Domain;
 
-namespace STSPlugin.UseCases;
+namespace STSPlugin.CharacterUseCases;
 
 /// <summary>
 /// Cas d'usage : définir le personnage actif.

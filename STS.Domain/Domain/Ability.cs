@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace STSPlugin.Domain;
+namespace Sts.Domain;
 
 /// <summary>Catégorie d'une compétence.</summary>
 public enum AbilityCategory

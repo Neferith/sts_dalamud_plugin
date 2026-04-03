@@ -1,11 +1,8 @@
 using System.Linq;
-using Sts.Domain;
 
-namespace STSPlugin.UseCases;
+namespace Sts.Domain.UseCases;
 
-/// <summary>
-/// Détermine si on retient le meilleur ou le pire set lors d'un jet avec avantage ou désavantage.
-/// </summary>
+/// <summary>Détermine si on retient le meilleur ou le pire set.</summary>
 public enum PickMode
 {
     /// <summary>Avantage : on retient le set avec le plus de succès.</summary>
@@ -14,9 +11,7 @@ public enum PickMode
     Worst
 }
 
-/// <summary>
-/// Résultat de la sélection entre deux sets de dés.
-/// </summary>
+/// <summary>Résultat de la sélection entre deux sets de dés.</summary>
 /// <param name="Chosen">Le set retenu selon le mode (avantage ou désavantage).</param>
 /// <param name="Rejected">Le set écarté.</param>
 public record PickedDiceSet(DiceSet Chosen, DiceSet Rejected);
@@ -25,7 +20,7 @@ public record PickedDiceSet(DiceSet Chosen, DiceSet Rejected);
 /// Cas d'usage : choisir le meilleur ou le pire set parmi deux, selon le mode de jet.
 /// Tiebreak sur le nombre de succès égal : on compare le plus grand dé de chaque set.
 /// </summary>
-public interface PickDiceSetUseCase
+public interface IPickDiceSetUseCase
 {
     /// <summary>
     /// Compare deux sets de dés et retourne celui à conserver.
@@ -42,9 +37,9 @@ public interface PickDiceSetUseCase
 }
 
 /// <summary>
-/// Implémentation par défaut de <see cref="PickDiceSetUseCase"/>.
+/// Implémentation par défaut de <see cref="IPickDiceSetUseCase"/>.
 /// </summary>
-public class DefaultPickDiceSetUseCase : PickDiceSetUseCase
+public class DefaultPickDiceSetUseCase : IPickDiceSetUseCase
 {
     /// <inheritdoc/>
     public PickedDiceSet Execute(DiceSet a, DiceSet b, int palier, PickMode mode)
@@ -52,7 +47,6 @@ public class DefaultPickDiceSetUseCase : PickDiceSetUseCase
         var sA = a.Values.Count(d => d >= palier);
         var sB = b.Values.Count(d => d >= palier);
 
-        // Tiebreak : plus grand dé si égalité de succès
         bool pickA;
         if (sA != sB)
             pickA = mode == PickMode.Best ? sA > sB : sA < sB;
