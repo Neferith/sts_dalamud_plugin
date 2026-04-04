@@ -27,7 +27,13 @@ public class Configuration : IPluginConfiguration
     /// Source des valeurs de dés.
     /// Internal = RNG interne, GameRandom = /random du jeu (vérifiable par tous).
     /// </summary>
-    public RollSource RollSource { get; set; } = RollSource.Internal;
+    public RollSource RollSource { get; set; } = RollSource.GameRandom;
+
+    /// <summary>
+    /// URL de base du back STS.
+    /// Utilisée par le RemoteJsonDataSource pour récupérer les données de référence.
+    /// </summary>
+    public string BackendUrl { get; set; } = "http://localhost:50310/api/data";
 
     public void Save() => Plugin.PluginInterface.SavePluginConfig(this);
 }

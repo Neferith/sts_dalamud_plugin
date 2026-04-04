@@ -90,60 +90,58 @@ public sealed class Plugin : IDalamudPlugin
     {
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 
+        // --- Container ---
+        IPluginFactory factory = new MainDiContainer(Configuration, PluginInterface, Log);
+
         // --- Engine ---
-        Engine = new StsEngine(
-            new DefaultComputePalierUseCase(),
-            new DefaultResolveDiceSetUseCase(),
-            new DefaultPickDiceSetUseCase(),
-            new DefaultCheckRerollUseCase()
-        );
+        Engine = factory.MakeEngine();
 
         // --- DataSource ---
-        var dataPath = Path.Combine(PluginInterface.AssemblyLocation.DirectoryName!, "data.json");
-        var dataSource = new LocalJsonDataSource(dataPath);
+        // var dataPath = Path.Combine(PluginInterface.AssemblyLocation.DirectoryName!, "data.json");
+        // var dataSource = new LocalJsonDataSource(dataPath);
 
         // --- Repositories ---
-        var charactersDir = Path.Combine(PluginInterface.GetPluginConfigDirectory(), "characters");
-        CharacterRepository = new DefaultCharacterRepository(charactersDir);
-        TraitRepository = new DefaultTraitRepository(dataSource);
-        JobRepository = new DefaultJobRepository(dataSource);
-        ActionRepository = new DefaultActionRepository(dataSource);
-        AbilityRepository = new DefaultAbilityRepository(dataSource);
+        var charactersDir = //Path.Combine(PluginInterface.GetPluginConfigDirectory(), "characters");
+        CharacterRepository = factory.MakeCharacterRepository();//new DefaultCharacterRepository(charactersDir);
+        TraitRepository = factory.MakeTraitRepository();//new DefaultTraitRepository(dataSource);
+        JobRepository = factory.MakeJobRepository();//new DefaultJobRepository(dataSource);
+        ActionRepository = factory.MakeActionRepository();//new DefaultActionRepository(dataSource);
+        AbilityRepository = factory.MakeAbilityRepository();//new DefaultAbilityRepository(dataSource);
 
         // --- Use cases personnages ---
-        GetAllCharacters = new DefaultGetAllCharactersUseCase(CharacterRepository);
-        GetActiveCharacter = new DefaultGetActiveCharacterUseCase(CharacterRepository, Configuration);
-        CreateCharacter = new DefaultCreateCharacterUseCase(CharacterRepository);
-        UpdateCharacter = new DefaultUpdateCharacterUseCase(CharacterRepository);
-        DeleteCharacter = new DefaultDeleteCharacterUseCase(CharacterRepository, Configuration);
-        SetActiveCharacter = new DefaultSetActiveCharacterUseCase(CharacterRepository, Configuration, Engine);
+        GetAllCharacters = factory.MakeGetAllCharacters();
+        GetActiveCharacter = factory.MakeGetActiveCharacter();
+        CreateCharacter = factory.MakeCreateCharacter();
+        UpdateCharacter = factory.MakeUpdateCharacter();
+        DeleteCharacter = factory.MakeDeleteCharacter();
+        SetActiveCharacter = factory.MakeSetActiveCharacter();
 
         // --- Use cases traits / job ---
-        SetJob = new DefaultSetJobUseCase(CharacterRepository, JobRepository);
-        SetOriginTrait = new DefaultSetOriginTraitUseCase(CharacterRepository, TraitRepository);
-        EquipTrait = new DefaultEquipTraitUseCase(CharacterRepository, TraitRepository);
-        UnequipTrait = new DefaultUnequipTraitUseCase(CharacterRepository);
+        SetJob = factory.MakeSetJob();
+        SetOriginTrait = factory.MakeSetOriginTrait();
+        EquipTrait = factory.MakeEquipTrait();
+        UnequipTrait = factory.MakeUnequipTrait();
 
         // --- Use cases actions ---
-        GetActionsForCharacter = new DefaultGetActionsForCharacterUseCase(ActionRepository);
-        CreateCustomAction = new DefaultCreateCustomActionUseCase(CharacterRepository);
-        DeleteCustomAction = new DefaultDeleteCustomActionUseCase(CharacterRepository);
+        GetActionsForCharacter = factory.MakeGetActionsForCharacter();
+        CreateCustomAction = factory.MakeCreateCustomAction();
+        DeleteCustomAction = factory.MakeDeleteCustomAction();
 
         // --- Use cases compétences ---
-        EquipAbility = new DefaultEquipAbilityUseCase(CharacterRepository, AbilityRepository);
-        UnequipAbility = new DefaultUnequipAbilityUseCase(CharacterRepository);
-        SetSkillPoints = new DefaultSetSkillPointsUseCase(CharacterRepository);
+        EquipAbility = factory.MakeEquipAbility();
+        UnequipAbility = factory.MakeUnequipAbility();
+        SetSkillPoints = factory.MakeSetSkillPoints();
 
         // --- Use cases certifications ---
-        AddCertification = new DefaultAddCertificationUseCase(CharacterRepository);
-        RemoveCertification = new DefaultRemoveCertificationUseCase(CharacterRepository);
+        AddCertification = factory.MakeAddCertification();
+        RemoveCertification = factory.MakeRemoveCertification();
 
         // --- Use cases inventaire ---
-        AddInventoryItem = new DefaultAddInventoryItemUseCase(CharacterRepository);
-        RemoveInventoryItem = new DefaultRemoveInventoryItemUseCase(CharacterRepository);
-        SetItemSlot = new DefaultSetItemSlotUseCase(CharacterRepository);
-        ReorderInventory = new DefaultReorderInventoryUseCase(CharacterRepository);
-        SetItemIcon = new DefaultSetItemIconUseCase(CharacterRepository);
+        AddInventoryItem = factory.MakeAddInventoryItem();
+        RemoveInventoryItem = factory.MakeRemoveInventoryItem();
+        SetItemSlot = factory.MakeSetItemSlot();
+        ReorderInventory = factory.MakeReorderInventory();
+        SetItemIcon = factory.MakeSetItemIcon();
 
         // --- Appliquer le personnage actif au démarrage ---
         var active = GetActiveCharacter.Execute();
