@@ -321,7 +321,7 @@ public sealed class Plugin : IDalamudPlugin
         return null;
     }
 
-    private void StartReroll()
+    public void StartReroll()
     {
         if (!Engine.HasRolled) { PrintInfo("Aucun jet en cours."); return; }
         if (Engine.RerollsLeft <= 0) { PrintInfo("Plus de rerolls disponibles."); return; }

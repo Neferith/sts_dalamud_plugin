@@ -204,7 +204,7 @@ public class MainWindow : Window, IDisposable
     {
         var avail = ImGui.GetContentRegionAvail().X;
         if (ImGui.Button("Lancer les dés##roll", new Vector2(avail, 0)))
-            Engine.Roll();
+            plugin.StartRoll(null);
     }
 
     // ------------------------------------------------------------------ Dés
@@ -272,7 +272,7 @@ public class MainWindow : Window, IDisposable
             ImGui.PushStyleColor(ImGuiCol.Text, ColInfo);
             var s = left == 1 ? "restant" : "restants";
             if (ImGui.Button($"↺ Reroll — relancer les 3 dés  ({left} {s})##reroll", new Vector2(avail, 0)))
-                Engine.Reroll();
+                plugin.StartReroll();
             ImGui.PopStyleColor(3);
         }
     }
