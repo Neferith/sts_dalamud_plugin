@@ -1,0 +1,14 @@
+services:
+  sts-api:
+    image: sts-api:latest
+    container_name: sts-api
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      # Le data.json est géré sur le serveur, hors image Docker
+      # Modifier ce fichier sur le VPS suffit à mettre à jour les données
+      - ./data.json:/app/data.json:ro
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - Sts__DataFilePath=/app/data.json

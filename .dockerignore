@@ -1,0 +1,22 @@
+**/.git
+**/.gitignore
+**/.vs
+**/.vscode
+**/bin
+**/obj
+**/*.user
+**/*.suo
+**/node_modules
+
+# Projets non nécessaires au build de l'API
+STSPlugin/**
+STS.Domain.Tests/**
+
+# Fichiers de déploiement
+.github/**
+docker-compose.yml
+Dockerfile
+
+# Logs et temporaires
+**/*.log
+**/tmp
