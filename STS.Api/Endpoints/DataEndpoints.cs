@@ -1,10 +1,9 @@
-using Microsoft.AspNetCore.Mvc;
 using Sts.Api.Services;
 
 namespace Sts.Api.Endpoints;
 
 /// <summary>
-/// Endpoints relatifs aux données de référence STS (jobs, traits, abilities, actions).
+/// Endpoint public de données brutes — consommé par le plugin Dalamud au démarrage.
 /// </summary>
 public static class DataEndpoints
 {
@@ -13,13 +12,10 @@ public static class DataEndpoints
         var group = app.MapGroup("/api/data")
             .WithTags("Data");
 
-        /// <summary>
-        /// Retourne l'intégralité du data.json — jobs, traits, abilities, actions.
-        /// Le plugin l'utilise au démarrage à la place du fichier local.
-        /// </summary>
         group.MapGet("/", GetData)
             .WithName("GetData")
-            .WithSummary("Retourne les données de référence STS complètes.")
+            .WithSummary("Retourne les données de référence STS complètes (plugin).")
+            .AllowAnonymous()
             .Produces<string>(StatusCodes.Status200OK, "application/json")
             .Produces(StatusCodes.Status404NotFound);
     }
