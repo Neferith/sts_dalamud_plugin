@@ -16,9 +16,12 @@ else if (_error is not null)
 }
 else
 {
-    <div class="sts-sidebar-layout">
+    <button class="sts-mobile-toggle" @onclick="() => _sidebarOpen = !_sidebarOpen">
+        @(_sidebarOpen ? "✕ Masquer les filtres" : "⚙ Filtres")
+    </button>
 
-        <div class="sts-sidebar">
+    <div class="sts-sidebar-layout">
+        <div class="sts-sidebar @(_sidebarOpen ? "open" : "")">
             <div class="sts-stat-grid">
                 <div class="sts-stat-box">
                     <div class="sts-stat-label">Traits</div>
@@ -130,7 +133,6 @@ else
                 }
             </div>
         </div>
-
     </div>
 }
 
@@ -142,6 +144,7 @@ else
     private string? _search         = null;
     private string? _categoryFilter = null;
     private string? _jobFilter      = null;
+    private bool    _sidebarOpen    = false;
 
     private bool    _loading = true;
     private string? _error   = null;

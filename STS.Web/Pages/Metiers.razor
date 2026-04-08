@@ -16,9 +16,12 @@ else if (_error is not null)
 }
 else
 {
-    <div class="sts-sidebar-layout">
+    <button class="sts-mobile-toggle" @onclick="() => _sidebarOpen = !_sidebarOpen">
+        @(_sidebarOpen ? "✕ Masquer les métiers" : "☰ Métiers")
+    </button>
 
-        <div class="sts-sidebar">
+    <div class="sts-sidebar-layout">
+        <div class="sts-sidebar @(_sidebarOpen ? "open" : "")">
             <div class="sts-stat-grid">
                 <div class="sts-stat-box">
                     <div class="sts-stat-label">Métiers</div>
@@ -68,7 +71,6 @@ else
                     </div>
                 </div>
 
-                <!-- Traits -->
                 @if (_traitsByJob.TryGetValue(_selectedJob.Id, out var traits) && traits.Count > 0)
                 {
                     <div class="sts-sidebar-section" style="padding-left: 0; margin-top: 0; margin-bottom: 8px;">Traits</div>
@@ -96,7 +98,6 @@ else
                     </div>
                 }
 
-                <!-- Capacités -->
                 @if (_abilitiesByJob.TryGetValue(_selectedJob.Id, out var abilities) && abilities.Count > 0)
                 {
                     <div class="sts-sidebar-section" style="padding-left: 0; margin-top: 0; margin-bottom: 8px;">Capacités</div>
@@ -151,16 +152,16 @@ else
                 }
             }
         </div>
-
     </div>
 }
 
 @code {
-    private List<JobData>                       _jobs           = [];
+    private List<JobData>                         _jobs           = [];
     private Dictionary<string, List<TraitData>>   _traitsByJob    = [];
     private Dictionary<string, List<AbilityData>> _abilitiesByJob = [];
-    private HashSet<string>                     _expanded       = [];
-    private JobData?                            _selectedJob    = null;
+    private HashSet<string>                       _expanded       = [];
+    private JobData?                              _selectedJob    = null;
+    private bool                                  _sidebarOpen    = false;
 
     private bool    _loading = true;
     private string? _error   = null;
@@ -200,6 +201,7 @@ else
             ? null
             : _jobs.FirstOrDefault(j => j.Id == jobId);
         _expanded.Clear();
+        _sidebarOpen = false; // ferme la sidebar sur mobile après sélection
     }
 
     private void ToggleExpand(string id)
