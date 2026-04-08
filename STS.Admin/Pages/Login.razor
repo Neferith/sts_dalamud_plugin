@@ -1,0 +1,103 @@
+@page "/login"
+@page "/"
+@layout EmptyLayout
+@inject AuthService Auth
+@inject ApiClient Api
+@inject NavigationManager Nav
+
+<PageTitle>Connexion — STS Admin</PageTitle>
+
+<div class="d-flex vh-100 align-items-center justify-content-center bg-dark">
+    <div class="card shadow-lg" style="width:380px">
+        <div class="card-body p-4">
+            <div class="text-center mb-4">
+                <div style="font-size:2rem">⚔</div>
+                <h4 class="mb-0">STS Admin</h4>
+                <small class="text-muted">Interface d'administration</small>
+            </div>
+
+            @if (_error != null)
+            {
+                <div class="alert alert-danger py-2">@_error</div>
+            }
+
+            <div class="mb-3">
+                <label class="form-label fw-medium">Identifiant</label>
+                <input class="form-control"
+                       @bind="_username"
+                       @onkeydown="OnKeyDown"
+                       placeholder="admin"
+                       autocomplete="username" />
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label fw-medium">Mot de passe</label>
+                <input class="form-control"
+                       type="password"
+                       @bind="_password"
+                       @onkeydown="OnKeyDown"
+                       autocomplete="current-password" />
+            </div>
+
+            <button class="btn btn-primary w-100" @onclick="DoLogin" disabled="@_loading">
+                @if (_loading)
+                {
+                    <span class="spinner-border spinner-border-sm me-2"></span>
+                }
+                @(_loading ? "Connexion…" : "Se connecter")
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _username = "";
+    private string _password = "";
+    private string? _error;
+    private bool _loading;
+
+    protected override void OnInitialized()
+    {
+        if (Auth.IsAuthenticated)
+            Nav.NavigateTo("/jobs");
+    }
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await DoLogin();
+    }
+
+    private async Task DoLogin()
+    {
+        if (string.IsNullOrWhiteSpace(_username) || string.IsNullOrWhiteSpace(_password))
+        {
+            _error = "Veuillez remplir tous les champs.";
+            return;
+        }
+
+        _error   = null;
+        _loading = true;
+
+        try
+        {
+            var response = await Api.LoginAsync(_username, _password);
+            if (response?.Token is { Length: > 0 } token)
+            {
+                await Auth.SetTokenAsync(token);
+                Nav.NavigateTo("/jobs");
+            }
+            else
+            {
+                _error = "Identifiants incorrects.";
+            }
+        }
+        catch
+        {
+            _error = "Impossible de joindre l'API. Vérifiez que le serveur est démarré.";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

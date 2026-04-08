@@ -1,0 +1,169 @@
+@page "/jobs"
+@inject ApiClient Api
+@inject AuthService Auth
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<PageTitle>Jobs — STS Admin</PageTitle>
+
+<div class="p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-0">Jobs</h2>
+            <small class="text-muted">@_jobs.Count job(s)</small>
+        </div>
+        <button class="btn btn-primary" @onclick="OpenCreate">+ Nouveau job</button>
+    </div>
+
+    <Alert Message="_message" IsError="_isError" OnDismiss="() => _message = null" />
+
+    @if (_loading)
+    {
+        <div class="text-center py-5"><div class="spinner-border text-secondary"></div></div>
+    }
+    else if (_jobs.Count == 0)
+    {
+        <div class="text-center text-muted py-5">Aucun job. Commencez par en créer un.</div>
+    }
+    else
+    {
+        <div class="card">
+            <table class="table table-hover mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Identifiant</th>
+                        <th>Nom</th>
+                        <th style="width:100px"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var job in _jobs.OrderBy(j => j.Name))
+                    {
+                        <tr>
+                            <td><code class="text-secondary">@job.Id</code></td>
+                            <td class="fw-medium">@job.Name</td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => OpenEdit(job)" title="Modifier">✏</button>
+                                <button class="btn btn-sm btn-outline-danger" @onclick="() => Delete(job)" title="Supprimer">✕</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@if (_showModal)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(_editMode ? "Modifier le job" : "Nouveau job")</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Identifiant <small class="text-muted">(unique, sans espaces ni accents)</small></label>
+                        <input class="form-control font-monospace"
+                               @bind="_form.Id"
+                               disabled="@_editMode"
+                               placeholder="ex: guerrier" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nom affiché</label>
+                        <input class="form-control" @bind="_form.Name" placeholder="ex: Guerrier" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseModal">Annuler</button>
+                    <button class="btn btn-primary" @onclick="Save" disabled="@_saving">
+                        @(_saving ? "Sauvegarde…" : "Sauvegarder")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<JobDto> _jobs = [];
+    private bool _loading = true;
+    private bool _showModal;
+    private bool _editMode;
+    private bool _saving;
+    private string? _message;
+    private bool _isError;
+    private JobDto _form = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Auth.IsAuthenticated) { Nav.NavigateTo("/login"); return; }
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        _loading = true;
+        _jobs    = await Api.GetAsync<List<JobDto>>("/api/jobs") ?? [];
+        _loading = false;
+    }
+
+    private void OpenCreate()
+    {
+        _form     = new JobDto();
+        _editMode = false;
+        _showModal = true;
+    }
+
+    private void OpenEdit(JobDto job)
+    {
+        _form     = job.Clone();
+        _editMode = true;
+        _showModal = true;
+    }
+
+    private void CloseModal() => _showModal = false;
+
+    private async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(_form.Id))   { ShowError("L'identifiant est requis."); return; }
+        if (string.IsNullOrWhiteSpace(_form.Name)) { ShowError("Le nom est requis."); return; }
+
+        _saving = true;
+        try
+        {
+            string? error;
+            if (_editMode)
+                (_, error) = await Api.PutAsync<JobDto>($"/api/jobs/{_form.Id}", _form);
+            else
+                (_, error) = await Api.PostAsync<JobDto>("/api/jobs", _form);
+
+            ShowResult(error, _editMode ? "Job modifié avec succès." : "Job créé avec succès.");
+            if (error is null) { CloseModal(); await Load(); }
+        }
+        finally { _saving = false; }
+    }
+
+    private async Task Delete(JobDto job)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", $"Supprimer le job « {job.Name} » ?")) return;
+        var error = await Api.DeleteAsync($"/api/jobs/{job.Id}");
+        ShowResult(error, "Job supprimé.");
+        if (error is null) await Load();
+    }
+
+    private void ShowResult(string? error, string successMsg)
+    {
+        _isError  = error is not null;
+        _message  = error ?? successMsg;
+    }
+
+      private void ShowError(string msg)
+    {
+        _isError = true;
+        _message = msg;
+    }
+}

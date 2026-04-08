@@ -1,0 +1,299 @@
+@page "/abilities"
+@inject ApiClient Api
+@inject AuthService Auth
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<PageTitle>Compétences — STS Admin</PageTitle>
+
+<div class="p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-0">Compétences</h2>
+            <small class="text-muted">@_abilities.Count compétence(s)</small>
+        </div>
+        <button class="btn btn-primary" @onclick="OpenCreate">+ Nouvelle compétence</button>
+    </div>
+
+    <Alert Message="_message" IsError="_isError" OnDismiss="() => _message = null" />
+
+    @if (_loading)
+    {
+        <div class="text-center py-5"><div class="spinner-border text-secondary"></div></div>
+    }
+    else
+    {
+        <div class="card">
+            <table class="table table-hover mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Nom</th>
+                        <th>Catégorie</th>
+                        <th>Jobs requis</th>
+                        <th>Niveaux</th>
+                        <th>Limite</th>
+                        <th style="width:100px"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var ab in _abilities.OrderBy(a => a.Category).ThenBy(a => a.Name))
+                    {
+                        <tr>
+                            <td>
+                                <div class="fw-medium">@ab.Name</div>
+                                <small class="text-muted font-monospace">@ab.Id</small>
+                            </td>
+                            <td><span class="badge bg-secondary">@ab.Category</span></td>
+                            <td>
+                                @if (ab.RequiredJobIds?.Count > 0)
+                                {
+                                    @foreach (var jid in ab.RequiredJobIds)
+                                    {
+                                        <span class="badge bg-light text-dark border me-1 badge-job">@JobName(jid)</span>
+                                    }
+                                }
+                                else { <span class="text-muted">—</span> }
+                            </td>
+                            <td><span class="badge bg-info text-dark">@ab.Levels.Count niv.</span></td>
+                            <td>
+                                @if (ab.UsageLimit is { Length: > 0 } limit && limit != "None")
+                                {
+                                    <span class="badge bg-warning text-dark">@limit</span>
+                                }
+                                else { <span class="text-muted">—</span> }
+                            </td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => OpenEdit(ab)" title="Modifier">✏</button>
+                                <button class="btn btn-sm btn-outline-danger" @onclick="() => Delete(ab)" title="Supprimer">✕</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@if (_showModal)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(_editMode ? "Modifier la compétence" : "Nouvelle compétence")</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-5">
+                            <label class="form-label">Identifiant</label>
+                            <input class="form-control font-monospace" @bind="_form.Id" disabled="@_editMode" placeholder="ex: tir_de_balles" />
+                        </div>
+                        <div class="col-7">
+                            <label class="form-label">Nom</label>
+                            <input class="form-control" @bind="_form.Name" placeholder="ex: Tir de balles" />
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-4">
+                            <label class="form-label">Catégorie</label>
+                            <select class="form-select" @bind="_form.Category">
+                                @foreach (var cat in StsConstants.AbilityCategories)
+                                {
+                                    <option value="@cat">@cat</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label">Limite d'utilisation</label>
+                            <select class="form-select" @bind="_form.UsageLimit">
+                                @foreach (var ul in StsConstants.UsageLimits)
+                                {
+                                    <option value="@ul">@ul</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label">Niveau de départ</label>
+                            <input type="number" class="form-control" @bind="_form.StartLevel" min="1" max="3" />
+                        </div>
+                    </div>
+
+                    <!-- Jobs requis -->
+                    <div class="mb-4">
+                        <label class="form-label">Jobs requis <small class="text-muted">(laisser vide = tous)</small></label>
+                        <div class="d-flex flex-wrap gap-2 p-2 border rounded">
+                            @foreach (var job in _allJobs.OrderBy(j => j.Name))
+                            {
+                                <div class="form-check form-check-inline m-0">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           id="aj_@job.Id"
+                                           checked="@(_selectedJobIds.Contains(job.Id))"
+                                           @onchange="e => ToggleJob(job.Id, (bool)(e.Value ?? false))" />
+                                    <label class="form-check-label" for="aj_@job.Id">@job.Name</label>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Niveaux -->
+                    <div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="form-label mb-0 fw-medium">Niveaux de la compétence</label>
+                            <button class="btn btn-sm btn-outline-primary" @onclick="AddLevel">+ Ajouter un niveau</button>
+                        </div>
+
+                        @if (_form.Levels.Count == 0)
+                        {
+                            <p class="text-muted small">Au moins un niveau est requis.</p>
+                        }
+
+                        @for (var i = 0; i < _form.Levels.Count; i++)
+                        {
+                            var idx = i;
+                            var level = _form.Levels[idx];
+                            <div class="effect-card">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="fw-medium text-primary">Niveau @level.Level</span>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveLevel(idx)">✕</button>
+                                </div>
+                                <textarea class="form-control form-control-sm"
+                                          rows="2"
+                                          @bind="level.Description"
+                                          placeholder="Description de ce niveau…"></textarea>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseModal">Annuler</button>
+                    <button class="btn btn-primary" @onclick="Save" disabled="@_saving">
+                        @(_saving ? "Sauvegarde…" : "Sauvegarder")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<AbilityDto> _abilities = [];
+    private List<JobDto>     _allJobs   = [];
+    private HashSet<string>  _selectedJobIds = [];
+
+    private bool _loading = true;
+    private bool _showModal;
+    private bool _editMode;
+    private bool _saving;
+    private string? _message;
+    private bool _isError;
+    private AbilityDto _form = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Auth.IsAuthenticated) { Nav.NavigateTo("/login"); return; }
+        await Task.WhenAll(LoadAbilities(), LoadJobs());
+        _loading = false;
+    }
+
+    private async Task LoadAbilities() => _abilities = await Api.GetAsync<List<AbilityDto>>("/api/abilities") ?? [];
+    private async Task LoadJobs()      => _allJobs   = await Api.GetAsync<List<JobDto>>("/api/jobs") ?? [];
+
+    private string JobName(string id) => _allJobs.FirstOrDefault(j => j.Id == id)?.Name ?? id;
+
+    private void ToggleJob(string id, bool selected)
+    {
+        if (selected) _selectedJobIds.Add(id);
+        else _selectedJobIds.Remove(id);
+    }
+
+    private void OpenCreate()
+    {
+        _form           = new AbilityDto();
+        _selectedJobIds = [];
+        _editMode       = false;
+        _showModal      = true;
+        // Pré-ajouter un niveau 1
+        _form.Levels.Add(new AbilityLevelDto { Level = 1 });
+    }
+
+    private void OpenEdit(AbilityDto ab)
+    {
+        _form           = ab.Clone();
+        _selectedJobIds = [.. (_form.RequiredJobIds ?? [])];
+        _editMode       = true;
+        _showModal      = true;
+    }
+
+    private void CloseModal() => _showModal = false;
+
+    private void AddLevel()
+    {
+        var nextLevel = _form.Levels.Count > 0 ? _form.Levels[^1].Level + 1 : 1;
+        _form.Levels.Add(new AbilityLevelDto { Level = nextLevel });
+    }
+
+    private void RemoveLevel(int i) => _form.Levels.RemoveAt(i);
+
+    private async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(_form.Id))   { ShowError("L'identifiant est requis."); return; }
+        if (string.IsNullOrWhiteSpace(_form.Name)) { ShowError("Le nom est requis."); return; }
+        if (_form.Levels.Count == 0)               { ShowError("Au moins un niveau est requis."); return; }
+        if (_form.Levels.Count == 0)               { ShowError("Au moins un niveau est requis."); return; }
+        if (_form.Levels.Any(l => string.IsNullOrWhiteSpace(l.Description)))
+        { ShowError("Chaque niveau doit avoir une description."); return; }
+
+        _form.RequiredJobIds = _selectedJobIds.Count > 0 ? [.. _selectedJobIds] : null;
+        if (_form.UsageLimit == "None") _form.UsageLimit = null;
+
+        // Renuméroter les niveaux proprement
+        for (var i = 0; i < _form.Levels.Count; i++)
+            _form.Levels[i].Level = i + 1;
+
+        _saving = true;
+        try
+        {
+            string? error;
+            if (_editMode)
+                (_, error) = await Api.PutAsync<AbilityDto>($"/api/abilities/{_form.Id}", _form);
+            else
+                (_, error) = await Api.PostAsync<AbilityDto>("/api/abilities", _form);
+
+            ShowResult(error, _editMode ? "Compétence modifiée." : "Compétence créée.");
+            if (error is null) { CloseModal(); await LoadAbilities(); }
+        }
+        finally { _saving = false; }
+    }
+
+    private async Task Delete(AbilityDto ab)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", $"Supprimer la compétence « {ab.Name} » ?")) return;
+        var error = await Api.DeleteAsync($"/api/abilities/{ab.Id}");
+        ShowResult(error, "Compétence supprimée.");
+        if (error is null) await LoadAbilities();
+    }
+
+    private void ShowResult(string? error, string successMsg)
+    {
+        _isError = error is not null;
+        _message = error ?? successMsg;
+    }
+
+    private void ShowError(string msg)
+    {
+        _isError = true;
+        _message = msg;
+    }
+
+        private void ShowSuccess(string msg)
+    {
+        _isError = false;
+        _message = msg;
+    }
+}

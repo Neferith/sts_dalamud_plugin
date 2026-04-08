@@ -2,9 +2,10 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# Copier les projets nécessaires
+# Copier les projets nécessaires (tous avant le restore)
 COPY STS.Domain/STS.Domain.csproj         STS.Domain/
 COPY STS.Api/STS.Api.csproj               STS.Api/
+COPY STS.Admin/STS.Admin.csproj           STS.Admin/
 
 # Restaurer les dépendances
 RUN dotnet restore STS.Api/STS.Api.csproj
@@ -12,6 +13,7 @@ RUN dotnet restore STS.Api/STS.Api.csproj
 # Copier les sources
 COPY STS.Domain/   STS.Domain/
 COPY STS.Api/      STS.Api/
+COPY STS.Admin/    STS.Admin/
 
 # Publier
 RUN dotnet publish STS.Api/STS.Api.csproj \
@@ -23,7 +25,6 @@ RUN dotnet publish STS.Api/STS.Api.csproj \
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
 
-# Copier le build
 COPY --from=build /app/publish .
 
 # Le data.json est monté via volume en prod (voir docker-compose.yml)
