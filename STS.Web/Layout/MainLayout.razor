@@ -1,0 +1,27 @@
+@inherits LayoutComponentBase
+
+<div class="sts-layout">
+
+    <nav class="sts-nav">
+        <a href="/" class="sts-nav-brand">
+            <div class="sts-nav-brand-icon">
+                <img src="img/guild-logo.png" alt="Logo guilde" />
+            </div>
+            STS
+            <span class="sts-nav-tag">v0.1</span>
+        </a>
+
+        <div class="sts-nav-links">
+            <NavLink class="sts-nav-link" href="/regles">Règles</NavLink>
+            <NavLink class="sts-nav-link" href="/traits">Traits</NavLink>
+            <NavLink class="sts-nav-link" href="/capacites">Capacités</NavLink>
+            <NavLink class="sts-nav-link" href="/metiers">Métiers</NavLink>
+            <span class="sts-nav-link locked" title="Bientôt disponible">Personnages</span>
+        </div>
+    </nav>
+
+    <div class="sts-content">
+        @Body
+    </div>
+
+</div>

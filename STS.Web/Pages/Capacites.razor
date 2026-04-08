@@ -1,0 +1,259 @@
+@page "/capacites"
+@inject StsDataService DataService
+
+<div class="sts-page-header">
+    <h1 class="sts-page-title">Capacités</h1>
+    <span class="sts-page-sub">Capacités actives et passives par métier</span>
+</div>
+
+@if (_loading)
+{
+    <p style="color: var(--text-muted); font-size: 14px;">Chargement...</p>
+}
+else if (_error is not null)
+{
+    <p style="color: #e34b4b; font-size: 14px;">@_error</p>
+}
+else
+{
+    <div class="sts-sidebar-layout">
+
+        <div class="sts-sidebar">
+            <div class="sts-stat-grid">
+                <div class="sts-stat-box">
+                    <div class="sts-stat-label">Affichées</div>
+                    <div class="sts-stat-value">@_filtered.Count</div>
+                </div>
+                <div class="sts-stat-box">
+                    <div class="sts-stat-label">Total</div>
+                    <div class="sts-stat-value">@_all.Count</div>
+                </div>
+            </div>
+
+            <div class="sts-sidebar-section">Type</div>
+            <div class="sts-sidebar-item @ActiveIf(_categoryFilter == null)"
+                 @onclick="() => SetCategory(null)">
+                Toutes
+                <span class="sts-sidebar-count">@_all.Count</span>
+            </div>
+            <div class="sts-sidebar-item @ActiveIf(_categoryFilter == "Passive")"
+                 @onclick='() => SetCategory("Passive")'>
+                Passives
+                <span class="sts-sidebar-count">@_all.Count(a => a.Category == "Passive")</span>
+            </div>
+            <div class="sts-sidebar-item @ActiveIf(_categoryFilter == "Active")"
+                 @onclick='() => SetCategory("Active")'>
+                Actives
+                <span class="sts-sidebar-count">@_all.Count(a => a.Category == "Active")</span>
+            </div>
+            <div class="sts-sidebar-item @ActiveIf(_categoryFilter == "Weapon")"
+                 @onclick='() => SetCategory("Weapon")'>
+                Armes
+                <span class="sts-sidebar-count">@_all.Count(a => a.Category == "Weapon")</span>
+            </div>
+
+            @if (_jobs.Count > 0)
+            {
+                <div class="sts-sidebar-section">Métier</div>
+                <div class="sts-sidebar-item @ActiveIf(_jobFilter == null)"
+                     @onclick="() => SetJob(null)">
+                    Tous
+                </div>
+                @foreach (var job in _jobs)
+                {
+                    var jobId = job.Id;
+                    <div class="sts-sidebar-item @ActiveIf(_jobFilter == jobId)"
+                         @onclick="() => SetJob(jobId)">
+                        @job.Name
+                        <span class="sts-sidebar-count">
+                            @_all.Count(a => a.RequiredJobIds is not null && a.RequiredJobIds.Contains(jobId))
+                        </span>
+                    </div>
+                }
+            }
+        </div>
+
+        <div>
+            <div class="sts-filter-bar">
+                <input class="sts-search"
+                       type="text"
+                       placeholder="Rechercher..."
+                       value="@_search"
+                       @oninput="e => { _search = e.Value?.ToString(); ApplyFilters(); }" />
+                <div class="sts-tag-filters">
+                    <span class="sts-tag @ActiveIf(_categoryFilter == null)"
+                          @onclick="() => SetCategory(null)">Tout</span>
+                    <span class="sts-tag @ActiveIf(_categoryFilter == "Passive")"
+                          @onclick='() => SetCategory("Passive")'>Passif</span>
+                    <span class="sts-tag @ActiveIf(_categoryFilter == "Active")"
+                          @onclick='() => SetCategory("Active")'>Actif</span>
+                    <span class="sts-tag @ActiveIf(_categoryFilter == "Weapon")"
+                          @onclick='() => SetCategory("Weapon")'>Arme</span>
+                </div>
+            </div>
+
+            <div class="sts-cards">
+                @foreach (var ability in _filtered)
+                {
+                    var isExpanded = _expanded.Contains(ability.Id);
+                    var abilityId  = ability.Id;
+
+                    <div class="sts-card @AccentClass(ability.Category)">
+                        <div class="sts-card-header"
+                             style="cursor: pointer;"
+                             @onclick="() => ToggleExpand(abilityId)">
+                            <span class="sts-card-title">@ability.Name</span>
+                            <span class="sts-badge @BadgeClass(ability.Category)">@CategoryLabel(ability.Category)</span>
+                            @if (ability.RequiredJobIds is { Count: > 0 })
+                            {
+                                foreach (var jId in ability.RequiredJobIds)
+                                {
+                                    var jobName = _jobs.FirstOrDefault(j => j.Id == jId)?.Name ?? jId;
+                                    <span class="sts-badge sts-badge-job">@jobName</span>
+                                }
+                            }
+                            @if (!string.IsNullOrEmpty(ability.UsageLimit))
+                            {
+                                <span class="sts-badge sts-badge-weapon">@ability.UsageLimit</span>
+                            }
+                            <span style="margin-left: auto; color: var(--text-muted); font-size: 12px;">
+                                @(isExpanded ? "▲" : "▼")
+                            </span>
+                        </div>
+
+                        @if (isExpanded && ability.Levels.Count > 0)
+                        {
+                            <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 6px;">
+                                @foreach (var level in ability.Levels.OrderBy(l => l.Level))
+                                {
+                                    <div style="display: flex; gap: 10px; align-items: baseline;">
+                                        <span style="font-size: 11px; font-weight: 500; color: var(--teal);
+                                                     white-space: nowrap; min-width: 52px;">
+                                            Niv. @level.Level
+                                        </span>
+                                        <span class="sts-card-desc">@level.Description</span>
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        <div class="sts-card-meta">
+                            <span>@ability.Levels.Count niveau@(ability.Levels.Count > 1 ? "x" : "")</span>
+                            @if (ability.StartLevel > 1)
+                            {
+                                <span class="sts-card-meta-dot"></span>
+                                <span>Disponible niv. @ability.StartLevel</span>
+                            }
+                        </div>
+                    </div>
+                }
+
+                @if (_filtered.Count == 0)
+                {
+                    <p style="color: var(--text-muted); font-size: 14px; padding: 1rem 0;">
+                        Aucune capacité ne correspond à cette recherche.
+                    </p>
+                }
+            </div>
+        </div>
+
+    </div>
+}
+
+@code {
+    private List<AbilityData> _all      = [];
+    private List<AbilityData> _filtered = [];
+    private List<JobData>     _jobs     = [];
+    private HashSet<string>   _expanded = [];
+
+    private string? _search         = null;
+    private string? _categoryFilter = null;
+    private string? _jobFilter      = null;
+
+    private bool    _loading = true;
+    private string? _error   = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var data = await DataService.GetDataAsync();
+            _all  = data.Abilities;
+            _jobs = data.Jobs;
+            ApplyFilters();
+        }
+        catch (Exception ex)
+        {
+            _error = $"Impossible de charger les données : {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void ToggleExpand(string id)
+    {
+        if (!_expanded.Add(id))
+            _expanded.Remove(id);
+    }
+
+    private void SetCategory(string? category)
+    {
+        _categoryFilter = category;
+        ApplyFilters();
+    }
+
+    private void SetJob(string? jobId)
+    {
+        _jobFilter = jobId;
+        ApplyFilters();
+    }
+
+    private void ApplyFilters()
+    {
+        var q = _all.AsEnumerable();
+
+        if (_categoryFilter is not null)
+            q = q.Where(a => a.Category == _categoryFilter);
+
+        if (_jobFilter is not null)
+            q = q.Where(a => a.RequiredJobIds is not null && a.RequiredJobIds.Contains(_jobFilter));
+
+        if (!string.IsNullOrWhiteSpace(_search))
+        {
+            var s = _search.Trim().ToLowerInvariant();
+            q = q.Where(a =>
+                a.Name.ToLowerInvariant().Contains(s) ||
+                a.Levels.Any(l => l.Description.ToLowerInvariant().Contains(s)));
+        }
+
+        _filtered = q.ToList();
+    }
+
+    private static string ActiveIf(bool condition) => condition ? "active" : string.Empty;
+
+    private static string AccentClass(string category) => category switch
+    {
+        "Passive" => "sts-card-accent",
+        "Active"  => "sts-card-accent sts-card-accent-ice",
+        "Weapon"  => "sts-card-accent sts-card-accent-amber",
+        _         => string.Empty
+    };
+
+    private static string BadgeClass(string category) => category switch
+    {
+        "Passive" => "sts-badge-passive",
+        "Active"  => "sts-badge-active",
+        "Weapon"  => "sts-badge-weapon",
+        _         => "sts-badge-active"
+    };
+
+    private static string CategoryLabel(string category) => category switch
+    {
+        "Passive" => "Passif",
+        "Active"  => "Actif",
+        "Weapon"  => "Arme",
+        _         => category
+    };
+}

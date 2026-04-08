@@ -7,6 +7,20 @@ using Sts.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ─── CORS ─────────────────────────────────────────────────────────────────────
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("StsWebDev", policy =>
+    {
+        policy.WithOrigins(
+                "https://localhost:7144",
+                "http://localhost:5017")
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
 // ─── Services ─────────────────────────────────────────────────────────────────
 
 builder.Services.AddEndpointsApiExplorer();
@@ -89,6 +103,7 @@ if (app.Environment.IsDevelopment())
     });
 }
 
+app.UseCors("StsWebDev");       // ← en premier
 app.UseAuthentication();
 app.UseAuthorization();
 

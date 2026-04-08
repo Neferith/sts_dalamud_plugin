@@ -1,0 +1,236 @@
+@page "/metiers"
+@inject StsDataService DataService
+
+<div class="sts-page-header">
+    <h1 class="sts-page-title">Métiers</h1>
+    <span class="sts-page-sub">Traits et capacités par métier</span>
+</div>
+
+@if (_loading)
+{
+    <p style="color: var(--text-muted); font-size: 14px;">Chargement...</p>
+}
+else if (_error is not null)
+{
+    <p style="color: #e34b4b; font-size: 14px;">@_error</p>
+}
+else
+{
+    <div class="sts-sidebar-layout">
+
+        <div class="sts-sidebar">
+            <div class="sts-stat-grid">
+                <div class="sts-stat-box">
+                    <div class="sts-stat-label">Métiers</div>
+                    <div class="sts-stat-value">@_jobs.Count</div>
+                </div>
+                <div class="sts-stat-box">
+                    <div class="sts-stat-label">Sélectionné</div>
+                    <div class="sts-stat-value" style="font-size: 13px; padding-top: 4px;">
+                        @(_selectedJob?.Name ?? "—")
+                    </div>
+                </div>
+            </div>
+
+            <div class="sts-sidebar-section">Métiers</div>
+            @foreach (var job in _jobs)
+            {
+                var jobId = job.Id;
+                <div class="sts-sidebar-item @ActiveIf(_selectedJob?.Id == jobId)"
+                     @onclick="() => SelectJob(jobId)">
+                    @job.Name
+                    <span class="sts-sidebar-count">
+                        @(_traitsByJob.TryGetValue(jobId, out var t) ? t.Count : 0)T
+                        /
+                        @(_abilitiesByJob.TryGetValue(jobId, out var a) ? a.Count : 0)C
+                    </span>
+                </div>
+            }
+        </div>
+
+        <div>
+            @if (_selectedJob is null)
+            {
+                <p style="color: var(--text-muted); font-size: 14px; padding: 1rem 0;">
+                    Sélectionne un métier pour voir ses détails.
+                </p>
+            }
+            else
+            {
+                <div style="margin-bottom: 1.5rem;">
+                    <h2 style="font-size: 20px; font-weight: 500; color: var(--moon); margin-bottom: 4px;">
+                        @_selectedJob.Name
+                    </h2>
+                    <div style="display: flex; gap: 10px; font-size: 12px; color: var(--text-muted);">
+                        <span>@(_traitsByJob.TryGetValue(_selectedJob.Id, out var tc) ? tc.Count : 0) trait(s)</span>
+                        <span class="sts-card-meta-dot" style="align-self: center;"></span>
+                        <span>@(_abilitiesByJob.TryGetValue(_selectedJob.Id, out var ac) ? ac.Count : 0) capacité(s)</span>
+                    </div>
+                </div>
+
+                <!-- Traits -->
+                @if (_traitsByJob.TryGetValue(_selectedJob.Id, out var traits) && traits.Count > 0)
+                {
+                    <div class="sts-sidebar-section" style="padding-left: 0; margin-top: 0; margin-bottom: 8px;">Traits</div>
+                    <div class="sts-cards" style="margin-bottom: 1.5rem;">
+                        @foreach (var trait in traits)
+                        {
+                            <div class="sts-card @AccentClass(trait.Category)">
+                                <div class="sts-card-header">
+                                    <span class="sts-card-title">@trait.Name</span>
+                                    <span class="sts-badge @BadgeClass(trait.Category)">@CategoryLabel(trait.Category)</span>
+                                </div>
+                                <p class="sts-card-desc">@trait.Description</p>
+                                @if (trait.Effects.Count > 0)
+                                {
+                                    <div class="sts-card-meta">
+                                        @foreach (var effect in trait.Effects)
+                                        {
+                                            <span>@effect.Type@(effect.Value != 0 ? $" ({effect.Value})" : "")</span>
+                                            <span class="sts-card-meta-dot"></span>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+
+                <!-- Capacités -->
+                @if (_abilitiesByJob.TryGetValue(_selectedJob.Id, out var abilities) && abilities.Count > 0)
+                {
+                    <div class="sts-sidebar-section" style="padding-left: 0; margin-top: 0; margin-bottom: 8px;">Capacités</div>
+                    <div class="sts-cards">
+                        @foreach (var ability in abilities)
+                        {
+                            var isExpanded = _expanded.Contains(ability.Id);
+                            var abilityId  = ability.Id;
+
+                            <div class="sts-card @AccentClass(ability.Category)">
+                                <div class="sts-card-header"
+                                     style="cursor: pointer;"
+                                     @onclick="() => ToggleExpand(abilityId)">
+                                    <span class="sts-card-title">@ability.Name</span>
+                                    <span class="sts-badge @BadgeClass(ability.Category)">@CategoryLabel(ability.Category)</span>
+                                    @if (!string.IsNullOrEmpty(ability.UsageLimit))
+                                    {
+                                        <span class="sts-badge sts-badge-weapon">@ability.UsageLimit</span>
+                                    }
+                                    <span style="margin-left: auto; color: var(--text-muted); font-size: 12px;">
+                                        @(isExpanded ? "▲" : "▼")
+                                    </span>
+                                </div>
+
+                                @if (isExpanded && ability.Levels.Count > 0)
+                                {
+                                    <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 6px;">
+                                        @foreach (var level in ability.Levels.OrderBy(l => l.Level))
+                                        {
+                                            <div style="display: flex; gap: 10px; align-items: baseline;">
+                                                <span style="font-size: 11px; font-weight: 500; color: var(--teal);
+                                                             white-space: nowrap; min-width: 52px;">
+                                                    Niv. @level.Level
+                                                </span>
+                                                <span class="sts-card-desc">@level.Description</span>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+
+                                <div class="sts-card-meta">
+                                    <span>@ability.Levels.Count niveau@(ability.Levels.Count > 1 ? "x" : "")</span>
+                                    @if (ability.StartLevel > 1)
+                                    {
+                                        <span class="sts-card-meta-dot"></span>
+                                        <span>Disponible niv. @ability.StartLevel</span>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            }
+        </div>
+
+    </div>
+}
+
+@code {
+    private List<JobData>                       _jobs           = [];
+    private Dictionary<string, List<TraitData>>   _traitsByJob    = [];
+    private Dictionary<string, List<AbilityData>> _abilitiesByJob = [];
+    private HashSet<string>                     _expanded       = [];
+    private JobData?                            _selectedJob    = null;
+
+    private bool    _loading = true;
+    private string? _error   = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var data = await DataService.GetDataAsync();
+            _jobs = data.Jobs;
+
+            _traitsByJob = data.Traits
+                .Where(t => t.RequiredJobIds is { Count: > 0 })
+                .SelectMany(t => t.RequiredJobIds!.Select(jId => (jId, trait: t)))
+                .GroupBy(x => x.jId)
+                .ToDictionary(g => g.Key, g => g.Select(x => x.trait).ToList());
+
+            _abilitiesByJob = data.Abilities
+                .Where(a => a.RequiredJobIds is { Count: > 0 })
+                .SelectMany(a => a.RequiredJobIds!.Select(jId => (jId, ability: a)))
+                .GroupBy(x => x.jId)
+                .ToDictionary(g => g.Key, g => g.Select(x => x.ability).ToList());
+        }
+        catch (Exception ex)
+        {
+            _error = $"Impossible de charger les données : {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void SelectJob(string jobId)
+    {
+        _selectedJob = _selectedJob?.Id == jobId
+            ? null
+            : _jobs.FirstOrDefault(j => j.Id == jobId);
+        _expanded.Clear();
+    }
+
+    private void ToggleExpand(string id)
+    {
+        if (!_expanded.Add(id))
+            _expanded.Remove(id);
+    }
+
+    private static string ActiveIf(bool condition) => condition ? "active" : string.Empty;
+
+    private static string AccentClass(string category) => category switch
+    {
+        "Passive" => "sts-card-accent",
+        "Active"  => "sts-card-accent sts-card-accent-ice",
+        "Weapon"  => "sts-card-accent sts-card-accent-amber",
+        _         => string.Empty
+    };
+
+    private static string BadgeClass(string category) => category switch
+    {
+        "Passive" => "sts-badge-passive",
+        "Active"  => "sts-badge-active",
+        "Weapon"  => "sts-badge-weapon",
+        _         => "sts-badge-active"
+    };
+
+    private static string CategoryLabel(string category) => category switch
+    {
+        "Passive" => "Passif",
+        "Active"  => "Actif",
+        "Weapon"  => "Arme",
+        _         => category
+    };
+}
