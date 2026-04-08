@@ -7,12 +7,35 @@
 <PageTitle>Actions — STS Admin</PageTitle>
 
 <div class="p-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
             <h2 class="mb-0">Actions</h2>
-            <small class="text-muted">@_actions.Count action(s)</small>
+            <small class="text-muted">@Filtered.Count / @_actions.Count action(s)</small>
         </div>
         <button class="btn btn-primary" @onclick="OpenCreate">+ Nouvelle action</button>
+    </div>
+
+    <!-- Filtres -->
+    <div class="row g-2 mb-3">
+        <div class="col-md-4">
+            <input class="form-control" placeholder="🔍 Nom ou identifiant…"
+                   @bind="_search" @bind:event="oninput" />
+        </div>
+        <div class="col-md-3">
+            <select class="form-select" @bind="_filterContext">
+                <option value="">Tous les contextes</option>
+                @foreach (var ctx in AllContexts)
+                {
+                    <option value="@ctx">@ctx</option>
+                }
+            </select>
+        </div>
+        @if (_search.Length > 0 || _filterContext.Length > 0)
+        {
+            <div class="col-auto">
+                <button class="btn btn-outline-secondary" @onclick="ResetFilters">✕ Réinitialiser</button>
+            </div>
+        }
     </div>
 
     <Alert Message="_message" IsError="_isError" OnDismiss="() => _message = null" />
@@ -21,20 +44,26 @@
     {
         <div class="text-center py-5"><div class="spinner-border text-secondary"></div></div>
     }
+    else if (Filtered.Count == 0)
+    {
+        <div class="text-center text-muted py-5">Aucun résultat pour ces filtres.</div>
+    }
     else
     {
         <div class="card">
             <table class="table table-hover mb-0">
                 <thead class="table-dark">
                     <tr>
-                        <th>Nom</th>
+                        <th @onclick='() => SetSort("name")' style="cursor:pointer; user-select:none">
+                            Nom @SortIcon("name")
+                        </th>
                         <th>Contextes</th>
                         <th>Prérequis</th>
                         <th style="width:100px"></th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var action in _actions.OrderBy(a => a.Name))
+                    @foreach (var action in Filtered)
                     {
                         <tr>
                             <td>
@@ -79,7 +108,6 @@
                     <h5 class="modal-title">@(_editMode ? "Modifier l'action" : "Nouvelle action")</h5>
                     <button type="button" class="btn-close" @onclick="CloseModal"></button>
                 </div>
-
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Identifiant</label>
@@ -89,8 +117,6 @@
                         <label class="form-label">Nom</label>
                         <input class="form-control" @bind="_form.Name" placeholder="ex: Attaque à l'arme" />
                     </div>
-
-                    <!-- Contextes -->
                     <div class="mb-3">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <label class="form-label mb-0 fw-medium">Contextes</label>
@@ -112,8 +138,6 @@
                             <p class="text-muted small mb-0">Aucun contexte défini.</p>
                         }
                     </div>
-
-                    <!-- Prérequis -->
                     <div class="mb-2">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <label class="form-label mb-0 fw-medium">Prérequis <small class="text-muted">(optionnel)</small></label>
@@ -136,7 +160,6 @@
                         }
                     </div>
                 </div>
-
                 <div class="modal-footer">
                     <button class="btn btn-secondary" @onclick="CloseModal">Annuler</button>
                     <button class="btn btn-primary" @onclick="Save" disabled="@_saving">
@@ -158,6 +181,47 @@
     private bool _isError;
     private ActionDto _form = new();
 
+    // ─── Filtres & tri ────────────────────────────────────────────────────────
+    private string _search        = "";
+    private string _filterContext = "";
+    private string _sortBy        = "name";
+    private bool   _sortAsc       = true;
+
+    // Tous les contextes distincts présents dans les actions chargées
+    private IEnumerable<string> AllContexts =>
+        _actions.SelectMany(a => a.Contexts).Distinct().OrderBy(c => c);
+
+    private List<ActionDto> Filtered
+    {
+        get
+        {
+            var q = _actions.AsEnumerable();
+
+            if (!string.IsNullOrWhiteSpace(_search))
+            {
+                var s = _search.Trim().ToLowerInvariant();
+                q = q.Where(a => a.Name.ToLowerInvariant().Contains(s)
+                               || a.Id.ToLowerInvariant().Contains(s));
+            }
+            if (!string.IsNullOrWhiteSpace(_filterContext))
+                q = q.Where(a => a.Contexts.Contains(_filterContext));
+
+            q = _sortAsc ? q.OrderBy(a => a.Name) : q.OrderByDescending(a => a.Name);
+
+            return q.ToList();
+        }
+    }
+
+    private void SetSort(string col)
+    {
+        if (_sortBy == col) _sortAsc = !_sortAsc;
+        else { _sortBy = col; _sortAsc = true; }
+    }
+
+    private string SortIcon(string col) => _sortBy != col ? " ⇅" : _sortAsc ? " ↑" : " ↓";
+    private void ResetFilters() { _search = ""; _filterContext = ""; }
+
+    // ─── Données ──────────────────────────────────────────────────────────────
     protected override async Task OnInitializedAsync()
     {
         if (!Auth.IsAuthenticated) { Nav.NavigateTo("/login"); return; }
@@ -171,22 +235,10 @@
         _loading = false;
     }
 
-    private void OpenCreate()
-    {
-        _form      = new ActionDto();
-        _editMode  = false;
-        _showModal = true;
-    }
-
-    private void OpenEdit(ActionDto action)
-    {
-        _form      = action.Clone();
-        _editMode  = true;
-        _showModal = true;
-    }
-
+    // ─── Modal ────────────────────────────────────────────────────────────────
+    private void OpenCreate() { _form = new ActionDto(); _editMode = false; _showModal = true; }
+    private void OpenEdit(ActionDto action) { _form = action.Clone(); _editMode = true; _showModal = true; }
     private void CloseModal() => _showModal = false;
-
     private void AddContext()     => _form.Contexts.Add("");
     private void AddRequirement() => _form.Requirements.Add("");
 
@@ -195,7 +247,6 @@
         if (string.IsNullOrWhiteSpace(_form.Id))   { ShowError("L'identifiant est requis."); return; }
         if (string.IsNullOrWhiteSpace(_form.Name)) { ShowError("Le nom est requis."); return; }
 
-        // Nettoyer les entrées vides
         _form.Contexts     = _form.Contexts.Where(c => !string.IsNullOrWhiteSpace(c)).ToList();
         _form.Requirements = _form.Requirements.Where(r => !string.IsNullOrWhiteSpace(r)).ToList();
 
@@ -203,13 +254,10 @@
         try
         {
             string? error;
-            if (_editMode)
-                (_, error) = await Api.PutAsync<ActionDto>($"/api/actions/{_form.Id}", _form);
-            else
-                (_, error) = await Api.PostAsync<ActionDto>("/api/actions", _form);
-
-            ShowResult(error, _editMode ? "Action modifiée." : "Action créée.");
-            if (error is null) { CloseModal(); await Load(); }
+            if (_editMode) (_, error) = await Api.PutAsync<ActionDto>($"/api/actions/{_form.Id}", _form);
+            else           (_, error) = await Api.PostAsync<ActionDto>("/api/actions", _form);
+            if (error is not null) ShowError(error);
+            else { ShowSuccess(_editMode ? "Action modifiée." : "Action créée."); CloseModal(); await Load(); }
         }
         finally { _saving = false; }
     }
@@ -218,25 +266,10 @@
     {
         if (!await JS.InvokeAsync<bool>("confirm", $"Supprimer l'action « {action.Name} » ?")) return;
         var error = await Api.DeleteAsync($"/api/actions/{action.Id}");
-        ShowResult(error, "Action supprimée.");
-        if (error is null) await Load();
+        if (error is not null) ShowError(error);
+        else { ShowSuccess("Action supprimée."); await Load(); }
     }
 
-  private void ShowResult(string? error, string successMsg)
-    {
-        _isError = error is not null;
-        _message = error ?? successMsg;
-    }
-
-    private void ShowError(string msg)
-    {
-        _isError = true;
-        _message = msg;
-    }
-
-        private void ShowSuccess(string msg)
-    {
-        _isError = false;
-        _message = msg;
-    }
+    private void ShowError(string msg)   { _isError = true;  _message = msg; }
+    private void ShowSuccess(string msg) { _isError = false; _message = msg; }
 }

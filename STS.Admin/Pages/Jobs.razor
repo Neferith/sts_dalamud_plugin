@@ -7,12 +7,26 @@
 <PageTitle>Jobs — STS Admin</PageTitle>
 
 <div class="p-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
             <h2 class="mb-0">Jobs</h2>
-            <small class="text-muted">@_jobs.Count job(s)</small>
+            <small class="text-muted">@Filtered.Count / @_jobs.Count job(s)</small>
         </div>
         <button class="btn btn-primary" @onclick="OpenCreate">+ Nouveau job</button>
+    </div>
+
+    <!-- Filtres -->
+    <div class="row g-2 mb-3">
+        <div class="col-md-4">
+            <input class="form-control" placeholder="🔍 Nom ou identifiant…"
+                   @bind="_search" @bind:event="oninput" />
+        </div>
+        @if (_search.Length > 0)
+        {
+            <div class="col-auto">
+                <button class="btn btn-outline-secondary" @onclick="ResetFilters">✕ Réinitialiser</button>
+            </div>
+        }
     </div>
 
     <Alert Message="_message" IsError="_isError" OnDismiss="() => _message = null" />
@@ -21,9 +35,11 @@
     {
         <div class="text-center py-5"><div class="spinner-border text-secondary"></div></div>
     }
-    else if (_jobs.Count == 0)
+    else if (Filtered.Count == 0)
     {
-        <div class="text-center text-muted py-5">Aucun job. Commencez par en créer un.</div>
+        <div class="text-center text-muted py-5">
+            @(_jobs.Count == 0 ? "Aucun job. Commencez par en créer un." : "Aucun résultat pour ces filtres.")
+        </div>
     }
     else
     {
@@ -31,13 +47,17 @@
             <table class="table table-hover mb-0">
                 <thead class="table-dark">
                     <tr>
-                        <th>Identifiant</th>
-                        <th>Nom</th>
+                        <th @onclick='() => SetSort("id")' style="cursor:pointer; user-select:none">
+                            Identifiant @SortIcon("id")
+                        </th>
+                        <th @onclick='() => SetSort("name")' style="cursor:pointer; user-select:none">
+                            Nom @SortIcon("name")
+                        </th>
                         <th style="width:100px"></th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var job in _jobs.OrderBy(j => j.Name))
+                    @foreach (var job in Filtered)
                     {
                         <tr>
                             <td><code class="text-secondary">@job.Id</code></td>
@@ -67,10 +87,7 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Identifiant <small class="text-muted">(unique, sans espaces ni accents)</small></label>
-                        <input class="form-control font-monospace"
-                               @bind="_form.Id"
-                               disabled="@_editMode"
-                               placeholder="ex: guerrier" />
+                        <input class="form-control font-monospace" @bind="_form.Id" disabled="@_editMode" placeholder="ex: guerrier" />
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Nom affiché</label>
@@ -98,6 +115,41 @@
     private bool _isError;
     private JobDto _form = new();
 
+    // ─── Filtres & tri ────────────────────────────────────────────────────────
+    private string _search  = "";
+    private string _sortBy  = "name";
+    private bool   _sortAsc = true;
+
+    private List<JobDto> Filtered
+    {
+        get
+        {
+            var q = _jobs.AsEnumerable();
+            if (!string.IsNullOrWhiteSpace(_search))
+            {
+                var s = _search.Trim().ToLowerInvariant();
+                q = q.Where(j => j.Name.ToLowerInvariant().Contains(s)
+                               || j.Id.ToLowerInvariant().Contains(s));
+            }
+            q = _sortBy switch
+            {
+                "id" => _sortAsc ? q.OrderBy(j => j.Id)   : q.OrderByDescending(j => j.Id),
+                _    => _sortAsc ? q.OrderBy(j => j.Name) : q.OrderByDescending(j => j.Name),
+            };
+            return q.ToList();
+        }
+    }
+
+    private void SetSort(string col)
+    {
+        if (_sortBy == col) _sortAsc = !_sortAsc;
+        else { _sortBy = col; _sortAsc = true; }
+    }
+
+    private string SortIcon(string col) => _sortBy != col ? " ⇅" : _sortAsc ? " ↑" : " ↓";
+    private void ResetFilters() => _search = "";
+
+    // ─── Données ──────────────────────────────────────────────────────────────
     protected override async Task OnInitializedAsync()
     {
         if (!Auth.IsAuthenticated) { Nav.NavigateTo("/login"); return; }
@@ -111,38 +163,23 @@
         _loading = false;
     }
 
-    private void OpenCreate()
-    {
-        _form     = new JobDto();
-        _editMode = false;
-        _showModal = true;
-    }
-
-    private void OpenEdit(JobDto job)
-    {
-        _form     = job.Clone();
-        _editMode = true;
-        _showModal = true;
-    }
-
+    // ─── Modal ────────────────────────────────────────────────────────────────
+    private void OpenCreate() { _form = new JobDto(); _editMode = false; _showModal = true; }
+    private void OpenEdit(JobDto job) { _form = job.Clone(); _editMode = true; _showModal = true; }
     private void CloseModal() => _showModal = false;
 
     private async Task Save()
     {
         if (string.IsNullOrWhiteSpace(_form.Id))   { ShowError("L'identifiant est requis."); return; }
         if (string.IsNullOrWhiteSpace(_form.Name)) { ShowError("Le nom est requis."); return; }
-
         _saving = true;
         try
         {
             string? error;
-            if (_editMode)
-                (_, error) = await Api.PutAsync<JobDto>($"/api/jobs/{_form.Id}", _form);
-            else
-                (_, error) = await Api.PostAsync<JobDto>("/api/jobs", _form);
-
-            ShowResult(error, _editMode ? "Job modifié avec succès." : "Job créé avec succès.");
-            if (error is null) { CloseModal(); await Load(); }
+            if (_editMode) (_, error) = await Api.PutAsync<JobDto>($"/api/jobs/{_form.Id}", _form);
+            else           (_, error) = await Api.PostAsync<JobDto>("/api/jobs", _form);
+            if (error is not null) ShowError(error);
+            else { ShowSuccess(_editMode ? "Job modifié." : "Job créé."); CloseModal(); await Load(); }
         }
         finally { _saving = false; }
     }
@@ -151,19 +188,10 @@
     {
         if (!await JS.InvokeAsync<bool>("confirm", $"Supprimer le job « {job.Name} » ?")) return;
         var error = await Api.DeleteAsync($"/api/jobs/{job.Id}");
-        ShowResult(error, "Job supprimé.");
-        if (error is null) await Load();
+        if (error is not null) ShowError(error);
+        else { ShowSuccess("Job supprimé."); await Load(); }
     }
 
-    private void ShowResult(string? error, string successMsg)
-    {
-        _isError  = error is not null;
-        _message  = error ?? successMsg;
-    }
-
-      private void ShowError(string msg)
-    {
-        _isError = true;
-        _message = msg;
-    }
+    private void ShowError(string msg)   { _isError = true;  _message = msg; }
+    private void ShowSuccess(string msg) { _isError = false; _message = msg; }
 }

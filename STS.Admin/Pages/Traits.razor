@@ -7,12 +7,44 @@
 <PageTitle>Traits — STS Admin</PageTitle>
 
 <div class="p-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
             <h2 class="mb-0">Traits</h2>
-            <small class="text-muted">@_traits.Count trait(s)</small>
+            <small class="text-muted">@Filtered.Count / @_traits.Count trait(s)</small>
         </div>
         <button class="btn btn-primary" @onclick="OpenCreate">+ Nouveau trait</button>
+    </div>
+
+    <!-- Filtres -->
+    <div class="row g-2 mb-3">
+        <div class="col-md-4">
+            <input class="form-control" placeholder="🔍 Nom ou identifiant…"
+                   @bind="_search" @bind:event="oninput" />
+        </div>
+        <div class="col-md-3">
+            <select class="form-select" @bind="_filterCategory">
+                <option value="">Toutes les catégories</option>
+                @foreach (var cat in StsConstants.TraitCategories)
+                {
+                    <option value="@cat">@cat</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-3">
+            <select class="form-select" @bind="_filterJob">
+                <option value="">Tous les jobs</option>
+                @foreach (var job in _allJobs.OrderBy(j => j.Name))
+                {
+                    <option value="@job.Id">@job.Name</option>
+                }
+            </select>
+        </div>
+        @if (_search.Length > 0 || _filterCategory.Length > 0 || _filterJob.Length > 0)
+        {
+            <div class="col-auto">
+                <button class="btn btn-outline-secondary" @onclick="ResetFilters">✕ Réinitialiser</button>
+            </div>
+        }
     </div>
 
     <Alert Message="_message" IsError="_isError" OnDismiss="() => _message = null" />
@@ -21,21 +53,29 @@
     {
         <div class="text-center py-5"><div class="spinner-border text-secondary"></div></div>
     }
+    else if (Filtered.Count == 0)
+    {
+        <div class="text-center text-muted py-5">Aucun résultat pour ces filtres.</div>
+    }
     else
     {
         <div class="card">
             <table class="table table-hover mb-0">
                 <thead class="table-dark">
                     <tr>
-                        <th>Nom</th>
-                        <th>Catégorie</th>
+                        <th @onclick='() => SetSort("name")' style="cursor:pointer; user-select:none">
+                            Nom @SortIcon("name")
+                        </th>
+                        <th @onclick='() => SetSort("category")' style="cursor:pointer; user-select:none">
+                            Catégorie @SortIcon("category")
+                        </th>
                         <th>Jobs requis</th>
                         <th>Effets</th>
                         <th style="width:100px"></th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var trait in _traits.OrderBy(t => t.Category).ThenBy(t => t.Name))
+                    @foreach (var trait in Filtered)
                     {
                         <tr>
                             <td>
@@ -76,7 +116,6 @@
                     <h5 class="modal-title">@(_editMode ? "Modifier le trait" : "Nouveau trait")</h5>
                     <button type="button" class="btn-close" @onclick="CloseModal"></button>
                 </div>
-
                 <div class="modal-body">
                     <div class="row g-3 mb-3">
                         <div class="col-5">
@@ -88,12 +127,10 @@
                             <input class="form-control" @bind="_form.Name" placeholder="ex: Tir précis" />
                         </div>
                     </div>
-
                     <div class="mb-3">
                         <label class="form-label">Description</label>
                         <textarea class="form-control" rows="2" @bind="_form.Description" placeholder="Description affichée sur la fiche."></textarea>
                     </div>
-
                     <div class="row g-3 mb-3">
                         <div class="col-6">
                             <label class="form-label">Catégorie</label>
@@ -109,17 +146,13 @@
                             <input class="form-control font-monospace" @bind="_form.ExclusiveGroup" placeholder="ex: style_combat" />
                         </div>
                     </div>
-
-                    <!-- Jobs requis -->
                     <div class="mb-4">
                         <label class="form-label">Jobs requis <small class="text-muted">(laisser vide = tous)</small></label>
                         <div class="d-flex flex-wrap gap-2 p-2 border rounded">
                             @foreach (var job in _allJobs.OrderBy(j => j.Name))
                             {
                                 <div class="form-check form-check-inline m-0">
-                                    <input class="form-check-input"
-                                           type="checkbox"
-                                           id="tj_@job.Id"
+                                    <input class="form-check-input" type="checkbox" id="tj_@job.Id"
                                            checked="@(_selectedJobIds.Contains(job.Id))"
                                            @onchange="e => ToggleJob(job.Id, (bool)(e.Value ?? false))" />
                                     <label class="form-check-label" for="tj_@job.Id">@job.Name</label>
@@ -127,19 +160,15 @@
                             }
                         </div>
                     </div>
-
-                    <!-- Effets -->
                     <div class="mb-2">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <label class="form-label mb-0 fw-medium">Effets mécaniques</label>
                             <button class="btn btn-sm btn-outline-primary" @onclick="AddEffect">+ Ajouter un effet</button>
                         </div>
-
                         @if (_form.Effects.Count == 0)
                         {
                             <p class="text-muted small mb-0">Aucun effet — le trait est déclaratif (géré par le MJ).</p>
                         }
-
                         @for (var i = 0; i < _form.Effects.Count; i++)
                         {
                             var idx = i;
@@ -186,7 +215,6 @@
                         }
                     </div>
                 </div>
-
                 <div class="modal-footer">
                     <button class="btn btn-secondary" @onclick="CloseModal">Annuler</button>
                     <button class="btn btn-primary" @onclick="Save" disabled="@_saving">
@@ -199,7 +227,7 @@
 }
 
 @code {
-    private List<TraitDto> _traits = [];
+    private List<TraitDto> _traits  = [];
     private List<JobDto>   _allJobs = [];
     private HashSet<string> _selectedJobIds = [];
 
@@ -211,6 +239,53 @@
     private bool _isError;
     private TraitDto _form = new();
 
+    // ─── Filtres & tri ────────────────────────────────────────────────────────
+    private string _search         = "";
+    private string _filterCategory = "";
+    private string _filterJob      = "";
+    private string _sortBy         = "category";
+    private bool   _sortAsc        = true;
+
+    private List<TraitDto> Filtered
+    {
+        get
+        {
+            var q = _traits.AsEnumerable();
+
+            if (!string.IsNullOrWhiteSpace(_search))
+            {
+                var s = _search.Trim().ToLowerInvariant();
+                q = q.Where(t => t.Name.ToLowerInvariant().Contains(s)
+                               || t.Id.ToLowerInvariant().Contains(s));
+            }
+            if (!string.IsNullOrWhiteSpace(_filterCategory))
+                q = q.Where(t => t.Category == _filterCategory);
+
+            if (!string.IsNullOrWhiteSpace(_filterJob))
+                q = q.Where(t => t.RequiredJobIds?.Contains(_filterJob) == true);
+
+            q = _sortBy switch
+            {
+                "name"     => _sortAsc ? q.OrderBy(t => t.Name)     : q.OrderByDescending(t => t.Name),
+                _          => _sortAsc ? q.OrderBy(t => t.Category).ThenBy(t => t.Name)
+                                       : q.OrderByDescending(t => t.Category).ThenBy(t => t.Name),
+            };
+
+            return q.ToList();
+        }
+    }
+
+    private void SetSort(string col)
+    {
+        if (_sortBy == col) _sortAsc = !_sortAsc;
+        else { _sortBy = col; _sortAsc = true; }
+    }
+
+    private string SortIcon(string col) => _sortBy != col ? " ⇅" : _sortAsc ? " ↑" : " ↓";
+
+    private void ResetFilters() { _search = ""; _filterCategory = ""; _filterJob = ""; }
+
+    // ─── Données ──────────────────────────────────────────────────────────────
     protected override async Task OnInitializedAsync()
     {
         if (!Auth.IsAuthenticated) { Nav.NavigateTo("/login"); return; }
@@ -218,7 +293,7 @@
         _loading = false;
     }
 
-    private async Task LoadTraits() => _traits = await Api.GetAsync<List<TraitDto>>("/api/traits") ?? [];
+    private async Task LoadTraits() => _traits  = await Api.GetAsync<List<TraitDto>>("/api/traits") ?? [];
     private async Task LoadJobs()   => _allJobs = await Api.GetAsync<List<JobDto>>("/api/jobs") ?? [];
 
     private string JobName(string id) => _allJobs.FirstOrDefault(j => j.Id == id)?.Name ?? id;
@@ -229,25 +304,11 @@
         else _selectedJobIds.Remove(id);
     }
 
-    private void OpenCreate()
-    {
-        _form           = new TraitDto();
-        _selectedJobIds = [];
-        _editMode       = false;
-        _showModal      = true;
-    }
-
-    private void OpenEdit(TraitDto trait)
-    {
-        _form           = trait.Clone();
-        _selectedJobIds = [.. (_form.RequiredJobIds ?? [])];
-        _editMode       = true;
-        _showModal      = true;
-    }
-
+    // ─── Modal ────────────────────────────────────────────────────────────────
+    private void OpenCreate() { _form = new TraitDto(); _selectedJobIds = []; _editMode = false; _showModal = true; }
+    private void OpenEdit(TraitDto trait) { _form = trait.Clone(); _selectedJobIds = [.. (_form.RequiredJobIds ?? [])]; _editMode = true; _showModal = true; }
     private void CloseModal() => _showModal = false;
-
-    private void AddEffect()    => _form.Effects.Add(new TraitEffectDto());
+    private void AddEffect() => _form.Effects.Add(new TraitEffectDto());
     private void RemoveEffect(int i) => _form.Effects.RemoveAt(i);
 
     private async Task Save()
@@ -257,24 +318,17 @@
         if (string.IsNullOrWhiteSpace(_form.Category))    { ShowError("La catégorie est requise."); return; }
         if (string.IsNullOrWhiteSpace(_form.Description)) { ShowError("La description est requise."); return; }
 
-        // Appliquer la sélection des jobs
         _form.RequiredJobIds = _selectedJobIds.Count > 0 ? [.. _selectedJobIds] : null;
-
-        // Nettoyer ForcedMode si le type n'est pas ForceRollMode
-        foreach (var e in _form.Effects.Where(e => e.Type != "ForceRollMode"))
-            e.ForcedMode = null;
+        foreach (var e in _form.Effects.Where(e => e.Type != "ForceRollMode")) e.ForcedMode = null;
 
         _saving = true;
         try
         {
             string? error;
-            if (_editMode)
-                (_, error) = await Api.PutAsync<TraitDto>($"/api/traits/{_form.Id}", _form);
-            else
-                (_, error) = await Api.PostAsync<TraitDto>("/api/traits", _form);
-
-            ShowResult(error, _editMode ? "Trait modifié." : "Trait créé.");
-            if (error is null) { CloseModal(); await LoadTraits(); }
+            if (_editMode) (_, error) = await Api.PutAsync<TraitDto>($"/api/traits/{_form.Id}", _form);
+            else           (_, error) = await Api.PostAsync<TraitDto>("/api/traits", _form);
+            if (error is not null) ShowError(error);
+            else { ShowSuccess(_editMode ? "Trait modifié." : "Trait créé."); CloseModal(); await LoadTraits(); }
         }
         finally { _saving = false; }
     }
@@ -283,19 +337,10 @@
     {
         if (!await JS.InvokeAsync<bool>("confirm", $"Supprimer le trait « {trait.Name} » ?")) return;
         var error = await Api.DeleteAsync($"/api/traits/{trait.Id}");
-        ShowResult(error, "Trait supprimé.");
-        if (error is null) await LoadTraits();
+        if (error is not null) ShowError(error);
+        else { ShowSuccess("Trait supprimé."); await LoadTraits(); }
     }
 
-    private void ShowResult(string? error, string successMsg)
-    {
-        _isError = error is not null;
-        _message = error ?? successMsg;
-    }
-
-      private void ShowError(string msg)
-    {
-        _isError = true;
-        _message = msg;
-    }
+    private void ShowError(string msg)   { _isError = true;  _message = msg; }
+    private void ShowSuccess(string msg) { _isError = false; _message = msg; }
 }
