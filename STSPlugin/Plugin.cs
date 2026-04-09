@@ -452,7 +452,7 @@ public sealed class Plugin : IDalamudPlugin
         if (Engine.LastResult is not { } result) return string.Empty;
 
         var rank = Engine.CurrentRank;
-        var dice = result.Chosen.ToDisplayString();
+        var dice = $"({result.Chosen.ToDisplayString()})";
         var actionPart = result.Action != null ? $" [{result.Action.Name}]" : "";
         var res = result.Successes == 0 ? "Échec total"
                        : result.Successes == 1 ? "1 succès"
@@ -461,7 +461,24 @@ public sealed class Plugin : IDalamudPlugin
                        ? $" modif {(Engine.Modifier > 0 ? "+" : "")}{Engine.Modifier}"
                        : "";
 
-        return $"[STS] {rank.Label}{actionPart}{mod} · {dice} · palier {result.Palier}+ → {res}";
+        string traitPart = "";
+        if (result.TraitEffects.BonusSuccesses > 0 || result.TraitEffects.MalusSuccesses > 0)
+        {
+            var parts = new List<string>();
+            if (result.TraitEffects.BonusSuccesses > 0)
+            {
+                var names = string.Join(", ", result.TraitEffects.BonusTraitNames);
+                parts.Add($"+{result.TraitEffects.BonusSuccesses} ({names})");
+            }
+            if (result.TraitEffects.MalusSuccesses > 0)
+            {
+                var names = string.Join(", ", result.TraitEffects.MalusTraitNames);
+                parts.Add($"-{result.TraitEffects.MalusSuccesses} ({names})");
+            }
+            traitPart = $" · {string.Join(" ", parts)}";
+        }
+
+        return $"[STS] {rank.Label}{actionPart}{mod} · {dice} · palier {result.Palier}+{traitPart} → {res}";
     }
 
     private void PrintInfo(string msg)
