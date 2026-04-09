@@ -1,7 +1,8 @@
+using Sts.Domain.UseCases;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Sts.Domain.UseCases;
+using static System.Collections.Specialized.BitVector32;
 
 namespace Sts.Domain;
 
@@ -120,9 +121,16 @@ public class StsEngine
         var effects = ComputeTraitEffects(action, isReroll: true);
         var result = ResolveWithSet(Roll3(), _session.LastResult?.Rejected, action, effects);
 
-        var rerollBonus = ComputeRerollBonuses(action);
+        var (rerollBonus, rerollNames) = ComputeRerollBonuses(action);
         if (rerollBonus > 0)
-            result = result with { TraitEffects = result.TraitEffects with { BonusSuccesses = result.TraitEffects.BonusSuccesses + rerollBonus } };
+            result = result with
+            {
+                TraitEffects = result.TraitEffects with
+                {
+                    BonusSuccesses = result.TraitEffects.BonusSuccesses + rerollBonus,
+                    BonusTraitNames = [.. result.TraitEffects.BonusTraitNames, .. rerollNames]
+                }
+            };
 
         _session.LastResult = result;
         PushHistory(_session.LastResult);
@@ -166,9 +174,16 @@ public class StsEngine
 
         if (isReroll)
         {
-            var rerollBonus = ComputeRerollBonuses(_pendingAction);
+            var (rerollBonus, rerollNames) = ComputeRerollBonuses(_pendingAction);
             if (rerollBonus > 0)
-                result = result with { TraitEffects = result.TraitEffects with { BonusSuccesses = result.TraitEffects.BonusSuccesses + rerollBonus } };
+                result = result with
+                {
+                    TraitEffects = result.TraitEffects with
+                    {
+                        BonusSuccesses = result.TraitEffects.BonusSuccesses + rerollBonus,
+                        BonusTraitNames = [.. result.TraitEffects.BonusTraitNames, .. rerollNames]
+                    }
+                };
         }
 
         _session.LastResult = result;
@@ -192,16 +207,23 @@ public class StsEngine
 
     // --- calcul des effets de traits ---
 
-    private int ComputeRerollBonuses(RollAction? action)
+    private (int Bonus, List<string> Names) ComputeRerollBonuses(RollAction? action)
     {
-        if (_equippedTraits.Count == 0) return 0;
+        if (_equippedTraits.Count == 0) return (0, []);
         var contexts = action?.Contexts ?? [];
-        return _equippedTraits
-            .Where(t => t.Effects != null)
-            .SelectMany(t => t.Effects!)
-            .Where(e => e.Type == TraitEffectType.BonusSuccessOnReroll)
-            .Where(e => e.Context == null || contexts.Contains(e.Context))
-            .Sum(e => e.Value);
+
+        var bonus = 0;
+        var names = new List<string>();
+        foreach (var trait in _equippedTraits.Where(t => t.Effects != null))
+            foreach (var e in trait.Effects!)
+                if (e.Type == TraitEffectType.BonusSuccessOnReroll &&
+                    (e.Context == null || contexts.Contains(e.Context)))
+                {
+                    bonus += e.Value;
+                    names.Add(trait.Name);
+                }
+
+        return (bonus, names);
     }
 
     private AppliedTraitEffects ComputeTraitEffects(RollAction? action, bool isReroll = false)
@@ -214,6 +236,8 @@ public class StsEngine
         var bonusSuccess = 0;
         var malusSuccess = 0;
         RollMode? forcedMode = null;
+        var bonusTraitNames = new List<string>();
+        var malusTraitNames = new List<string>();
 
         foreach (var trait in _equippedTraits)
         {
@@ -234,9 +258,11 @@ public class StsEngine
                         break;
                     case TraitEffectType.BonusSuccess:
                         bonusSuccess += effect.Value;
+                        bonusTraitNames.Add(trait.Name);
                         break;
                     case TraitEffectType.MalusSuccess:
                         malusSuccess += effect.Value;
+                        malusTraitNames.Add(trait.Name);
                         break;
                     case TraitEffectType.BonusPalier when isReroll:
                     case TraitEffectType.BonusSuccessOnZero:
@@ -247,22 +273,35 @@ public class StsEngine
             }
         }
 
-        return new AppliedTraitEffects(bonusSuccess, malusSuccess, bonusRerolls, forcedMode);
+        return new AppliedTraitEffects
+            (
+                bonusSuccess, 
+                malusSuccess, 
+                bonusRerolls, 
+                forcedMode, 
+                bonusTraitNames, 
+                malusTraitNames
+            );
     }
 
-    private int ComputeZeroBonuses(DiceSet dice, RollAction? action)
+    private (int Bonus, List<string> Names) ComputeZeroBonuses(DiceSet dice, RollAction? action)
     {
-        if (_equippedTraits.Count == 0) return 0;
+        if (_equippedTraits.Count == 0) return (0, []);
         var contexts = action?.Contexts ?? [];
-        var hasZero = dice.Values.Any(v => v == 10);
-        if (!hasZero) return 0;
+        if (!dice.Values.Any(v => v == 10)) return (0, []);
 
-        return _equippedTraits
-            .Where(t => t.Effects != null)
-            .SelectMany(t => t.Effects!)
-            .Where(e => e.Type == TraitEffectType.BonusSuccessOnZero)
-            .Where(e => e.Context == null || contexts.Contains(e.Context))
-            .Sum(e => e.Value);
+        var bonus = 0;
+        var names = new List<string>();
+        foreach (var trait in _equippedTraits.Where(t => t.Effects != null))
+            foreach (var e in trait.Effects!)
+                if (e.Type == TraitEffectType.BonusSuccessOnZero &&
+                    (e.Context == null || contexts.Contains(e.Context)))
+                {
+                    bonus += e.Value;
+                    names.Add(trait.Name);
+                }
+
+        return (bonus, names);
     }
 
     private int PermanentBonusRerolls()
@@ -315,8 +354,14 @@ public class StsEngine
         }
 
         var resolution = _resolveDiceSet.Execute(chosen, palier);
-        var zeroBonuses = ComputeZeroBonuses(chosen, action);
-        var finalEffects = effects with { BonusSuccesses = effects.BonusSuccesses + zeroBonuses };
+        var (zeroBonuses, zeroNames) = ComputeZeroBonuses(chosen, action);
+        var finalEffects = zeroBonuses > 0
+            ? effects with
+            {
+                BonusSuccesses = effects.BonusSuccesses + zeroBonuses,
+                BonusTraitNames = [.. effects.BonusTraitNames, .. zeroNames]
+            }
+            : effects;
 
         return new RollResult(
             chosen,

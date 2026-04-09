@@ -101,7 +101,14 @@ public class RollResultTests
     public void Successes_SommeRawEtBonus()
     {
         var dice = new DiceSet([6, 6, 6]);
-        var effects = new AppliedTraitEffects(BonusSuccesses: 2, MalusSuccesses: 0, BonusRerolls: 0, ForcedMode: null);
+        var effects = new AppliedTraitEffects(
+            BonusSuccesses: 2, 
+            MalusSuccesses: 0, 
+            BonusRerolls: 0, 
+            ForcedMode: null, 
+            BonusTraitNames: Array.Empty<string>(), 
+            MalusTraitNames: Array.Empty<string>()
+            );
         var result = new RollResult(dice, null, RawSuccesses: 2, Palier: 5, effects);
 
         result.Successes.Should().Be(4);
@@ -111,7 +118,14 @@ public class RollResultTests
     public void Successes_JamaisNegatif()
     {
         var dice = new DiceSet([1, 1, 1]);
-        var effects = new AppliedTraitEffects(BonusSuccesses: 0, MalusSuccesses: 5, BonusRerolls: 0, ForcedMode: null);
+        var effects = new AppliedTraitEffects(
+            BonusSuccesses: 0, 
+            MalusSuccesses: 5, 
+            BonusRerolls: 0, 
+            ForcedMode: null, 
+            BonusTraitNames: Array.Empty<string>(), 
+            MalusTraitNames: Array.Empty<string>()
+            );
         var result = new RollResult(dice, null, RawSuccesses: 0, Palier: 7, effects);
 
         result.Successes.Should().Be(0);

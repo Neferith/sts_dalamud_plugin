@@ -78,12 +78,14 @@ public class MainDiContainer : IPluginFactory
 
     // --- DataSource ---
 
+    /*  public IDataSource MakeDataSource()
+          => _dataSource ??= new CachedDataSource(
+              remote: MakeRemoteDataSource(),
+              fallback: MakeLocalDataSource(),
+              cacheFilePath: Path.Combine(_configDir, "data.cache.json"),
+              log: _log);*/
     public IDataSource MakeDataSource()
-        => _dataSource ??= new CachedDataSource(
-            remote: MakeRemoteDataSource(),
-            fallback: MakeLocalDataSource(),
-            cacheFilePath: Path.Combine(_configDir, "data.cache.json"),
-            log: _log);
+          => _dataSource ??= MakeLocalDataSource();
 
     private LocalJsonDataSource MakeLocalDataSource()
         => _local ??= new LocalJsonDataSource(

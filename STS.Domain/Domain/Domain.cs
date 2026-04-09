@@ -85,12 +85,16 @@ public record AppliedTraitEffects(
     /// <summary>Rerolls supplémentaires accordés par les traits pour ce jet.</summary>
     int BonusRerolls,
     /// <summary>Mode forcé par un trait, null si aucun.</summary>
-    RollMode? ForcedMode
+    RollMode? ForcedMode,
+     /// <summary>Noms des traits ayant apporté un bonus de succès.</summary>
+    IReadOnlyList<string> BonusTraitNames,
+    /// <summary>Noms des traits ayant apporté un malus de succès.</summary>
+    IReadOnlyList<string> MalusTraitNames
 )
 {
     /// <summary>Succès nets après application des bonus et malus.</summary>
     public int NetSuccesses => BonusSuccesses - MalusSuccesses;
-    public static AppliedTraitEffects None => new(0, 0, 0, null);
+    public static AppliedTraitEffects None => new(0, 0, 0, null, Array.Empty<string>(), Array.Empty<string>());
 }
 
 /// <summary>Résultat d'un jet résolu.</summary>
