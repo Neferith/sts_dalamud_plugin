@@ -25,16 +25,16 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddEndpointsApiExplorer();
 
-// Service qui lit et écrit le data.json
 builder.Services.AddSingleton<DataService>();
+builder.Services.AddSingleton<RulesService>();
 
 // ─── Auth JWT ─────────────────────────────────────────────────────────────────
 
 var jwtSecret = builder.Configuration["Jwt:Secret"]
     ?? throw new InvalidOperationException("La clé Jwt:Secret est manquante dans la configuration.");
 
-var jwtIssuer   = builder.Configuration["Jwt:Issuer"]   ?? "sts-api";
-var jwtAudience = builder.Configuration["Jwt:Audience"]  ?? "sts-admin";
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "sts-api";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "sts-admin";
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -42,14 +42,14 @@ builder.Services
     {
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidateIssuer           = true,
-            ValidateAudience         = true,
-            ValidateLifetime         = true,
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer              = jwtIssuer,
-            ValidAudience            = jwtAudience,
-            IssuerSigningKey         = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
-            ClockSkew                = TimeSpan.FromSeconds(30),
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
+            ClockSkew = TimeSpan.FromSeconds(30),
         };
     });
 
@@ -61,20 +61,19 @@ builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
     {
-        Title   = "STS API",
+        Title = "STS API",
         Version = "v1",
         Description = "API d'administration du Système Très Simple (STS).",
     });
 
-    // Support du Bearer token dans Swagger UI
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Name         = "Authorization",
-        Type         = SecuritySchemeType.Http,
-        Scheme       = "bearer",
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
         BearerFormat = "JWT",
-        In           = ParameterLocation.Header,
-        Description  = "Entrez votre token JWT : Bearer {token}",
+        In = ParameterLocation.Header,
+        Description = "Entrez votre token JWT : Bearer {token}",
     });
 
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
@@ -103,7 +102,7 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseCors("StsWebDev");       // ← en premier
+app.UseCors("StsWebDev");
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -114,6 +113,7 @@ app.UseStaticFiles();
 
 app.MapAuthEndpoints();     // POST  /api/auth/login   (public)
 app.MapDataEndpoints();     // GET   /api/data          (public — plugin)
+app.MapRulesEndpoints();    // GET   /api/rules         (public — web)
 app.MapJobEndpoints();      // CRUD  /api/jobs          (auth requis)
 app.MapTraitEndpoints();    // CRUD  /api/traits        (auth requis)
 app.MapAbilityEndpoints();  // CRUD  /api/abilities     (auth requis)

@@ -1,0 +1,111 @@
+@page "/regles"
+@using Markdig
+@using Sts.Domain.Content
+@inject HttpClient Http
+
+<PageTitle>Règles — STS</PageTitle>
+
+@if (_error is not null)
+{
+    <div class="rules-error">
+        <p>Impossible de charger les règles : @_error</p>
+    </div>
+}
+else if (_sections is null)
+{
+    <div class="rules-loading">
+        <p>Chargement des règles…</p>
+    </div>
+}
+else if (_sections.Count == 0)
+{
+    <div class="rules-empty">
+        <p>Aucune règle disponible pour le moment.</p>
+    </div>
+}
+else
+{
+    <div class="rules-layout">
+
+        <!-- ── Sommaire latéral ───────────────────────────────────────────── -->
+        <nav class="rules-toc">
+            @foreach (var rulesSection in _sections)
+            {
+                <div class="toc-section">
+                    <span class="toc-section-title">@rulesSection.Title</span>
+                    <ul>
+                        @foreach (var post in rulesSection.Posts)
+                        {
+                            <li>
+                                <a class="@PostCssClass(rulesSection, post)"
+                                   href="#@PostAnchor(rulesSection, post)"
+                                   @onclick="() => SelectPost(rulesSection, post)"
+                                   @onclick:preventDefault="true">
+                                    @post.Title
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            }
+        </nav>
+
+        <!-- ── Contenu ───────────────────────────────────────────────────── -->
+        <article class="rules-content">
+            @if (_activePost is not null)
+            {
+                <h1>@_activePost.Title</h1>
+                <div class="rules-markdown">
+                    @((MarkupString)RenderMarkdown(_activePost.Content))
+                </div>
+            }
+        </article>
+
+    </div>
+}
+
+@code {
+    // ── Pipeline Markdig (extensions courantes : tables, listes de tâches…) ──
+    private static readonly MarkdownPipeline _pipeline =
+        new MarkdownPipelineBuilder()
+            .UseAdvancedExtensions()
+            .Build();
+
+    private List<RulesSection>? _sections;
+    private RulesPost?          _activePost;
+    private string?             _error;
+
+    // ── Cycle de vie ─────────────────────────────────────────────────────────
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _sections = await Http.GetFromJsonAsync<List<RulesSection>>("api/rules");
+
+            // Sélectionner le premier post par défaut
+            _activePost = _sections?
+                .OrderBy(s => s.Order)
+                .SelectMany(s => s.Posts)
+                .FirstOrDefault();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    private static string RenderMarkdown(string markdown) =>
+        Markdown.ToHtml(markdown, _pipeline);
+
+    private static string PostAnchor(RulesSection section, RulesPost post) =>
+        $"{section.Id}-{post.Id}";
+
+    private string PostCssClass(RulesSection section, RulesPost post) =>
+        _activePost == post ? "active" : string.Empty;
+
+    private void SelectPost(RulesSection section, RulesPost post) =>
+        _activePost = post;
+}

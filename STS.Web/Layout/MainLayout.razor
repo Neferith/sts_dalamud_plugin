@@ -12,6 +12,8 @@
         </a>
 
         <div class="sts-nav-links @(_navOpen ? "open" : "")">
+            <NavLink class="sts-nav-link" href="/regles"
+                     @onclick="CloseNav">Règles</NavLink>
             <NavLink class="sts-nav-link" href="/traits"
                      @onclick="CloseNav">Traits</NavLink>
             <NavLink class="sts-nav-link" href="/capacites"
