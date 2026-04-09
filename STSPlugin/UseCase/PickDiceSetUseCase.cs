@@ -1,5 +1,5 @@
 using System.Linq;
-using STSPlugin.Domain;
+using Sts.Domain;
 
 namespace STSPlugin.UseCases;
 

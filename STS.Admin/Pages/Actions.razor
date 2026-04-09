@@ -1,0 +1,275 @@
+@page "/actions"
+@inject ApiClient Api
+@inject AuthService Auth
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<PageTitle>Actions — STS Admin</PageTitle>
+
+<div class="p-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2 class="mb-0">Actions</h2>
+            <small class="text-muted">@Filtered.Count / @_actions.Count action(s)</small>
+        </div>
+        <button class="btn btn-primary" @onclick="OpenCreate">+ Nouvelle action</button>
+    </div>
+
+    <!-- Filtres -->
+    <div class="row g-2 mb-3">
+        <div class="col-md-4">
+            <input class="form-control" placeholder="🔍 Nom ou identifiant…"
+                   @bind="_search" @bind:event="oninput" />
+        </div>
+        <div class="col-md-3">
+            <select class="form-select" @bind="_filterContext">
+                <option value="">Tous les contextes</option>
+                @foreach (var ctx in AllContexts)
+                {
+                    <option value="@ctx">@ctx</option>
+                }
+            </select>
+        </div>
+        @if (_search.Length > 0 || _filterContext.Length > 0)
+        {
+            <div class="col-auto">
+                <button class="btn btn-outline-secondary" @onclick="ResetFilters">✕ Réinitialiser</button>
+            </div>
+        }
+    </div>
+
+    <Alert Message="_message" IsError="_isError" OnDismiss="() => _message = null" />
+
+    @if (_loading)
+    {
+        <div class="text-center py-5"><div class="spinner-border text-secondary"></div></div>
+    }
+    else if (Filtered.Count == 0)
+    {
+        <div class="text-center text-muted py-5">Aucun résultat pour ces filtres.</div>
+    }
+    else
+    {
+        <div class="card">
+            <table class="table table-hover mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th @onclick='() => SetSort("name")' style="cursor:pointer; user-select:none">
+                            Nom @SortIcon("name")
+                        </th>
+                        <th>Contextes</th>
+                        <th>Prérequis</th>
+                        <th style="width:100px"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var action in Filtered)
+                    {
+                        <tr>
+                            <td>
+                                <div class="fw-medium">@action.Name</div>
+                                <small class="text-muted font-monospace">@action.Id</small>
+                            </td>
+                            <td>
+                                @foreach (var ctx in action.Contexts)
+                                {
+                                    <span class="badge bg-primary me-1">@ctx</span>
+                                }
+                            </td>
+                            <td>
+                                @if (action.Requirements.Count > 0)
+                                {
+                                    @foreach (var req in action.Requirements)
+                                    {
+                                        <span class="badge bg-warning text-dark me-1">@req</span>
+                                    }
+                                }
+                                else { <span class="text-muted">—</span> }
+                            </td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => OpenEdit(action)" title="Modifier">✏</button>
+                                <button class="btn btn-sm btn-outline-danger" @onclick="() => Delete(action)" title="Supprimer">✕</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@if (_showModal)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(_editMode ? "Modifier l'action" : "Nouvelle action")</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Identifiant</label>
+                        <input class="form-control font-monospace" @bind="_form.Id" disabled="@_editMode" placeholder="ex: attaque_arme" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nom</label>
+                        <input class="form-control" @bind="_form.Name" placeholder="ex: Attaque à l'arme" />
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="form-label mb-0 fw-medium">Contextes</label>
+                            <button class="btn btn-sm btn-outline-primary" @onclick="AddContext">+ Ajouter</button>
+                        </div>
+                        @for (var i = 0; i < _form.Contexts.Count; i++)
+                        {
+                            var idx = i;
+                            <div class="input-group input-group-sm mb-2">
+                                <input class="form-control"
+                                       value="@_form.Contexts[idx]"
+                                       @onchange="e => _form.Contexts[idx] = e.Value?.ToString() ?? _form.Contexts[idx]"
+                                       placeholder="ex: Combat" />
+                                <button class="btn btn-outline-danger" @onclick="() => _form.Contexts.RemoveAt(idx)">✕</button>
+                            </div>
+                        }
+                        @if (_form.Contexts.Count == 0)
+                        {
+                            <p class="text-muted small mb-0">Aucun contexte défini.</p>
+                        }
+                    </div>
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="form-label mb-0 fw-medium">Prérequis <small class="text-muted">(optionnel)</small></label>
+                            <button class="btn btn-sm btn-outline-primary" @onclick="AddRequirement">+ Ajouter</button>
+                        </div>
+                        @for (var i = 0; i < _form.Requirements.Count; i++)
+                        {
+                            var idx = i;
+                            <div class="input-group input-group-sm mb-2">
+                                <input class="form-control"
+                                       value="@_form.Requirements[idx]"
+                                       @onchange="e => _form.Requirements[idx] = e.Value?.ToString() ?? _form.Requirements[idx]"
+                                       placeholder="ex: Weapon" />
+                                <button class="btn btn-outline-danger" @onclick="() => _form.Requirements.RemoveAt(idx)">✕</button>
+                            </div>
+                        }
+                        @if (_form.Requirements.Count == 0)
+                        {
+                            <p class="text-muted small mb-0">Aucun prérequis.</p>
+                        }
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseModal">Annuler</button>
+                    <button class="btn btn-primary" @onclick="Save" disabled="@_saving">
+                        @(_saving ? "Sauvegarde…" : "Sauvegarder")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<ActionDto> _actions = [];
+    private bool _loading = true;
+    private bool _showModal;
+    private bool _editMode;
+    private bool _saving;
+    private string? _message;
+    private bool _isError;
+    private ActionDto _form = new();
+
+    // ─── Filtres & tri ────────────────────────────────────────────────────────
+    private string _search        = "";
+    private string _filterContext = "";
+    private string _sortBy        = "name";
+    private bool   _sortAsc       = true;
+
+    // Tous les contextes distincts présents dans les actions chargées
+    private IEnumerable<string> AllContexts =>
+        _actions.SelectMany(a => a.Contexts).Distinct().OrderBy(c => c);
+
+    private List<ActionDto> Filtered
+    {
+        get
+        {
+            var q = _actions.AsEnumerable();
+
+            if (!string.IsNullOrWhiteSpace(_search))
+            {
+                var s = _search.Trim().ToLowerInvariant();
+                q = q.Where(a => a.Name.ToLowerInvariant().Contains(s)
+                               || a.Id.ToLowerInvariant().Contains(s));
+            }
+            if (!string.IsNullOrWhiteSpace(_filterContext))
+                q = q.Where(a => a.Contexts.Contains(_filterContext));
+
+            q = _sortAsc ? q.OrderBy(a => a.Name) : q.OrderByDescending(a => a.Name);
+
+            return q.ToList();
+        }
+    }
+
+    private void SetSort(string col)
+    {
+        if (_sortBy == col) _sortAsc = !_sortAsc;
+        else { _sortBy = col; _sortAsc = true; }
+    }
+
+    private string SortIcon(string col) => _sortBy != col ? " ⇅" : _sortAsc ? " ↑" : " ↓";
+    private void ResetFilters() { _search = ""; _filterContext = ""; }
+
+    // ─── Données ──────────────────────────────────────────────────────────────
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Auth.IsAuthenticated) { Nav.NavigateTo("/login"); return; }
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        _loading = true;
+        _actions = await Api.GetAsync<List<ActionDto>>("/api/actions") ?? [];
+        _loading = false;
+    }
+
+    // ─── Modal ────────────────────────────────────────────────────────────────
+    private void OpenCreate() { _form = new ActionDto(); _editMode = false; _showModal = true; }
+    private void OpenEdit(ActionDto action) { _form = action.Clone(); _editMode = true; _showModal = true; }
+    private void CloseModal() => _showModal = false;
+    private void AddContext()     => _form.Contexts.Add("");
+    private void AddRequirement() => _form.Requirements.Add("");
+
+    private async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(_form.Id))   { ShowError("L'identifiant est requis."); return; }
+        if (string.IsNullOrWhiteSpace(_form.Name)) { ShowError("Le nom est requis."); return; }
+
+        _form.Contexts     = _form.Contexts.Where(c => !string.IsNullOrWhiteSpace(c)).ToList();
+        _form.Requirements = _form.Requirements.Where(r => !string.IsNullOrWhiteSpace(r)).ToList();
+
+        _saving = true;
+        try
+        {
+            string? error;
+            if (_editMode) (_, error) = await Api.PutAsync<ActionDto>($"/api/actions/{_form.Id}", _form);
+            else           (_, error) = await Api.PostAsync<ActionDto>("/api/actions", _form);
+            if (error is not null) ShowError(error);
+            else { ShowSuccess(_editMode ? "Action modifiée." : "Action créée."); CloseModal(); await Load(); }
+        }
+        finally { _saving = false; }
+    }
+
+    private async Task Delete(ActionDto action)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", $"Supprimer l'action « {action.Name} » ?")) return;
+        var error = await Api.DeleteAsync($"/api/actions/{action.Id}");
+        if (error is not null) ShowError(error);
+        else { ShowSuccess("Action supprimée."); await Load(); }
+    }
+
+    private void ShowError(string msg)   { _isError = true;  _message = msg; }
+    private void ShowSuccess(string msg) { _isError = false; _message = msg; }
+}

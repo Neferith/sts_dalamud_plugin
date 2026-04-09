@@ -1,8 +1,10 @@
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Windowing;
-using STSPlugin.Domain;
+
 using System;
 using System.Numerics;
+
+using STSPlugin.ConfigDomain;
 
 namespace STSPlugin.Windows;
 

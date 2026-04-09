@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using STSPlugin.DataSource;
-using STSPlugin.Domain;
+using Sts.Domain;
 
 namespace STSPlugin.Repository;
 
