@@ -1,0 +1,12 @@
+@inherits LayoutComponentBase
+@inject AuthService Auth
+
+<div class="d-flex vh-100 overflow-hidden">
+    @if (Auth.IsAuthenticated)
+    {
+        <NavMenu />
+    }
+    <main class="flex-grow-1 overflow-auto sts-main">
+        @Body
+    </main>
+</div>

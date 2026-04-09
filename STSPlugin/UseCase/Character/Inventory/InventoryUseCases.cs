@@ -1,9 +1,9 @@
 using System;
 using System.Linq;
-using STSPlugin.Domain;
+using Sts.Domain;
 using STSPlugin.Repository;
 
-namespace STSPlugin.UseCases;
+namespace STSPlugin.CharacterUseCases;
 
 /// <summary>Slot d'équipement.</summary>
 public enum EquipSlot { MainHand, OffHand }

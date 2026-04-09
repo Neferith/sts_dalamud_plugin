@@ -1,0 +1,45 @@
+@inject AuthService Auth
+@inject NavigationManager Nav
+
+<nav class="d-flex flex-column sts-sidebar text-white">
+    <div class="p-3 border-bottom border-secondary">
+        <div class="fw-bold">⚔ STS Admin</div>
+    </div>
+
+    <ul class="nav flex-column p-2 flex-grow-1 gap-1">
+        <li class="nav-item">
+            <NavLink class="nav-link" href="jobs" Match="NavLinkMatch.Prefix">
+                🗂 Jobs
+            </NavLink>
+        </li>
+        <li class="nav-item">
+            <NavLink class="nav-link" href="traits" Match="NavLinkMatch.Prefix">
+                ✨ Traits
+            </NavLink>
+        </li>
+        <li class="nav-item">
+            <NavLink class="nav-link" href="abilities" Match="NavLinkMatch.Prefix">
+                ⚡ Compétences
+            </NavLink>
+        </li>
+        <li class="nav-item">
+            <NavLink class="nav-link" href="actions" Match="NavLinkMatch.Prefix">
+                🎯 Actions
+            </NavLink>
+        </li>
+    </ul>
+
+    <div class="p-3 border-top border-secondary">
+        <button class="btn btn-sm btn-outline-light w-100" @onclick="Logout">
+            Déconnexion
+        </button>
+    </div>
+</nav>
+
+@code {
+    private async Task Logout()
+    {
+        await Auth.LogoutAsync();
+        Nav.NavigateTo("/login");
+    }
+}

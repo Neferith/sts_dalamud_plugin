@@ -1,7 +1,7 @@
 using System;
 using STSPlugin.Repository;
 
-namespace STSPlugin.UseCases;
+namespace STSPlugin.CharacterUseCases;
 
 /// <summary>
 /// Cas d'usage : supprimer un personnage.

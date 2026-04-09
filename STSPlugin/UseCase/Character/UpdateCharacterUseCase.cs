@@ -1,7 +1,7 @@
-using STSPlugin.Domain;
+using Sts.Domain;
 using STSPlugin.Repository;
 
-namespace STSPlugin.UseCases;
+namespace STSPlugin.CharacterUseCases;
 
 /// <summary>
 /// Cas d'usage : mettre à jour les informations d'un personnage existant.

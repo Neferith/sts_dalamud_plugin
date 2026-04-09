@@ -1,5 +1,5 @@
 using System;
-using STSPlugin.Domain;
+using Sts.Domain;
 
 namespace STSPlugin.UseCases;
 

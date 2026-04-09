@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
-using STSPlugin.Domain;
+using Sts.Domain;
 
 namespace STSPlugin.Repository;
 

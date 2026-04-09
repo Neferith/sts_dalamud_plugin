@@ -1,0 +1,42 @@
+@inherits LayoutComponentBase
+
+<div class="sts-layout">
+
+    <nav class="sts-nav">
+        <a href="/" class="sts-nav-brand">
+            <div class="sts-nav-brand-icon">
+                <img src="img/guild-logo.png" alt="Logo guilde" />
+            </div>
+            STS
+            <span class="sts-nav-tag">v0.1</span>
+        </a>
+
+        <div class="sts-nav-links @(_navOpen ? "open" : "")">
+            <NavLink class="sts-nav-link" href="/regles"
+                     @onclick="CloseNav">Règles</NavLink>
+            <NavLink class="sts-nav-link" href="/traits"
+                     @onclick="CloseNav">Traits</NavLink>
+            <NavLink class="sts-nav-link" href="/capacites"
+                     @onclick="CloseNav">Capacités</NavLink>
+            <NavLink class="sts-nav-link" href="/metiers"
+                     @onclick="CloseNav">Métiers</NavLink>
+            <span class="sts-nav-link locked">Personnages</span>
+        </div>
+
+        <button class="sts-nav-hamburger" @onclick="ToggleNav">
+            @(_navOpen ? "✕" : "☰")
+        </button>
+    </nav>
+
+    <div class="sts-content">
+        @Body
+    </div>
+
+</div>
+
+@code {
+    private bool _navOpen = false;
+
+    private void ToggleNav() => _navOpen = !_navOpen;
+    private void CloseNav() => _navOpen = false;
+}

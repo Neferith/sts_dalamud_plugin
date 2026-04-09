@@ -1,8 +1,8 @@
-using STSPlugin.Domain;
+using Sts.Domain;
 using STSPlugin.Repository;
 using System.Linq;
 
-namespace STSPlugin.UseCases;
+namespace STSPlugin.CharacterUseCases;
 
 /// <summary>
 /// Cas d'usage : ajouter une certification à un personnage.
