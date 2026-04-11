@@ -1,9 +1,14 @@
-using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Sts.Api.DataSources;
 using Sts.Api.Endpoints;
+using Sts.Api.Repositories;
 using Sts.Api.Services;
+using Sts.Domain.Content.DataSources;
+using Sts.Domain.Content.Repositories;
+using Sts.Domain.Content.UseCases;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,8 +40,21 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddEndpointsApiExplorer();
 
-builder.Services.AddSingleton<DataService>();
-builder.Services.AddSingleton<RulesService>();
+//builder.Services.AddSingleton<DataService>();
+//builder.Services.AddSingleton<RulesService>();
+
+// Remplace : builder.Services.AddSingleton<RulesService>();
+// Par :
+
+builder.Services.AddSingleton<IRulesDataSource, JsonRulesDataSource>();
+builder.Services.AddSingleton<IRulesRepository, RulesRepository>();
+builder.Services.AddSingleton<IGetRulesUseCase, GetRulesUseCase>();
+builder.Services.AddSingleton<ICreateSectionUseCase, CreateSectionUseCase>();
+builder.Services.AddSingleton<IUpdateSectionUseCase, UpdateSectionUseCase>();
+builder.Services.AddSingleton<IDeleteSectionUseCase, DeleteSectionUseCase>();
+builder.Services.AddSingleton<ICreatePostUseCase, CreatePostUseCase>();
+builder.Services.AddSingleton<IUpdatePostUseCase, UpdatePostUseCase>();
+builder.Services.AddSingleton<IDeletePostUseCase, DeletePostUseCase>();
 
 // ─── Auth JWT ─────────────────────────────────────────────────────────────────
 
