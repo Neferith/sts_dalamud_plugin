@@ -1,0 +1,28 @@
+# ── Build ─────────────────────────────────────────────────────────────────────
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+COPY STS.Domain/STS.Domain.csproj           STS.Domain/
+COPY STS.Domain.Content/STS.Domain.Content.csproj  STS.Domain.Content/
+COPY STS.Web/STS.Web.csproj                 STS.Web/
+
+RUN dotnet restore STS.Web/STS.Web.csproj
+
+COPY STS.Domain/        STS.Domain/
+COPY STS.Domain.Content/ STS.Domain.Content/
+COPY STS.Web/           STS.Web/
+
+RUN dotnet publish STS.Web/STS.Web.csproj \
+    -c Release \
+    -o /app/publish \
+    --no-restore
+
+# ── Runtime ───────────────────────────────────────────────────────────────────
+FROM nginx:alpine AS runtime
+
+COPY --from=build /app/publish/wwwroot /usr/share/nginx/html
+
+# Config Nginx pour Blazor WASM (gestion du routing côté client)
+COPY nginx.web.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
