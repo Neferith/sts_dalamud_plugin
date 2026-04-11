@@ -40,7 +40,7 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddEndpointsApiExplorer();
 
-//builder.Services.AddSingleton<DataService>();
+builder.Services.AddSingleton<DataService>();
 //builder.Services.AddSingleton<RulesService>();
 
 // Remplace : builder.Services.AddSingleton<RulesService>();
