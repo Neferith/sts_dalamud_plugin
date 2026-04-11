@@ -6,9 +6,19 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      # Le data.json est géré sur le serveur, hors image Docker
-      # Modifier ce fichier sur le VPS suffit à mettre à jour les données
       - ./data.json:/app/data.json:ro
+      - ./rules.json:/app/rules.json:ro
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - Sts__DataFilePath=/app/data.json
+      - Sts__RulesFilePath=/app/rules.json
+      - Jwt__Secret=${JWT_SECRET}
+      - Jwt__Issuer=sts-api
+      - Jwt__Audience=sts-admin
+
+  sts-web:
+    image: sts-web:latest
+    container_name: sts-web
+    restart: unless-stopped
+    ports:
+      - "8081:80"
