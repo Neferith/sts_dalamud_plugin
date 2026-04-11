@@ -15,6 +15,8 @@ services:
       - Jwt__Secret=${JWT_SECRET}
       - Jwt__Issuer=sts-api
       - Jwt__Audience=sts-admin
+      - Admin__Username=${ADMIN_USERNAME}
+      - Admin__Password=${ADMIN_PASSWORD}
 
   sts-web:
     image: sts-web:latest
