@@ -1,76 +1,113 @@
-> ⚠️ **Don't click Fork!**
-> 
-> This is a GitHub Template repo. If you want to use this for a plugin, [use this template][new-repo] to make a new repo!
->
-> ![image](https://github.com/goatcorp/SamplePlugin/assets/16760685/d9732094-e1ed-4769-a70b-58ed2b92580c)
+# STSPlugin — Système Très Simple
 
-# SamplePlugin
+> Outil de roleplay pour la guilde **La Nouvelle Lune** sur Final Fantasy XIV.
 
-[![Use This Template badge](https://img.shields.io/badge/Use%20This%20Template-0?logo=github&labelColor=grey)][new-repo]
+Le **Système Très Simple (STS)** est un système de jets de dés minimaliste conçu pour les events de roleplay. Ce dépôt contient l'ensemble de la suite d'outils associée : plugin Dalamud, API backend, interface d'administration et site joueurs.
 
+---
 
-Simple example plugin for Dalamud.
+## Projets
 
-This is not designed to be the simplest possible example, but it is also not designed to cover everything you might want to do. For more detailed questions, come ask in [the Discord](https://discord.gg/holdshift).
+| Projet | Description |
+|--------|-------------|
+| `STSPlugin` | Plugin Dalamud — jets de dés en jeu, affichage dans le chat |
+| `STS.Domain` | Bibliothèque partagée — modèles, use cases, moteur STS |
+| `STS.Domain.Content` | Bibliothèque partagée — modèles de contenu (règles) |
+| `STS.Api` | API ASP.NET Core — données, authentification JWT, CRUD |
+| `STS.Admin` | Interface d'administration Blazor WASM (hébergée par l'API) |
+| `STS.Web` | Site joueurs Blazor WASM — règles, métiers, compétences |
 
-## Main Points
+---
 
-* Simple functional plugin
-  * Slash command
-  * Main UI
-  * Settings UI
-  * Image loading
-  * Plugin json
-* Simple, slightly-improved plugin configuration handling
-* Project organization
-  * Copies all necessary plugin files to the output directory
-    * Does not copy dependencies that are provided by dalamud
-    * Output directory can be zipped directly and have exactly what is required
-  * Hides data files from visual studio to reduce clutter
-    * Also allows having data files in different paths than VS would usually allow if done in the IDE directly
+## Plugin Dalamud (STSPlugin)
 
+### Prérequis
 
-The intention is less that any of this is used directly in other projects, and more to show how similar things can be done.
+- Final Fantasy XIV avec [XIVLauncher](https://goatcorp.github.io/) et Dalamud installés
+- .NET 8 SDK
 
-## How To Use
+### Installation
 
-### Getting Started
+1. Ajouter l'URL du repo custom dans XIVLauncher :
+   ```
+   https://raw.githubusercontent.com/Neferith/sts_dalamud_plugin/master/repo.json
+   ```
+2. Chercher **STSPlugin** dans le gestionnaire de plugins et l'installer.
 
-To begin, [clone this template repository][new-repo] to your own GitHub account. This will automatically bring in everything you need to get a jumpstart on development. You do not need to fork this repository unless you intend to contribute modifications to it.
+### Commandes
 
-Be sure to also check out the [Dalamud Developer Docs][dalamud-docs] for helpful information about building your own plugin. The Developer Docs includes helpful information about all sorts of things, including [how to submit][submit] your newly-created plugin to the official repository. Assuming you use this template repository, the provided project build configuration and license are already chosen to make everything a breeze.
+| Commande | Description |
+|----------|-------------|
+| `/sts` | Ouvre la fenêtre principale |
+| `/sts roll` | Lance un jet de dés |
+| `/sts config` | Ouvre la configuration |
 
-[new-repo]: https://github.com/new?template_name=SamplePlugin&template_owner=goatcorp
-[dalamud-docs]: https://dalamud.dev
-[submit]: https://dalamud.dev/plugin-publishing/submission
+---
 
-### Prerequisites
+## Stack web
 
-SamplePlugin assumes all the following prerequisites are met:
+### Architecture
 
-* XIVLauncher, FINAL FANTASY XIV, and Dalamud have all been installed and the game has been run with Dalamud at least once.
-* XIVLauncher is installed to its default directories and configurations.
-  * If a custom path is required for Dalamud's dev directory, it must be set with the `DALAMUD_HOME` environment variable.
-* A .NET Core 8 SDK has been installed and configured, or is otherwise available. (In most cases, the IDE will take care of this.)
+```
+https://nlrp.fr          → STS.Web   (site joueurs)
+https://admin.nlrp.fr    → STS.Admin (backoffice)
+https://api.nlrp.fr      → STS.Api   (API REST)
+```
 
-### Building
+### Prérequis
 
-1. Open up `SamplePlugin.sln` in your C# editor of choice (likely [Visual Studio 2022](https://visualstudio.microsoft.com) or [JetBrains Rider](https://www.jetbrains.com/rider/)).
-2. Build the solution. By default, this will build a `Debug` build, but you can switch to `Release` in your IDE.
-3. The resulting plugin can be found at `SamplePlugin/bin/x64/Debug/SamplePlugin.dll` (or `Release` if appropriate.)
+- Docker & Docker Compose
+- .NET 8 SDK (pour STS.Api / STS.Admin)
+- .NET 10 SDK (pour STS.Web)
 
-### Activating in-game
+### Configuration
 
-1. Launch the game and use `/xlsettings` in chat or `xlsettings` in the Dalamud Console to open up the Dalamud settings.
-    * In here, go to `Experimental`, and add the full path to the `SamplePlugin.dll` to the list of Dev Plugin Locations.
-2. Next, use `/xlplugins` (chat) or `xlplugins` (console) to open up the Plugin Installer.
-    * In here, go to `Dev Tools > Installed Dev Plugins`, and the `SamplePlugin` should be visible. Enable it.
-3. You should now be able to use `/pmycommand` (chat) or `pmycommand` (console)!
+Créer un fichier `.env` à la racine (ne jamais commiter) :
 
-Note that you only need to add it to the Dev Plugin Locations once (Step 1); it is preserved afterwards. You can disable, enable, or load your plugin on startup through the Plugin Installer.
+```env
+JWT_SECRET=your_jwt_secret_here
+ADMIN_USERNAME=your_admin_username
+ADMIN_PASSWORD=your_admin_password
+```
 
-### Reconfiguring for your own uses
+Un `.env.example` est fourni comme référence.
 
-Replace all references to `SamplePlugin` in all the files and filenames with your desired name, then start building the plugin of your dreams. You'll figure it out 😁
+### Build & déploiement
 
-Dalamud will load the JSON file (by default, `SamplePlugin/SamplePlugin.json`) next to your DLL and use it for metadata, including the description for your plugin in the Plugin Installer. Make sure to update this with information relevant to _your_ plugin!
+```bash
+# Builder les images
+docker build -f Dockerfile -t sts-api:latest .
+docker build -f Dockerfile.web -t sts-web:latest .
+
+# Démarrer
+docker compose up -d
+```
+
+---
+
+## Développement local
+
+### STS.Api + STS.Admin
+
+```bash
+cd STS.Api
+dotnet run
+```
+
+L'API est accessible sur `https://localhost:7144`.  
+La Swagger UI est disponible sur `https://localhost:7144/swagger`.
+
+### STS.Web
+
+```bash
+cd STS.Web
+dotnet run
+```
+
+Le site est accessible sur `https://localhost:7221`.
+
+---
+
+## Licence
+
+[GNU Affero General Public License v3.0](LICENSE.md)
