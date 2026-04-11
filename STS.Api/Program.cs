@@ -19,6 +19,16 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod()
               .AllowAnyHeader();
     });
+
+    options.AddPolicy("StsWeb", policy =>
+    {
+        policy.WithOrigins(
+                "https://nlrp.fr",
+                "https://www.nlrp.fr",
+                "https://admin.nlrp.fr")
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
 });
 
 // ─── Services ─────────────────────────────────────────────────────────────────
@@ -102,7 +112,10 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseCors("StsWebDev");
+if (app.Environment.IsDevelopment())
+    app.UseCors("StsWebDev");
+else
+    app.UseCors("StsWeb");
 app.UseAuthentication();
 app.UseAuthorization();
 
