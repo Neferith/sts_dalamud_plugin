@@ -1,4 +1,5 @@
 @page "/rules"
+@using Markdig
 @inject ApiClient Api
 @inject AuthService Auth
 @inject NavigationManager Nav
@@ -173,7 +174,7 @@
 {
     <div class="modal-backdrop fade show"></div>
     <div class="modal fade show d-block" tabindex="-1">
-        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">
@@ -195,16 +196,38 @@
                                @bind="_postForm.Title"
                                placeholder="ex: Le Système Très Simple" />
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">
-                            Contenu
-                            <small class="text-muted ms-1">Markdown</small>
-                        </label>
-                        <textarea class="form-control font-monospace"
-                                  rows="14"
-                                  @bind="_postForm.Content"
-                                  placeholder="# Titre&#10;&#10;Contenu en Markdown…"></textarea>
+
+                    <!-- Onglets éditeur / aperçu -->
+                    <div class="mb-1 d-flex justify-content-between align-items-center">
+                        <label class="form-label mb-0">Contenu <small class="text-muted">Markdown</small></label>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button"
+                                    class="btn @(_showPreview ? "btn-outline-secondary" : "btn-secondary")"
+                                    @onclick="() => _showPreview = false">
+                                ✏ Édition
+                            </button>
+                            <button type="button"
+                                    class="btn @(_showPreview ? "btn-secondary" : "btn-outline-secondary")"
+                                    @onclick="() => _showPreview = true">
+                                👁 Aperçu
+                            </button>
+                        </div>
                     </div>
+
+                    @if (!_showPreview)
+                    {
+                        <textarea class="form-control font-monospace"
+                                  rows="16"
+                                  @bind="_postForm.Content"
+                                  @bind:event="oninput"
+                                  placeholder="# Titre&#10;&#10;Contenu en Markdown…"></textarea>
+                    }
+                    else
+                    {
+                        <div class="border rounded p-3 rules-preview" style="min-height: 22rem; overflow-y: auto;">
+                            @RenderMarkdown(_postForm.Content)
+                        </div>
+                    }
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" @onclick="ClosePostModal">Annuler</button>
@@ -392,6 +415,17 @@
 
         if (error is not null) ShowError(error);
         else { ShowSuccess("Article supprimé."); await LoadSections(); }
+    }
+
+    private bool _showPreview = false;
+
+    private MarkupString RenderMarkdown(string? content)
+    {
+        if (string.IsNullOrWhiteSpace(content)) 
+            return (MarkupString)"<p class=\"text-muted fst-italic\">Aucun contenu.</p>";
+    
+        var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
+        return (MarkupString)Markdown.ToHtml(content, pipeline);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
