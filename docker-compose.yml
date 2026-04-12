@@ -6,8 +6,9 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ./data:/data
       - ./data.json:/app/data.json:ro
+      - sts-db:/data
+      - sts-images:/app/images
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - Sts__DataFilePath=/app/data.json
@@ -16,9 +17,6 @@ services:
       - Jwt__Audience=sts-admin
       - Admin__Username=${ADMIN_USERNAME}
       - Admin__Password=${ADMIN_PASSWORD}
-      - ConnectionStrings__StsDb=Data Source=/data/sts.db
-      - Images__StoragePath=/data/images
-      - Images__BaseUrl=https://api.nlrp.fr/images
 
   sts-web:
     image: sts-web:latest
@@ -26,3 +24,7 @@ services:
     restart: unless-stopped
     ports:
       - "8081:80"
+
+volumes:
+  sts-db:
+  sts-images:
