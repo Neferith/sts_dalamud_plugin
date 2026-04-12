@@ -4,3 +4,9 @@ bin/
 *.user
 .env
 *.tar
+# SQLite
+*.db
+*.db-shm
+*.db-wal
+
+STS.Api/images/

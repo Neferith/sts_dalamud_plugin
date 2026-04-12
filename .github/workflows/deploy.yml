@@ -1,29 +1,22 @@
-name: Deploy STS.Api
+name: Deploy STS
 
 on:
   push:
-    branches: [ master ]
-    paths:
-      - 'STS.Domain/**'
-      - 'STS.Api/**'
-      - 'Dockerfile'
-      - 'docker-compose.yml'
+    tags:
+      - 'v*'
 
 jobs:
-  deploy:
+  deploy-api:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build Docker image
-        run: |
-          docker build -t sts-api:latest -f Dockerfile .
+      - name: Build Docker image API
+        run: docker build -t sts-api:latest -f Dockerfile .
 
       - name: Save image as tar
-        run: |
-          docker save sts-api:latest | gzip > sts-api.tar.gz
+        run: docker save sts-api:latest | gzip > sts-api.tar.gz
 
       - name: Copy image to VPS
         uses: appleboy/scp-action@v0.1.7
@@ -34,7 +27,7 @@ jobs:
           source: "sts-api.tar.gz,docker-compose.yml"
           target: "~/sts"
 
-      - name: Deploy on VPS
+      - name: Deploy API on VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -42,14 +35,41 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd ~/sts
-
-            # Charger la nouvelle image
             docker load < sts-api.tar.gz
             rm sts-api.tar.gz
+            docker compose up -d --no-deps sts-api
+            docker image prune -f
 
-            # Redémarrer le container
-            docker compose down
-            docker compose up -d
+  deploy-web:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-            # Nettoyage des anciennes images
+      - name: Build Docker image Web
+        run: docker build -t sts-web:latest -f Dockerfile.web .
+
+      - name: Save image as tar
+        run: docker save sts-web:latest | gzip > sts-web.tar.gz
+
+      - name: Copy image to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "sts-web.tar.gz"
+          target: "~/sts"
+
+      - name: Deploy Web on VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd ~/sts
+            docker load < sts-web.tar.gz
+            rm sts-web.tar.gz
+            docker compose up -d --no-deps sts-web
             docker image prune -f
