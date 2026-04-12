@@ -10,6 +10,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\STS.Infrastructure\STS.Infrastructure.csproj" />
         <ProjectReference Include="..\STS.Domain\STS.Domain.csproj" />
         <ProjectReference Include="..\STS.Domain.Content\STS.Domain.Content.csproj" />
         <ProjectReference Include="..\STS.Admin\STS.Admin.csproj" />

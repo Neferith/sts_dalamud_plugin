@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Sts.Api.DataSources;
@@ -8,6 +9,8 @@ using Sts.Api.Services;
 using Sts.Domain.Content.DataSources;
 using Sts.Domain.Content.Repositories;
 using Sts.Domain.Content.UseCases;
+using Sts.Infrastructure.Data;
+using Sts.Infrastructure.DataSources;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -46,15 +49,18 @@ builder.Services.AddSingleton<DataService>();
 // Remplace : builder.Services.AddSingleton<RulesService>();
 // Par :
 
-builder.Services.AddSingleton<IRulesDataSource, JsonRulesDataSource>();
-builder.Services.AddSingleton<IRulesRepository, RulesRepository>();
-builder.Services.AddSingleton<IGetRulesUseCase, GetRulesUseCase>();
-builder.Services.AddSingleton<ICreateSectionUseCase, CreateSectionUseCase>();
-builder.Services.AddSingleton<IUpdateSectionUseCase, UpdateSectionUseCase>();
-builder.Services.AddSingleton<IDeleteSectionUseCase, DeleteSectionUseCase>();
-builder.Services.AddSingleton<ICreatePostUseCase, CreatePostUseCase>();
-builder.Services.AddSingleton<IUpdatePostUseCase, UpdatePostUseCase>();
-builder.Services.AddSingleton<IDeletePostUseCase, DeletePostUseCase>();
+builder.Services.AddDbContext<StsDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("StsDb")));
+
+builder.Services.AddScoped<IRulesDataSource, SqliteRulesDataSource>();
+builder.Services.AddScoped<IRulesRepository, RulesRepository>();
+builder.Services.AddScoped<IGetRulesUseCase, GetRulesUseCase>();
+builder.Services.AddScoped<ICreateSectionUseCase, CreateSectionUseCase>();
+builder.Services.AddScoped<IUpdateSectionUseCase, UpdateSectionUseCase>();
+builder.Services.AddScoped<IDeleteSectionUseCase, DeleteSectionUseCase>();
+builder.Services.AddScoped<ICreatePostUseCase, CreatePostUseCase>();
+builder.Services.AddScoped<IUpdatePostUseCase, UpdatePostUseCase>();
+builder.Services.AddScoped<IDeletePostUseCase, DeletePostUseCase>();
 
 // ─── Auth JWT ─────────────────────────────────────────────────────────────────
 
@@ -119,6 +125,13 @@ builder.Services.AddSwaggerGen(options =>
 // ─── App ──────────────────────────────────────────────────────────────────────
 
 var app = builder.Build();
+
+// Appliquer les migrations automatiquement au démarrage
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<StsDbContext>();
+    db.Database.Migrate();
+}
 
 if (app.Environment.IsDevelopment())
 {

@@ -6,8 +6,8 @@ services:
     ports:
       - "8080:8080"
     volumes:
+      - ./data:/data
       - ./data.json:/app/data.json:ro
-      - ./rules.json:/app/rules.json:ro
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - Sts__DataFilePath=/app/data.json
