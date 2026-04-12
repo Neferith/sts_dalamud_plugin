@@ -1,7 +1,6 @@
 using Dalamud.Configuration;
 using Sts.Domain;
 using System;
-using Sts.Domain;
 using STSPlugin.ConfigDomain;
 
 namespace STSPlugin;
@@ -30,10 +29,16 @@ public class Configuration : IPluginConfiguration
     public RollSource RollSource { get; set; } = RollSource.GameRandom;
 
     /// <summary>
-    /// URL de base du back STS.
-    /// Utilisée par le RemoteJsonDataSource pour récupérer les données de référence.
+    /// Mode de chargement des données de référence.
+    /// Local = data.json embarqué, Remote = API distante.
     /// </summary>
-    public string BackendUrl { get; set; } = "http://localhost:50310/api/data";
+    public DataSourceMode DataSourceMode { get; set; } = DataSourceMode.Remote;
+
+    /// <summary>
+    /// URL de l'endpoint data de l'API STS.
+    /// Utilisée par le RemoteJsonDataSource en mode Remote.
+    /// </summary>
+    public string BackendUrl { get; set; } = "https://api.nlrp.fr/api/data";
 
     public void Save() => Plugin.PluginInterface.SavePluginConfig(this);
 }

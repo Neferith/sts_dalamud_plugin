@@ -3,6 +3,7 @@ using Dalamud.Interface.Windowing;
 
 using System;
 using System.Numerics;
+using System.Text;
 
 using STSPlugin.ConfigDomain;
 
@@ -11,6 +12,9 @@ namespace STSPlugin.Windows;
 public class ConfigWindow : Window, IDisposable
 {
     private readonly Plugin plugin;
+
+    // Buffer ImGui pour le champ URL (max 256 chars)
+    private readonly byte[] _urlBuffer = new byte[256];
 
     private static readonly (string Label, string Command)[] Channels =
     [
@@ -36,14 +40,67 @@ public class ConfigWindow : Window, IDisposable
                ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoScrollbar)
     {
         this.plugin = plugin;
-        Size = new Vector2(400, 260);
+        Size = new Vector2(440, 400);
+
+        // Pré-remplir le buffer URL avec la valeur persistée
+        SyncUrlBufferFromConfig();
     }
 
     public void Dispose() { }
 
     public override void Draw()
     {
-        // ---- Source des dés ----
+        // ================================================================
+        // SOURCE DES DONNÉES
+        // ================================================================
+        ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.58f, 1f), "SOURCE DES DONNÉES");
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        var isRemote = plugin.Configuration.DataSourceMode == DataSourceMode.Remote;
+        var isLocal = plugin.Configuration.DataSourceMode == DataSourceMode.Local;
+
+        if (ImGui.RadioButton("Distant (API)", isRemote))
+        {
+            plugin.Configuration.DataSourceMode = DataSourceMode.Remote;
+            plugin.Configuration.Save();
+        }
+        ImGui.SameLine();
+        if (ImGui.RadioButton("Local (data.json embarqué)", isLocal))
+        {
+            plugin.Configuration.DataSourceMode = DataSourceMode.Local;
+            plugin.Configuration.Save();
+        }
+
+        ImGui.Spacing();
+
+        // Champ URL — grisé en mode Local
+        if (isLocal) ImGui.BeginDisabled();
+
+        ImGui.TextUnformatted("URL :");
+        ImGui.SameLine();
+        ImGui.SetNextItemWidth(280);
+        if (ImGui.InputText("##backendUrl", _urlBuffer, ImGuiInputTextFlags.None))
+        {
+            plugin.Configuration.BackendUrl = ReadUrlBuffer();
+            plugin.Configuration.Save();
+        }
+
+        ImGui.Spacing();
+
+        // Bouton Rafraîchir
+        var refreshLabel = isLocal ? "Rafraîchir les données##refresh" : "Rafraîchir depuis l'API##refresh";
+        if (ImGui.Button(refreshLabel))
+            plugin.ReloadDataSources();
+
+        if (isLocal) ImGui.EndDisabled();
+
+        ImGui.Spacing();
+        ImGui.Spacing();
+
+        // ================================================================
+        // SOURCE DES DÉS
+        // ================================================================
         ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.58f, 1f), "SOURCE DES DÉS");
         ImGui.Separator();
         ImGui.Spacing();
@@ -70,7 +127,9 @@ public class ConfigWindow : Window, IDisposable
         ImGui.Spacing();
         ImGui.Spacing();
 
-        // ---- Echo dans le chat ----
+        // ================================================================
+        // CHAT
+        // ================================================================
         ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.58f, 1f), "CHAT");
         ImGui.Separator();
         ImGui.Spacing();
@@ -116,5 +175,21 @@ public class ConfigWindow : Window, IDisposable
         ImGui.Separator();
         ImGui.Spacing();
         ImGui.TextDisabled("Le résultat est toujours visible dans la fenêtre STS.");
+    }
+
+    // ------------------------------------------------------------------ Helpers URL buffer
+
+    /// <summary>Copie la valeur persistée dans le buffer ImGui.</summary>
+    private void SyncUrlBufferFromConfig()
+    {
+        Array.Clear(_urlBuffer, 0, _urlBuffer.Length);
+        var bytes = Encoding.UTF8.GetBytes(plugin.Configuration.BackendUrl);
+        Buffer.BlockCopy(bytes, 0, _urlBuffer, 0, Math.Min(bytes.Length, _urlBuffer.Length - 1));
+    }
+
+    private string ReadUrlBuffer()
+    {
+        var len = Array.IndexOf(_urlBuffer, (byte)0);
+        return Encoding.UTF8.GetString(_urlBuffer, 0, len < 0 ? _urlBuffer.Length : len);
     }
 }
