@@ -13,4 +13,13 @@ namespace STSPlugin.ConfigDomain
         GameRandom
     }
 
+    /// <summary>Source des données de référence (jobs, traits, actions, compétences).</summary>
+    public enum DataSourceMode
+    {
+        /// <summary>Lecture du data.json embarqué dans le plugin.</summary>
+        Local,
+        /// <summary>Récupération depuis l'API distante.</summary>
+        Remote,
+    }
+
 }
