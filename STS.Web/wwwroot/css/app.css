@@ -686,3 +686,53 @@ code {
         grid-template-columns: 1fr 1fr;
     }
 }
+
+
+/* --- Blocs de code ---------------------------- */
+pre {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 1rem 1.25rem;
+    overflow-x: auto;
+    margin: 1rem 0;
+}
+
+    pre code {
+        background: transparent;
+        padding: 0;
+        color: var(--text-primary);
+        font-size: 0.875em;
+        line-height: 1.7;
+    }
+
+/* Neutralise toute coloration Chroma */
+.chroma,
+.chroma pre,
+.chroma code,
+.chroma .line,
+.chroma .cl,
+.chroma .go {
+    background: transparent !important;
+    color: var(--text-primary) !important;
+}
+
+
+.sts-copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+}
+
+.sts-copy-btn:hover {
+    color: var(--teal);
+    border-color: var(--border-strong);
+ }
