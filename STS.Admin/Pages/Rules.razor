@@ -182,6 +182,32 @@
                     </h5>
                     <button type="button" class="btn-close" @onclick="ClosePostModal"></button>
                 </div>
+                <div class="mb-3">
+                    <label class="form-label">
+                        Image
+                        <small class="text-muted ms-1">L'URL est copiée automatiquement dans le presse-papier</small>
+                    </label>
+                    <div class="d-flex align-items-center gap-2">
+                        <InputFile OnChange="UploadImage"
+                                   accept=".jpg,.jpeg,.png,.gif,.webp"
+                                   class="form-control"
+                                   disabled="@_uploadingImage" />
+                        @if (_uploadingImage)
+                        {
+                            <div class="spinner-border spinner-border-sm text-secondary flex-shrink-0"></div>
+                        }
+                    </div>
+                    @if (_uploadError is not null)
+                    {
+                        <div class="text-danger small mt-1">@_uploadError</div>
+                    }
+                    @if (_uploadedUrl is not null)
+                    {
+                        <div class="text-success small mt-1">
+                            ✓ Tag Markdown copié — <code>![Description](@_uploadedUrl)</code>
+                        </div>
+                    }
+                </div>
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Identifiant</label>
@@ -263,6 +289,12 @@
     private bool         _showPostModal;
     private bool         _postEditMode;
     private RulesPostDto _postForm = new();
+
+    // ── Upload image ──────────────────────────────────────────────────────────────
+
+    private bool    _uploadingImage;
+    private string? _uploadError;
+    private string? _uploadedUrl;
 
     // ── Init ──────────────────────────────────────────────────────────────────
 
@@ -426,6 +458,36 @@
     
         var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
         return (MarkupString)Markdown.ToHtml(content, pipeline);
+    }
+
+    private async Task UploadImage(InputFileChangeEventArgs e)
+    {
+        _uploadError    = null;
+        _uploadedUrl    = null;
+        _uploadingImage = true;
+
+        try
+        {
+            var file    = e.File;
+            var content = new MultipartFormDataContent();
+            var stream  = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            content.Add(new StreamContent(stream), "file", file.Name);
+
+            var (data, error) = await Api.PostFormAsync("/api/images", content);
+
+            if (error is not null)
+                _uploadError = error;
+            else
+            {
+                _uploadedUrl = data?.GetProperty("url").GetString();
+                if (_uploadedUrl is not null)
+                {
+                    var markdown = $"![Description]({_uploadedUrl})";
+                    await JS.InvokeVoidAsync("navigator.clipboard.writeText", markdown);
+                }
+            }
+        }
+        finally { _uploadingImage = false; }
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

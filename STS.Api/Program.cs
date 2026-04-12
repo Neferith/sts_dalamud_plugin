@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Sts.Api.DataSources;
@@ -61,6 +62,12 @@ builder.Services.AddScoped<IDeleteSectionUseCase, DeleteSectionUseCase>();
 builder.Services.AddScoped<ICreatePostUseCase, CreatePostUseCase>();
 builder.Services.AddScoped<IUpdatePostUseCase, UpdatePostUseCase>();
 builder.Services.AddScoped<IDeletePostUseCase, DeletePostUseCase>();
+
+builder.Services.AddSingleton<IImageDataSource, FileSystemImageDataSource>();
+builder.Services.AddSingleton<IImageRepository, ImageRepository>();
+builder.Services.AddSingleton<IUploadImageUseCase, UploadImageUseCase>();
+builder.Services.AddSingleton<IGetImagesUseCase, GetImagesUseCase>();
+builder.Services.AddSingleton<IDeleteImageUseCase, DeleteImageUseCase>();
 
 // ─── Auth JWT ─────────────────────────────────────────────────────────────────
 
@@ -151,7 +158,15 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseBlazorFrameworkFiles();
-app.UseStaticFiles();
+//app.UseStaticFiles();
+var imagesPath = Path.Combine(builder.Environment.ContentRootPath, "images");
+Directory.CreateDirectory(imagesPath);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(
+        Path.Combine(builder.Environment.ContentRootPath, "images")),
+    RequestPath = "/images"
+});
 
 // ─── Endpoints ────────────────────────────────────────────────────────────────
 
@@ -162,6 +177,7 @@ app.MapJobEndpoints();      // CRUD  /api/jobs          (auth requis)
 app.MapTraitEndpoints();    // CRUD  /api/traits        (auth requis)
 app.MapAbilityEndpoints();  // CRUD  /api/abilities     (auth requis)
 app.MapActionEndpoints();   // CRUD  /api/actions       (auth requis)
+app.MapImageEndpoints();
 
 app.MapFallbackToFile("index.html");
 

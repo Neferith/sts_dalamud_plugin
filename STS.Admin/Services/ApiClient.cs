@@ -75,6 +75,11 @@ public class ApiClient
         if (HandleUnauthorized(response)) return (default, "Non autorisé.");
         if (!response.IsSuccessStatusCode)
             return (default, await ReadError(response));
+
+        // 204 NoContent — pas de corps à désérialiser
+        if (response.StatusCode == System.Net.HttpStatusCode.NoContent)
+            return (default, null);
+
         return (await response.Content.ReadFromJsonAsync<T>(JsonOptions), null);
     }
 
@@ -93,7 +98,7 @@ public class ApiClient
 
     // ─── Privé ────────────────────────────────────────────────────────────────
 
-    private void SetAuthHeader()
+    public void SetAuthHeader()
     {
         _http.DefaultRequestHeaders.Authorization = _auth.Token is not null
             ? new AuthenticationHeaderValue("Bearer", _auth.Token)
@@ -114,5 +119,17 @@ public class ApiClient
         return string.IsNullOrWhiteSpace(body)
             ? $"Erreur {(int)response.StatusCode}"
             : body.Trim('"');
+    }
+
+    public async Task<(JsonElement? data, string? error)> PostFormAsync(string url, HttpContent content)
+    {
+        SetAuthHeader();
+        var response = await _http.PostAsync(url, content);
+        if (HandleUnauthorized(response)) return (null, "Non autorisé.");
+        if (!response.IsSuccessStatusCode)
+            return (null, await ReadError(response));
+
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>(JsonOptions);
+        return (json, null);
     }
 }

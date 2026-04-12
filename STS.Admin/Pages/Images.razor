@@ -1,0 +1,137 @@
+@page "/images"
+@inject ApiClient Api
+@inject AuthService Auth
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<PageTitle>Images — STS Admin</PageTitle>
+
+<div class="p-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2 class="mb-0">Images</h2>
+            <small class="text-muted">@_images.Count image(s)</small>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            @if (_uploadingImage)
+            {
+                <div class="spinner-border spinner-border-sm text-secondary"></div>
+            }
+            <InputFile OnChange="UploadImage"
+                       accept=".jpg,.jpeg,.png,.gif,.webp"
+                       class="form-control"
+                       style="max-width:260px"
+                       disabled="@_uploadingImage" />
+        </div>
+    </div>
+
+    <Alert Message="@_message" IsError="_isError" OnDismiss="() => _message = null" />
+
+    @if (_loading)
+    {
+        <div class="text-center py-5"><div class="spinner-border text-secondary"></div></div>
+    }
+    else if (_images.Count == 0)
+    {
+        <div class="text-center text-muted py-5">Aucune image uploadée.</div>
+    }
+    else
+    {
+        <div class="row g-3">
+            @foreach (var img in _images)
+            {
+                <div class="col-6 col-md-4 col-lg-3">
+                    <div class="card h-100">
+                        <img src="@img.Url"
+                             class="card-img-top"
+                             style="height:160px; object-fit:cover;"
+                             alt="@img.FileName" />
+                        <div class="card-body p-2">
+                            <div class="small text-muted font-monospace text-truncate" title="@img.FileName">
+                                @img.FileName
+                            </div>
+                            <div class="small text-muted">@img.SizeKb Ko</div>
+                        </div>
+                        <div class="card-footer p-2 d-flex gap-1">
+                            <button class="btn btn-sm btn-outline-secondary flex-grow-1"
+                                    @onclick="() => CopyMarkdown(img)"
+                                    title="Copier le tag Markdown">
+                                📋 Copier
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger"
+                                    @onclick="() => Delete(img)"
+                                    title="Supprimer">
+                                ✕
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<ImageDto> _images = [];
+    private bool    _loading = true;
+    private bool    _uploadingImage;
+    private string? _message;
+    private bool    _isError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Auth.IsAuthenticated) { Nav.NavigateTo("/login"); return; }
+        await LoadImages();
+        _loading = false;
+    }
+
+    private async Task LoadImages() =>
+        _images = await Api.GetAsync<List<ImageDto>>("/api/images") ?? [];
+
+    private async Task UploadImage(InputFileChangeEventArgs e)
+    {
+        _message        = null;
+        _uploadingImage = true;
+
+        try
+        {
+            var file    = e.File;
+            var content = new MultipartFormDataContent();
+            var stream  = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            content.Add(new StreamContent(stream), "file", file.Name);
+
+            var (data, error) = await Api.PostFormAsync("/api/images", content);
+
+            if (error is not null)
+                ShowError(error);
+            else
+            {
+                var url      = data?.GetProperty("url").GetString();
+                var markdown = $"![Description]({url})";
+                await JS.InvokeVoidAsync("navigator.clipboard.writeText", markdown);
+                ShowSuccess("Image uploadée — tag Markdown copié dans le presse-papier.");
+                await LoadImages();
+            }
+        }
+        finally { _uploadingImage = false; }
+    }
+
+    private async Task CopyMarkdown(ImageDto img)
+    {
+        var markdown = $"![Description]({img.Url})";
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", markdown);
+        ShowSuccess($"Tag Markdown copié pour {img.FileName}.");
+    }
+
+    private async Task Delete(ImageDto img)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", $"Supprimer l'image « {img.FileName} » ?")) return;
+
+        var error = await Api.DeleteAsync($"/api/images/{img.FileName}");
+        if (error is not null) ShowError(error);
+        else { ShowSuccess("Image supprimée."); await LoadImages(); }
+    }
+
+    private void ShowError(string msg)   { _isError = true;  _message = msg; }
+    private void ShowSuccess(string msg) { _isError = false; _message = msg; }
+}
