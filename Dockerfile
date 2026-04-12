@@ -15,13 +15,15 @@ RUN dotnet restore STS.Api/STS.Api.csproj
 # Copier les sources
 COPY STS.Domain/        STS.Domain/
 COPY STS.Domain.Content/ STS.Domain.Content/
+COPY STS.Infrastructure/ STS.Infrastructure/
 COPY STS.Api/           STS.Api/
 COPY STS.Admin/         STS.Admin/
 
 # Publier
 RUN dotnet publish STS.Api/STS.Api.csproj \
     -c Release \
-    -o /app/publish
+    -o /app/publish \
+    --no-restore
 
 # ── Runtime ───────────────────────────────────────────────────────────────────
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
