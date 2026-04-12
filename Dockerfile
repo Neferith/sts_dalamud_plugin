@@ -21,8 +21,7 @@ COPY STS.Admin/         STS.Admin/
 # Publier
 RUN dotnet publish STS.Api/STS.Api.csproj \
     -c Release \
-    -o /app/publish \
-    --no-restore
+    -o /app/publish
 
 # ── Runtime ───────────────────────────────────────────────────────────────────
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
