@@ -6,7 +6,7 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ./data.json:/app/data.json:ro
+      - ./data.json:/app/data.json
       - sts-db:/data
       - sts-images:/app/images
     environment:

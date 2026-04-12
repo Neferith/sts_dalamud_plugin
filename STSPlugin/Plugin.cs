@@ -38,11 +38,14 @@ public sealed class Plugin : IDalamudPlugin
 
     public Configuration Configuration { get; init; }
     public StsEngine Engine { get; init; }
+
+    private readonly MainDiContainer _factory;
     public CharacterRepository CharacterRepository { get; init; }
-    public TraitRepository TraitRepository { get; init; }
-    public JobRepository JobRepository { get; init; }
-    public ActionRepository ActionRepository { get; init; }
-    public AbilityRepository AbilityRepository { get; init; }
+    // Changer init → set sur les 4 repositories liés aux données
+    public TraitRepository TraitRepository { get; private set; }
+    public JobRepository JobRepository { get; private set; }
+    public ActionRepository ActionRepository { get; private set; }
+    public AbilityRepository AbilityRepository { get; private set; }
 
     // --- use cases personnages ---
     public GetAllCharactersUseCase GetAllCharacters { get; init; }
@@ -92,6 +95,7 @@ public sealed class Plugin : IDalamudPlugin
 
         // --- Container ---
         IPluginFactory factory = new MainDiContainer(Configuration, PluginInterface, Log);
+        _factory = (MainDiContainer)factory;
 
         // --- Engine ---
         Engine = factory.MakeEngine();
@@ -190,6 +194,26 @@ public sealed class Plugin : IDalamudPlugin
 
         CommandManager.RemoveHandler(CmdMain);
         windowSystem.RemoveAllWindows();
+    }
+
+    /// <summary>
+    /// Recharge les repositories depuis la source configurée (Local ou Remote).
+    /// Appelé depuis ConfigWindow via le bouton Rafraîchir.
+    /// </summary>
+    public void ReloadDataSources()
+    {
+        _factory.ReloadDataSources();
+
+        TraitRepository = _factory.MakeTraitRepository();
+        JobRepository = _factory.MakeJobRepository();
+        ActionRepository = _factory.MakeActionRepository();
+        AbilityRepository = _factory.MakeAbilityRepository();
+
+        // Rafraîchir les traits équipés du personnage actif avec les nouvelles données
+        RefreshEquippedTraits();
+
+        Log.Information("[STS] Données rechargées — mode : {0}, url : {1}",
+            Configuration.DataSourceMode, Configuration.BackendUrl);
     }
 
     private void OnCommand(string command, string args)

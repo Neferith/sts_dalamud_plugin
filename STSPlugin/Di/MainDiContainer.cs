@@ -78,14 +78,16 @@ public class MainDiContainer : IPluginFactory
 
     // --- DataSource ---
 
-    /*  public IDataSource MakeDataSource()
-          => _dataSource ??= new CachedDataSource(
-              remote: MakeRemoteDataSource(),
-              fallback: MakeLocalDataSource(),
-              cacheFilePath: Path.Combine(_configDir, "data.cache.json"),
-              log: _log);*/
     public IDataSource MakeDataSource()
-          => _dataSource ??= MakeLocalDataSource();
+    {
+        if (_dataSource != null) return _dataSource;
+
+        _dataSource = _config.DataSourceMode == ConfigDomain.DataSourceMode.Remote
+            ? MakeRemoteDataSource()
+            : MakeLocalDataSource();
+
+        return _dataSource;
+    }
 
     private LocalJsonDataSource MakeLocalDataSource()
         => _local ??= new LocalJsonDataSource(
@@ -93,6 +95,26 @@ public class MainDiContainer : IPluginFactory
 
     private RemoteJsonDataSource MakeRemoteDataSource()
         => _remote ??= new RemoteJsonDataSource(_config.BackendUrl);
+
+    /// <summary>
+    /// Invalide la datasource et les repositories qui en dépendent.
+    /// Les singletons seront recréés au prochain accès avec la config courante.
+    /// </summary>
+    public void ReloadDataSources()
+    {
+        _dataSource = null;
+        _remote = null; // force recréation avec la BackendUrl courante
+        _traitRepository = null;
+        _jobRepository = null;
+        _actionRepository = null;
+        _abilityRepository = null;
+
+        // Recréer immédiatement pour détecter les erreurs au clic plutôt qu'au premier jet
+        MakeTraitRepository();
+        MakeJobRepository();
+        MakeActionRepository();
+        MakeAbilityRepository();
+    }
 
     // --- Repositories ---
 
