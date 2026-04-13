@@ -158,7 +158,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseBlazorFrameworkFiles();
-//app.UseStaticFiles();
+app.UseStaticFiles();
 var imagesPath = Path.Combine(builder.Environment.ContentRootPath, "images");
 Directory.CreateDirectory(imagesPath);
 app.UseStaticFiles(new StaticFileOptions

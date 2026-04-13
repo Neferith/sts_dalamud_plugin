@@ -5,18 +5,19 @@
     background-color: #1a1a2e;
 }
 
-.sts-sidebar .nav-link {
-    color: rgba(255,255,255,0.7);
-    border-radius: 6px;
-    padding: 8px 12px;
-    transition: background-color 0.15s;
-}
+    .sts-sidebar .nav-link {
+        color: rgba(255,255,255,0.7);
+        border-radius: 6px;
+        padding: 8px 12px;
+        transition: background-color 0.15s;
+        background-color: transparent; /* ← neutralise le bg blanc Bootstrap */
+    }
 
-.sts-sidebar .nav-link:hover,
-.sts-sidebar .nav-link.active {
-    color: #fff;
-    background-color: rgba(255,255,255,0.1);
-}
+    .sts-sidebar .nav-link:hover,
+    .sts-sidebar .nav-link.active {
+        color: #fff !important;
+        background-color: rgba(255,255,255,0.1) !important;
+    }
 
 /* Layout principal */
 .sts-main {
@@ -65,3 +66,5 @@
     right: 0;
     border-radius: 0;
 }
+
+
