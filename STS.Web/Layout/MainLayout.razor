@@ -1,4 +1,5 @@
 @inherits LayoutComponentBase
+@inject HttpClient Http
 
 <div class="sts-layout">
 
@@ -8,18 +9,14 @@
                 <img src="img/guild-logo.png" alt="Logo guilde" />
             </div>
             STS
-            <span class="sts-nav-tag">v0.1</span>
+            <span class="sts-nav-tag">@_version</span>
         </a>
 
         <div class="sts-nav-links @(_navOpen ? "open" : "")">
-            <NavLink class="sts-nav-link" href="/regles"
-                     @onclick="CloseNav">Règles</NavLink>
-            <NavLink class="sts-nav-link" href="/traits"
-                     @onclick="CloseNav">Traits</NavLink>
-            <NavLink class="sts-nav-link" href="/capacites"
-                     @onclick="CloseNav">Capacités</NavLink>
-            <NavLink class="sts-nav-link" href="/metiers"
-                     @onclick="CloseNav">Métiers</NavLink>
+            <NavLink class="sts-nav-link" href="/regles"     @onclick="CloseNav">Règles</NavLink>
+            <NavLink class="sts-nav-link" href="/traits"     @onclick="CloseNav">Traits</NavLink>
+            <NavLink class="sts-nav-link" href="/capacites"  @onclick="CloseNav">Capacités</NavLink>
+            <NavLink class="sts-nav-link" href="/metiers"    @onclick="CloseNav">Métiers</NavLink>
             <span class="sts-nav-link locked">Personnages</span>
         </div>
 
@@ -35,8 +32,24 @@
 </div>
 
 @code {
-    private bool _navOpen = false;
+    private bool   _navOpen = false;
+    private string _version = "…";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var result = await Http.GetFromJsonAsync<VersionResponse>("api/version");
+            _version = result?.Version is { } v ? $"v{v}" : "v?";
+        }
+        catch
+        {
+            _version = "v?";
+        }
+    }
 
     private void ToggleNav() => _navOpen = !_navOpen;
-    private void CloseNav() => _navOpen = false;
+    private void CloseNav()  => _navOpen = false;
+
+    private sealed record VersionResponse(string Version);
 }

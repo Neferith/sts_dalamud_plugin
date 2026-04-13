@@ -158,7 +158,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseBlazorFrameworkFiles();
-//app.UseStaticFiles();
+app.UseStaticFiles();
 var imagesPath = Path.Combine(builder.Environment.ContentRootPath, "images");
 Directory.CreateDirectory(imagesPath);
 app.UseStaticFiles(new StaticFileOptions
@@ -169,6 +169,16 @@ app.UseStaticFiles(new StaticFileOptions
 });
 
 // ─── Endpoints ────────────────────────────────────────────────────────────────
+
+app.MapGet("/api/version", () =>
+{
+    var version = typeof(Program).Assembly.GetName().Version?.ToString() ?? "unknown";
+    return Results.Ok(new { version });
+})
+.WithName("GetVersion")
+.WithTags("System")
+.WithSummary("Retourne la version de l'application.")
+.AllowAnonymous();
 
 app.MapAuthEndpoints();     // POST  /api/auth/login   (public)
 app.MapDataEndpoints();     // GET   /api/data          (public — plugin)
