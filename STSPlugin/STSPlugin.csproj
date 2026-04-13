@@ -15,6 +15,6 @@
 
     <!-- Met à jour AssemblyVersion dans repo.json à chaque build Release -->
     <Target Name="UpdateRepoJson" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
-        <Exec Command="powershell -Command &quot;$f='$(MSBuildProjectDirectory)\..\repo.json'; $j=Get-Content $f | ConvertFrom-Json; $j[0].AssemblyVersion='$(Version)'; $j | ConvertTo-Json -Depth 10 | Set-Content $f -Encoding UTF8&quot;" />
+        <Exec Command="powershell -Command &quot;$f='$(MSBuildProjectDirectory)\..\repo.json'; $j=Get-Content $f -Raw -Encoding UTF8 | ConvertFrom-Json; $j[0].AssemblyVersion='$(Version)'; $json=ConvertTo-Json @($j) -Depth 10; [System.IO.File]::WriteAllText($f, $json, [System.Text.UTF8Encoding]::new($false))&quot;" />
     </Target>
 </Project>

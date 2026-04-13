@@ -1,13 +1,15 @@
-﻿{
-    "Author":  "Vivien",
-    "Name":  "STSPlugin",
-    "Description":  "Outil de jets de dÃ©s pour le SystÃ¨me TrÃ¨s Simple.",
-    "IconUrl":  "https://raw.githubusercontent.com/Neferith/sts_dalamud_plugin/master/STSPlugin/MoonLogo_sharpened.png",
-    "InternalName":  "STSPlugin",
-    "AssemblyVersion":  "10.0.0.0",
-    "RepoUrl":  "https://github.com/Neferith/sts_dalamud_plugin",
-    "ApplicableVersion":  "any",
-    "DalamudApiLevel":  14,
-    "DownloadLinkInstall":  "https://github.com/Neferith/sts_dalamud_plugin/releases/latest/download/latest.zip",
-    "DownloadLinkUpdate":  "https://github.com/Neferith/sts_dalamud_plugin/releases/latest/download/latest.zip"
-}
+[
+    {
+        "Author":  "Vivien",
+        "Name":  "STSPlugin",
+        "Description":  "Outil de jets de dés pour le Système Très Simple.",
+        "IconUrl":  "https://raw.githubusercontent.com/Neferith/sts_dalamud_plugin/master/STSPlugin/MoonLogo_sharpened.png",
+        "InternalName":  "STSPlugin",
+        "AssemblyVersion":  "10.0.0.0",
+        "RepoUrl":  "https://github.com/Neferith/sts_dalamud_plugin",
+        "ApplicableVersion":  "any",
+        "DalamudApiLevel":  14,
+        "DownloadLinkInstall":  "https://github.com/Neferith/sts_dalamud_plugin/releases/latest/download/latest.zip",
+        "DownloadLinkUpdate":  "https://github.com/Neferith/sts_dalamud_plugin/releases/latest/download/latest.zip"
+    }
+]
