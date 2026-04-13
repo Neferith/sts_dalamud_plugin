@@ -736,3 +736,8 @@ pre {
     color: var(--teal);
     border-color: var(--border-strong);
  }
+
+img {
+    max-width: 100%;
+    height: auto;
+}
