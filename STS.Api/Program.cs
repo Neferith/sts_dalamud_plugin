@@ -13,6 +13,7 @@ using Sts.Domain.Content.UseCases;
 using Sts.Infrastructure.Data;
 using Sts.Infrastructure.DataSources;
 using System.Text;
+using Sts.Discord;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -68,6 +69,8 @@ builder.Services.AddSingleton<IImageRepository, ImageRepository>();
 builder.Services.AddSingleton<IUploadImageUseCase, UploadImageUseCase>();
 builder.Services.AddSingleton<IGetImagesUseCase, GetImagesUseCase>();
 builder.Services.AddSingleton<IDeleteImageUseCase, DeleteImageUseCase>();
+
+builder.Services.AddDiscordBot(builder.Configuration);
 
 // ─── Auth JWT ─────────────────────────────────────────────────────────────────
 

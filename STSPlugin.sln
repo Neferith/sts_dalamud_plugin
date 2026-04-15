@@ -24,6 +24,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Éléments de solution", "�
 		Directory.Build.props = Directory.Build.props
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "STS.Discord", "STS.Discord\STS.Discord.csproj", "{8F0A5671-A982-4FA1-A74A-55DC6A540DFA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -130,6 +132,18 @@ Global
 		{C0EDD3BC-D47A-4359-92A5-E8CE320ED6A5}.Release|x64.Build.0 = Release|Any CPU
 		{C0EDD3BC-D47A-4359-92A5-E8CE320ED6A5}.Release|x86.ActiveCfg = Release|Any CPU
 		{C0EDD3BC-D47A-4359-92A5-E8CE320ED6A5}.Release|x86.Build.0 = Release|Any CPU
+		{8F0A5671-A982-4FA1-A74A-55DC6A540DFA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8F0A5671-A982-4FA1-A74A-55DC6A540DFA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8F0A5671-A982-4FA1-A74A-55DC6A540DFA}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{8F0A5671-A982-4FA1-A74A-55DC6A540DFA}.Debug|x64.Build.0 = Debug|Any CPU
+		{8F0A5671-A982-4FA1-A74A-55DC6A540DFA}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{8F0A5671-A982-4FA1-A74A-55DC6A540DFA}.Debug|x86.Build.0 = Debug|Any CPU
+		{8F0A5671-A982-4FA1-A74A-55DC6A540DFA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8F0A5671-A982-4FA1-A74A-55DC6A540DFA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8F0A5671-A982-4FA1-A74A-55DC6A540DFA}.Release|x64.ActiveCfg = Release|Any CPU
+		{8F0A5671-A982-4FA1-A74A-55DC6A540DFA}.Release|x64.Build.0 = Release|Any CPU
+		{8F0A5671-A982-4FA1-A74A-55DC6A540DFA}.Release|x86.ActiveCfg = Release|Any CPU
+		{8F0A5671-A982-4FA1-A74A-55DC6A540DFA}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
