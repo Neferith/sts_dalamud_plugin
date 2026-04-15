@@ -20,6 +20,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using STSPlugin.ConfigDomain;
+using System.Threading.Tasks;
 
 namespace STSPlugin;
 
@@ -105,7 +106,7 @@ public sealed class Plugin : IDalamudPlugin
         // var dataSource = new LocalJsonDataSource(dataPath);
 
         // --- Repositories ---
-        var charactersDir = //Path.Combine(PluginInterface.GetPluginConfigDirectory(), "characters");
+        //var charactersDir = //Path.Combine(PluginInterface.GetPluginConfigDirectory(), "characters");
         CharacterRepository = factory.MakeCharacterRepository();//new DefaultCharacterRepository(charactersDir);
         TraitRepository = factory.MakeTraitRepository();//new DefaultTraitRepository(dataSource);
         JobRepository = factory.MakeJobRepository();//new DefaultJobRepository(dataSource);
@@ -202,18 +203,31 @@ public sealed class Plugin : IDalamudPlugin
     /// </summary>
     public void ReloadDataSources()
     {
-        _factory.ReloadDataSources();
+        Task.Run(() =>
+        {
+            try
+            {
+                _factory.ReloadDataSources();
 
-        TraitRepository = _factory.MakeTraitRepository();
-        JobRepository = _factory.MakeJobRepository();
-        ActionRepository = _factory.MakeActionRepository();
-        AbilityRepository = _factory.MakeAbilityRepository();
+                // Load() est appelé UNE seule fois ici, partagé entre les 4 repos
+                var dataSource = _factory.MakeDataSource();
+                dataSource.Load(); // charge + remplit le cache mémoire interne si besoin
 
-        // Rafraîchir les traits équipés du personnage actif avec les nouvelles données
-        RefreshEquippedTraits();
+                TraitRepository = _factory.MakeTraitRepository();
+                JobRepository = _factory.MakeJobRepository();
+                ActionRepository = _factory.MakeActionRepository();
+                AbilityRepository = _factory.MakeAbilityRepository();
 
-        Log.Information("[STS] Données rechargées — mode : {0}, url : {1}",
-            Configuration.DataSourceMode, Configuration.BackendUrl);
+                RefreshEquippedTraits();
+
+                Log.Information("[STS] Données rechargées — mode : {0}, url : {1}",
+                    Configuration.DataSourceMode, Configuration.BackendUrl);
+            }
+            catch (Exception ex)
+            {
+                Log.Error("[STS] Erreur au rechargement des données : {0}", ex.Message);
+            }
+        });
     }
 
     private void OnCommand(string command, string args)
