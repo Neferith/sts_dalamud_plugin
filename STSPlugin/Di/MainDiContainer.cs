@@ -82,19 +82,23 @@ public class MainDiContainer : IPluginFactory
     {
         if (_dataSource != null) return _dataSource;
 
-        _dataSource = _config.DataSourceMode == ConfigDomain.DataSourceMode.Remote
-            ? MakeRemoteDataSource()
-            : MakeLocalDataSource();
+        var remote = new RemoteJsonDataSource(_config.BackendUrl);
+        var local = new LocalJsonDataSource(
+            Path.Combine(_assemblyDir, "data.json"));
+        var cachePath = Path.Combine(_configDir, "data_cache.json");
 
+        _dataSource = new CachedDataSource(remote, local, cachePath, _log);
         return _dataSource;
     }
 
-    private LocalJsonDataSource MakeLocalDataSource()
-        => _local ??= new LocalJsonDataSource(
-            Path.Combine(_assemblyDir, "data.json"));
 
-    private RemoteJsonDataSource MakeRemoteDataSource()
-        => _remote ??= new RemoteJsonDataSource(_config.BackendUrl);
+
+    /*  private LocalJsonDataSource MakeLocalDataSource()
+          => _local ??= new LocalJsonDataSource(
+              Path.Combine(_assemblyDir, "data.json"));
+
+      private RemoteJsonDataSource MakeRemoteDataSource()
+          => _remote ??= new RemoteJsonDataSource(_config.BackendUrl);*/
 
     /// <summary>
     /// Invalide la datasource et les repositories qui en dépendent.
@@ -102,18 +106,12 @@ public class MainDiContainer : IPluginFactory
     /// </summary>
     public void ReloadDataSources()
     {
-        _dataSource = null;
-        _remote = null; // force recréation avec la BackendUrl courante
+      
+         _dataSource = null; // mode Local → pas de CachedDataSource, on force la recréation
         _traitRepository = null;
         _jobRepository = null;
         _actionRepository = null;
         _abilityRepository = null;
-
-        // Recréer immédiatement pour détecter les erreurs au clic plutôt qu'au premier jet
-        MakeTraitRepository();
-        MakeJobRepository();
-        MakeActionRepository();
-        MakeAbilityRepository();
     }
 
     // --- Repositories ---
@@ -215,4 +213,6 @@ public class MainDiContainer : IPluginFactory
 
     public SetItemIconUseCase MakeSetItemIcon()
         => _setItemIcon ??= new DefaultSetItemIconUseCase(MakeCharacterRepository());
+
+    
 }
