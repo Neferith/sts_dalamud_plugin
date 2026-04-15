@@ -9,6 +9,8 @@ using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.System.String;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using Sts.Domain;
+using Sts.Domain.Character;
+using STSPlugin.Repository;
 using STSPlugin.CharacterUseCases;
 using STSPlugin.ConfigDomain;
 using STSPlugin.Repository;

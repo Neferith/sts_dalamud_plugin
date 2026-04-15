@@ -3,6 +3,9 @@ using STSPlugin.CharacterUseCases;
 using STSPlugin.DataSource;
 using STSPlugin.Repository;
 
+using Sts.Domain.Character;
+using STSPlugin.CharacterUseCases;
+
 namespace STSPlugin;
 
 /// <summary>

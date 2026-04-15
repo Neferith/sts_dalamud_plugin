@@ -16,6 +16,12 @@
       },
       "sts.domain": {
         "type": "Project"
+      },
+      "sts.domain.character": {
+        "type": "Project",
+        "dependencies": {
+          "STS.Domain": "[10.0.0, )"
+        }
       }
     }
   }

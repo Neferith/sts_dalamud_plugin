@@ -2,6 +2,7 @@ using System.IO;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using Sts.Domain;
+using Sts.Domain.Character;
 using Sts.Domain.UseCases;
 using STSPlugin.CharacterUseCases;
 using STSPlugin.DataSource;

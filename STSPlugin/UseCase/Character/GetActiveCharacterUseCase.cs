@@ -1,5 +1,6 @@
 using Sts.Domain;
 using STSPlugin.Repository;
+using Sts.Domain.Character;
 
 namespace STSPlugin.CharacterUseCases;
 
