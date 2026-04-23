@@ -1,5 +1,6 @@
 @page "/rules"
 @using Markdig
+@using Sts.Admin.Utils
 @inject ApiClient Api
 @inject AuthService Auth
 @inject NavigationManager Nav
@@ -7,7 +8,7 @@
 
 <PageTitle>Règles — STS Admin</PageTitle>
 
-<div class="p-4">
+<div class="p-4 rules-page">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2 class="mb-0">Règles</h2>
         <button class="btn btn-primary" @onclick="OpenCreateSection">+ Nouvelle section</button>
@@ -26,7 +27,7 @@
             <!-- ── Colonne sections ─────────────────────────────────────────── -->
             <div class="col-md-4">
                 <div class="card h-100">
-                    <div class="card-header table-dark text-white fw-medium">
+                    <div class="card-header fw-medium">
                         Sections <span class="badge bg-secondary ms-1">@_sections.Count</span>
                     </div>
                     @if (_sections.Count == 0)
@@ -139,17 +140,18 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
+                        <label class="form-label">Titre</label>
+                        <input class="form-control"
+                               @bind="_sectionForm.Title"
+                                @oninput="OnSectionTitleChanged"
+                               placeholder="ex: Guide du système" />
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label">Identifiant</label>
                         <input class="form-control font-monospace"
                                @bind="_sectionForm.Id"
                                disabled="@_sectionEditMode"
                                placeholder="ex: guide-systeme" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Titre</label>
-                        <input class="form-control"
-                               @bind="_sectionForm.Title"
-                               placeholder="ex: Guide du système" />
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Ordre d'affichage</label>
@@ -213,18 +215,20 @@
                         }
                     </div>
 
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Titre</label>
+                        <input class="form-control"
+                               @bind="_postForm.Title"
+                               placeholder="ex: Le Système Très Simple"
+                                @oninput="OnPostTitleChanged" />
+                    </div>
                     <div class="mb-3">
                         <label class="form-label">Identifiant</label>
                         <input class="form-control font-monospace"
                                @bind="_postForm.Id"
                                disabled="@_postEditMode"
                                placeholder="ex: systeme-tres-simple" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Titre</label>
-                        <input class="form-control"
-                               @bind="_postForm.Title"
-                               placeholder="ex: Le Système Très Simple" />
                     </div>
 
                     <!-- ── Onglets éditeur / aperçu ─────────────────────────── -->
@@ -389,6 +393,18 @@
 
     private void CloseSectionModal() => _showSectionModal = false;
 
+    private void OnSectionTitleChanged(ChangeEventArgs e)
+    {
+        var title = e.Value?.ToString() ?? "";
+        _sectionForm.Title = title;
+
+        // uniquement en création
+        if (!_sectionEditMode)
+        {   
+            _sectionForm.Id = SlugUtils.GenerateSlug(title);
+        }
+    }
+
     private async Task SaveSection()
     {
         if (string.IsNullOrWhiteSpace(_sectionForm.Id))    { ShowError("L'identifiant est requis."); return; }
@@ -455,6 +471,18 @@
         _showPreview   = false;
         _postEditMode  = true;
         _showPostModal = true;
+    }
+
+    private void OnPostTitleChanged(ChangeEventArgs e)
+    {
+        var title = e.Value?.ToString() ?? "";
+        _postForm.Title = title;
+
+        // uniquement en création
+        if (!_postEditMode)
+        {
+            _postForm.Id = SlugUtils.GenerateSlug(title);
+        }
     }
 
     private void ClosePostModal() => _showPostModal = false;
