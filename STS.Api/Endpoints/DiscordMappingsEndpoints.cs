@@ -17,7 +17,7 @@ public static class DiscordMappingsEndpoints
 
         // ── Lecture ──────────────────────────────────────────────────────────
 
-        group.MapGet("/mappings/sections", (DiscordMappingStore store) =>
+        group.MapGet("/mappings/sections", ([FromServices] DiscordMappingStore store) =>
         {
             var sections = store.GetAllSectionMappings();
             return Results.Ok(sections);
@@ -31,7 +31,7 @@ public static class DiscordMappingsEndpoints
         group.MapPut("/mappings/sections/{sectionId}", async (
             string sectionId,
             [FromBody] SetSectionMappingRequest req,
-            DiscordMappingStore store) =>
+            [FromServices] DiscordMappingStore store) =>
         {
             if (!ulong.TryParse(req.ForumChannelId, out var channelId))
                 return Results.BadRequest("ForumChannelId doit être un identifiant Discord valide (entier non signé).");
@@ -46,7 +46,7 @@ public static class DiscordMappingsEndpoints
 
         group.MapDelete("/mappings/sections/{sectionId}", async (
             string sectionId,
-            DiscordMappingStore store) =>
+            [FromServices] DiscordMappingStore store) =>
         {
             store.RemoveSectionMapping(sectionId);
             await store.SaveAsync();
