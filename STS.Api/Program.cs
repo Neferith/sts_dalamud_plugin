@@ -191,6 +191,7 @@ app.MapTraitEndpoints();    // CRUD  /api/traits        (auth requis)
 app.MapAbilityEndpoints();  // CRUD  /api/abilities     (auth requis)
 app.MapActionEndpoints();   // CRUD  /api/actions       (auth requis)
 app.MapImageEndpoints();
+app.MapDiscordMappingsEndpoints(); // ← supprimer si Discord désactivé
 
 app.MapFallbackToFile("index.html");
 

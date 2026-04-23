@@ -76,6 +76,14 @@ public sealed class DiscordMappingStore
     public void SetForumChannelId(string sectionId, ulong channelId)
         => _data.Sections[sectionId] = channelId.ToString();
 
+    /// <summary>Retourne tous les mappings section → Forum Channel sous forme de dictionnaire.</summary>
+    public IReadOnlyDictionary<string, string> GetAllSectionMappings()
+        => _data.Sections;
+
+    /// <summary>Supprime le mapping Forum Channel d'une section.</summary>
+    public void RemoveSectionMapping(string sectionId)
+        => _data.Sections.Remove(sectionId);
+
     // ─── Posts ───────────────────────────────────────────────────────────────
 
     /// <summary>
@@ -93,6 +101,7 @@ public sealed class DiscordMappingStore
     /// <summary>Supprime le mapping d'un post (ex : après archivage).</summary>
     public void RemovePost(string postId)
         => _data.Posts.Remove(postId);
+
 
     // ─── Persistance ─────────────────────────────────────────────────────────
 
