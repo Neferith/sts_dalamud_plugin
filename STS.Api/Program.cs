@@ -13,6 +13,7 @@ using Sts.Domain.Content.UseCases;
 using Sts.Infrastructure.Data;
 using Sts.Infrastructure.DataSources;
 using System.Text;
+using Sts.Discord;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -68,6 +69,10 @@ builder.Services.AddSingleton<IImageRepository, ImageRepository>();
 builder.Services.AddSingleton<IUploadImageUseCase, UploadImageUseCase>();
 builder.Services.AddSingleton<IGetImagesUseCase, GetImagesUseCase>();
 builder.Services.AddSingleton<IDeleteImageUseCase, DeleteImageUseCase>();
+
+builder.Services.AddDiscordBot(
+    builder.Configuration,
+    builder.Configuration["Discord:MappingsFilePath"]);
 
 // ─── Auth JWT ─────────────────────────────────────────────────────────────────
 
@@ -188,6 +193,7 @@ app.MapTraitEndpoints();    // CRUD  /api/traits        (auth requis)
 app.MapAbilityEndpoints();  // CRUD  /api/abilities     (auth requis)
 app.MapActionEndpoints();   // CRUD  /api/actions       (auth requis)
 app.MapImageEndpoints();
+app.MapDiscordMappingsEndpoints(); // ← supprimer si Discord désactivé
 
 app.MapFallbackToFile("index.html");
 

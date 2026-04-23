@@ -182,33 +182,37 @@
                     </h5>
                     <button type="button" class="btn-close" @onclick="ClosePostModal"></button>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">
-                        Image
-                        <small class="text-muted ms-1">L'URL est copiée automatiquement dans le presse-papier</small>
-                    </label>
-                    <div class="d-flex align-items-center gap-2">
-                        <InputFile OnChange="UploadImage"
-                                   accept=".jpg,.jpeg,.png,.gif,.webp"
-                                   class="form-control"
-                                   disabled="@_uploadingImage" />
-                        @if (_uploadingImage)
+
+                <div class="modal-body">
+
+                    <!-- ── Métadonnées ──────────────────────────────────────── -->
+                    <div class="mb-3">
+                        <label class="form-label">
+                            Image
+                            <small class="text-muted ms-1">L'URL est copiée automatiquement dans le presse-papier</small>
+                        </label>
+                        <div class="d-flex align-items-center gap-2">
+                            <InputFile OnChange="UploadImage"
+                                       accept=".jpg,.jpeg,.png,.gif,.webp"
+                                       class="form-control"
+                                       disabled="@_uploadingImage" />
+                            @if (_uploadingImage)
+                            {
+                                <div class="spinner-border spinner-border-sm text-secondary flex-shrink-0"></div>
+                            }
+                        </div>
+                        @if (_uploadError is not null)
                         {
-                            <div class="spinner-border spinner-border-sm text-secondary flex-shrink-0"></div>
+                            <div class="text-danger small mt-1">@_uploadError</div>
+                        }
+                        @if (_uploadedUrl is not null)
+                        {
+                            <div class="text-success small mt-1">
+                                ✓ Tag Markdown copié — <code>![Description](@_uploadedUrl)</code>
+                            </div>
                         }
                     </div>
-                    @if (_uploadError is not null)
-                    {
-                        <div class="text-danger small mt-1">@_uploadError</div>
-                    }
-                    @if (_uploadedUrl is not null)
-                    {
-                        <div class="text-success small mt-1">
-                            ✓ Tag Markdown copié — <code>![Description](@_uploadedUrl)</code>
-                        </div>
-                    }
-                </div>
-                <div class="modal-body">
+
                     <div class="mb-3">
                         <label class="form-label">Identifiant</label>
                         <input class="form-control font-monospace"
@@ -223,9 +227,12 @@
                                placeholder="ex: Le Système Très Simple" />
                     </div>
 
-                    <!-- Onglets éditeur / aperçu -->
-                    <div class="mb-1 d-flex justify-content-between align-items-center">
-                        <label class="form-label mb-0">Contenu <small class="text-muted">Markdown</small></label>
+                    <!-- ── Onglets éditeur / aperçu ─────────────────────────── -->
+                    <div class="mb-2 d-flex justify-content-between align-items-center">
+                        <label class="form-label mb-0">
+                            Contenu <small class="text-muted">Markdown</small>
+                            <span class="badge bg-secondary ms-1">@_blocks.Count bloc@(_blocks.Count > 1 ? "s" : "")</span>
+                        </label>
                         <div class="btn-group btn-group-sm" role="group">
                             <button type="button"
                                     class="btn @(_showPreview ? "btn-outline-secondary" : "btn-secondary")"
@@ -242,19 +249,63 @@
 
                     @if (!_showPreview)
                     {
-                        <textarea class="form-control font-monospace"
-                                  rows="16"
-                                  @bind="_postForm.Content"
-                                  @bind:event="oninput"
-                                  placeholder="# Titre&#10;&#10;Contenu en Markdown…"></textarea>
+                        <!-- ── Blocs éditeur ────────────────────────────────── -->
+                        @for (var i = 0; i < _blocks.Count; i++)
+                        {
+                            var index = i;
+                            var charCount = _blocks[index].Length;
+                            var isOver = charCount > MaxBlockLength;
+
+                            <div class="border rounded mb-2 @(isOver ? "border-danger" : "border-secondary")">
+                                <!-- En-tête du bloc -->
+                                <div class="d-flex justify-content-between align-items-center px-2 py-1
+                                            bg-light border-bottom @(isOver ? "border-danger" : "")">
+                                    <small class="text-muted fw-medium">Bloc @(index + 1)</small>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <small class="@(isOver ? "text-danger fw-bold" : "text-muted")">
+                                            @charCount / @MaxBlockLength
+                                        </small>
+                                        @if (_blocks.Count > 1)
+                                        {
+                                            <button class="btn btn-sm btn-outline-danger py-0 px-1"
+                                                    @onclick="() => RemoveBlock(index)"
+                                                    title="Supprimer ce bloc">✕</button>
+                                        }
+                                    </div>
+                                </div>
+                                <!-- Textarea -->
+                                <textarea class="form-control font-monospace border-0 rounded-0 rounded-bottom"
+                                          rows="8"
+                                          @bind="_blocks[index]"
+                                          @bind:event="oninput"
+                                          placeholder="@(index == 0 ? "# Titre\n\nContenu en Markdown…" : "Suite du contenu…")">
+                                </textarea>
+                            </div>
+                        }
+
+                        <button class="btn btn-outline-secondary btn-sm w-100 mt-1"
+                                @onclick="AddBlock">
+                            + Bloc
+                        </button>
                     }
                     else
                     {
+                        <!-- ── Aperçu ────────────────────────────────────────── -->
                         <div class="border rounded p-3 rules-preview" style="min-height: 22rem; overflow-y: auto;">
-                            @RenderMarkdown(_postForm.Content)
+                            @for (var i = 0; i < _blocks.Count; i++)
+                            {
+                                var index = i;
+                                @RenderMarkdown(_blocks[index])
+                                @if (index < _blocks.Count - 1)
+                                {
+                                    <hr class="border-2 border-secondary opacity-50 my-3" />
+                                }
+                            }
                         </div>
                     }
+
                 </div>
+
                 <div class="modal-footer">
                     <button class="btn btn-secondary" @onclick="ClosePostModal">Annuler</button>
                     <button class="btn btn-primary" @onclick="SavePost" disabled="@_saving">
@@ -267,6 +318,9 @@
 }
 
 @code {
+
+    private const int MaxBlockLength = 2000;
+    private const string SplitMarker = "---split---";
 
     // ── État ──────────────────────────────────────────────────────────────────
 
@@ -288,9 +342,11 @@
 
     private bool         _showPostModal;
     private bool         _postEditMode;
-    private RulesPostDto _postForm = new();
+    private RulesPostDto _postForm  = new();
+    private List<string> _blocks    = [""];
+    private bool         _showPreview;
 
-    // ── Upload image ──────────────────────────────────────────────────────────────
+    // ── Upload image ──────────────────────────────────────────────────────────
 
     private bool    _uploadingImage;
     private string? _uploadError;
@@ -309,7 +365,6 @@
     {
         _sections = await Api.GetAsync<List<RulesSectionDto>>("/api/rules") ?? [];
 
-        // Resynchronise la section sélectionnée après rechargement
         if (_selectedSection is not null)
             _selectedSection = _sections.FirstOrDefault(s => s.Id == _selectedSection.Id);
     }
@@ -320,8 +375,8 @@
 
     private void OpenCreateSection()
     {
-        _sectionForm     = new RulesSectionDto { Order = _sections.Count > 0 ? _sections[^1].Order + 1 : 0 };
-        _sectionEditMode = false;
+        _sectionForm      = new RulesSectionDto { Order = _sections.Count > 0 ? _sections[^1].Order + 1 : 0 };
+        _sectionEditMode  = false;
         _showSectionModal = true;
     }
 
@@ -387,6 +442,8 @@
     private void OpenCreatePost()
     {
         _postForm      = new RulesPostDto();
+        _blocks        = [""];
+        _showPreview   = false;
         _postEditMode  = false;
         _showPostModal = true;
     }
@@ -394,6 +451,8 @@
     private void OpenEditPost(RulesPostDto post)
     {
         _postForm      = post.Clone();
+        _blocks        = SplitContent(post.Content);
+        _showPreview   = false;
         _postEditMode  = true;
         _showPostModal = true;
     }
@@ -403,27 +462,36 @@
     private async Task SavePost()
     {
         if (_selectedSection is null) return;
-        if (string.IsNullOrWhiteSpace(_postForm.Id))      { ShowError("L'identifiant est requis."); return; }
-        if (string.IsNullOrWhiteSpace(_postForm.Title))   { ShowError("Le titre est requis.");      return; }
-        if (string.IsNullOrWhiteSpace(_postForm.Content)) { ShowError("Le contenu est requis.");    return; }
+        if (string.IsNullOrWhiteSpace(_postForm.Id))    { ShowError("L'identifiant est requis."); return; }
+        if (string.IsNullOrWhiteSpace(_postForm.Title)) { ShowError("Le titre est requis.");      return; }
+        if (_blocks.All(string.IsNullOrWhiteSpace))     { ShowError("Le contenu est requis.");    return; }
+
+        var overLimit = _blocks.Select((b, i) => (b, i)).Where(x => x.b.Length > MaxBlockLength).ToList();
+        if (overLimit.Count > 0)
+        {
+            var nums = string.Join(", ", overLimit.Select(x => x.i + 1));
+            ShowError($"Bloc{(overLimit.Count > 1 ? "s" : "")} {nums} dépasse{(overLimit.Count > 1 ? "nt" : "")} {MaxBlockLength} caractères.");
+            return;
+        }
 
         _saving = true;
         try
         {
-            string? error;
+            var content   = JoinBlocks(_blocks);
             var sectionId = _selectedSection.Id;
+            string? error;
 
             if (_postEditMode)
             {
                 (_, error) = await Api.PutAsync<RulesPostDto>(
                     $"/api/rules/sections/{sectionId}/posts/{_postForm.Id}",
-                    new { _postForm.Title, _postForm.Content });
+                    new { _postForm.Title, Content = content });
             }
             else
             {
                 (_, error) = await Api.PostAsync<RulesPostDto>(
                     $"/api/rules/sections/{sectionId}/posts",
-                    new { _postForm.Id, _postForm.Title, _postForm.Content });
+                    new { _postForm.Id, _postForm.Title, Content = content });
             }
 
             if (error is not null) ShowError(error);
@@ -449,16 +517,36 @@
         else { ShowSuccess("Article supprimé."); await LoadSections(); }
     }
 
-    private bool _showPreview = false;
+    // ── Blocs ─────────────────────────────────────────────────────────────────
+
+    private void AddBlock()    => _blocks.Add("");
+    private void RemoveBlock(int index) => _blocks.RemoveAt(index);
+
+    private static List<string> SplitContent(string? content)
+    {
+        if (string.IsNullOrWhiteSpace(content)) return [""];
+        var blocks = content
+            .Split(SplitMarker, StringSplitOptions.None)
+            .Select(b => b.Trim('\n', '\r'))
+            .ToList();
+        return blocks.Count > 0 ? blocks : [""];
+    }
+
+    private static string JoinBlocks(List<string> blocks)
+        => string.Join($"\n{SplitMarker}\n", blocks.Where(b => !string.IsNullOrWhiteSpace(b)));
+
+    // ── Aperçu ────────────────────────────────────────────────────────────────
 
     private MarkupString RenderMarkdown(string? content)
     {
-        if (string.IsNullOrWhiteSpace(content)) 
+        if (string.IsNullOrWhiteSpace(content))
             return (MarkupString)"<p class=\"text-muted fst-italic\">Aucun contenu.</p>";
-    
+
         var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
         return (MarkupString)Markdown.ToHtml(content, pipeline);
     }
+
+    // ── Upload image ──────────────────────────────────────────────────────────
 
     private async Task UploadImage(InputFileChangeEventArgs e)
     {

@@ -1,0 +1,169 @@
+@page "/discord"
+@inject ApiClient Api
+@inject AuthService Auth
+@inject NavigationManager Nav
+
+@* ──────────────────────────────────────────────────────────────────────────
+   Page de configuration des mappings Discord.
+   Fichier autonome — peut être supprimé sans impact sur le reste de STS.Admin.
+   ────────────────────────────────────────────────────────────────────────── *@
+
+<PageTitle>Discord — STS Admin</PageTitle>
+
+<div class="p-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2 class="mb-0">🤖 Mappings Discord</h2>
+            <small class="text-muted">Associez chaque section à un Forum Channel Discord.</small>
+        </div>
+    </div>
+
+    <Alert Message="_message" IsError="_isError" OnDismiss="() => _message = null" />
+
+    @if (_loading)
+    {
+        <div class="text-center py-5"><div class="spinner-border text-secondary"></div></div>
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-header table-dark text-white fw-medium">
+                Sections <span class="badge bg-secondary ms-1">@_rows.Count</span>
+            </div>
+
+            @if (_rows.Count == 0)
+            {
+                <div class="card-body text-center text-muted py-4">
+                    Aucune section trouvée. Créez-en depuis la page Règles.
+                </div>
+            }
+            else
+            {
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Section</th>
+                            <th>Identifiant</th>
+                            <th>Forum Channel ID</th>
+                            <th style="width:120px"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in _rows)
+                        {
+                            <tr>
+                                <td class="fw-medium">@row.SectionTitle</td>
+                                <td><small class="text-muted font-monospace">@row.SectionId</small></td>
+                                <td>
+                                    <input class="form-control form-control-sm font-monospace"
+                                           style="max-width: 220px"
+                                           placeholder="ex: 1234567890123456789"
+                                           @bind="row.ForumChannelId" />
+                                </td>
+                                <td class="text-end">
+                                    <button class="btn btn-sm btn-primary me-1"
+                                            @onclick="() => SaveRow(row)"
+                                            disabled="@row.Saving">
+                                        @(row.Saving ? "…" : "Sauvegarder")
+                                    </button>
+                                    @if (row.HasMapping)
+                                    {
+                                        <button class="btn btn-sm btn-outline-danger"
+                                                @onclick="() => ClearRow(row)"
+                                                title="Supprimer le mapping">✕</button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+
+        <div class="mt-3 text-muted small">
+            <strong>Comment obtenir un Forum Channel ID ?</strong>
+            Activez le mode développeur dans Discord (<em>Paramètres → Avancé → Mode développeur</em>),
+            puis faites un clic droit sur le Forum Channel → <em>Copier l'identifiant</em>.
+        </div>
+    }
+</div>
+
+@code {
+
+    private List<MappingRow> _rows   = [];
+    private bool    _loading = true;
+    private string? _message;
+    private bool    _isError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Auth.IsAuthenticated) { Nav.NavigateTo("/login"); return; }
+        await Load();
+        _loading = false;
+    }
+
+    private async Task Load()
+    {
+        var sections = await Api.GetAsync<List<RulesSectionDto>>("/api/rules") ?? [];
+        var mappings = await Api.GetAsync<Dictionary<string, string>>("/api/discord/mappings/sections")
+                       ?? [];
+
+        _rows = sections.Select(s => new MappingRow
+        {
+            SectionId    = s.Id,
+            SectionTitle = s.Title,
+            ForumChannelId = mappings.TryGetValue(s.Id, out var id) ? id : string.Empty,
+        }).ToList();
+    }
+
+    private async Task SaveRow(MappingRow row)
+    {
+        if (string.IsNullOrWhiteSpace(row.ForumChannelId))
+        {
+            ShowError("L'ID du Forum Channel ne peut pas être vide.");
+            return;
+        }
+
+        row.Saving = true;
+        try
+        {
+            var (_, error) = await Api.PutAsync<object>(
+                $"/api/discord/mappings/sections/{row.SectionId}",
+                new { ForumChannelId = row.ForumChannelId.Trim() });
+
+            if (error is not null) ShowError(error);
+            else
+            {
+                row.HasMapping = true;
+                ShowSuccess($"Mapping sauvegardé pour « {row.SectionTitle} ».");
+            }
+        }
+        finally { row.Saving = false; }
+    }
+
+    private async Task ClearRow(MappingRow row)
+    {
+        var error = await Api.DeleteAsync($"/api/discord/mappings/sections/{row.SectionId}");
+        if (error is not null) ShowError(error);
+        else
+        {
+            row.ForumChannelId = string.Empty;
+            row.HasMapping     = false;
+            ShowSuccess($"Mapping supprimé pour « {row.SectionTitle} ».");
+        }
+    }
+
+    private void ShowError(string msg)   { _isError = true;  _message = msg; }
+    private void ShowSuccess(string msg) { _isError = false; _message = msg; }
+
+    // ── Modèle de ligne ──────────────────────────────────────────────────────
+
+    private sealed class MappingRow
+    {
+        public string SectionId    { get; init; } = string.Empty;
+        public string SectionTitle { get; init; } = string.Empty;
+        public string ForumChannelId { get; set; } = string.Empty;
+        public bool   HasMapping   { get; set; }
+        public bool   Saving       { get; set; }
+    }
+}

@@ -5,7 +5,8 @@ WORKDIR /src
 # Copier les projets nécessaires (tous avant le restore)
 COPY STS.Domain/STS.Domain.csproj                     STS.Domain/
 COPY STS.Domain.Content/STS.Domain.Content.csproj     STS.Domain.Content/
-COPY STS.Infrastructure/STS.Infrastructure.csproj          STS.Infrastructure/
+COPY STS.Infrastructure/STS.Infrastructure.csproj     STS.Infrastructure/
+COPY STS.Discord/STS.Discord.csproj                   STS.Discord/
 COPY STS.Api/STS.Api.csproj                           STS.Api/
 COPY STS.Admin/STS.Admin.csproj                       STS.Admin/
 
@@ -16,6 +17,7 @@ RUN dotnet restore STS.Api/STS.Api.csproj
 COPY STS.Domain/        STS.Domain/
 COPY STS.Domain.Content/ STS.Domain.Content/
 COPY STS.Infrastructure/ STS.Infrastructure/
+COPY STS.Discord/       STS.Discord/
 COPY STS.Api/           STS.Api/
 COPY STS.Admin/         STS.Admin/
 
