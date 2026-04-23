@@ -7,12 +7,15 @@ services:
       - "8080:8080"
     volumes:
       - ./data.json:/app/data.json
+      - ./discord-mappings.json:/app/discord-mappings.json  # ← ajout
       - sts-db:/data
       - sts-images:/app/images
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - Sts__DataFilePath=/app/data.json
+      - Discord__MappingsFilePath=/app/discord-mappings.json  # ← ajout
       - Jwt__Secret=${JWT_SECRET}
+      - Discord__BotToken=${DISCORD_BOT_TOKEN}
       - Jwt__Issuer=sts-api
       - Jwt__Audience=sts-admin
       - Admin__Username=${ADMIN_USERNAME}

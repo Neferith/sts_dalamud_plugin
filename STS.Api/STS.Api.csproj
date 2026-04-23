@@ -7,10 +7,12 @@
         <LangVersion>latest</LangVersion>
         <RootNamespace>Sts.Api</RootNamespace>
         <AssemblyName>STS.Api</AssemblyName>
-    </PropertyGroup>
+      <UserSecretsId>a154481b-3d50-4b2b-8d68-17ee28b50ae0</UserSecretsId>
+  </PropertyGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\STS.Infrastructure\STS.Infrastructure.csproj" />
+        <ProjectReference Include="..\STS.Discord\STS.Discord.csproj" />
         <ProjectReference Include="..\STS.Domain\STS.Domain.csproj" />
         <ProjectReference Include="..\STS.Domain.Content\STS.Domain.Content.csproj" />
         <ProjectReference Include="..\STS.Admin\STS.Admin.csproj" />
