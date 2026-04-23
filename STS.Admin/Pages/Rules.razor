@@ -143,7 +143,7 @@
                         <label class="form-label">Titre</label>
                         <input class="form-control"
                                @bind="_sectionForm.Title"
-                                @oninput="OnSectionTitleChanged"
+                               @oninput="OnSectionTitleChanged"
                                placeholder="ex: Guide du système" />
                     </div>
                     <div class="mb-3">
@@ -189,39 +189,11 @@
 
                     <!-- ── Métadonnées ──────────────────────────────────────── -->
                     <div class="mb-3">
-                        <label class="form-label">
-                            Image
-                            <small class="text-muted ms-1">L'URL est copiée automatiquement dans le presse-papier</small>
-                        </label>
-                        <div class="d-flex align-items-center gap-2">
-                            <InputFile OnChange="UploadImage"
-                                       accept=".jpg,.jpeg,.png,.gif,.webp"
-                                       class="form-control"
-                                       disabled="@_uploadingImage" />
-                            @if (_uploadingImage)
-                            {
-                                <div class="spinner-border spinner-border-sm text-secondary flex-shrink-0"></div>
-                            }
-                        </div>
-                        @if (_uploadError is not null)
-                        {
-                            <div class="text-danger small mt-1">@_uploadError</div>
-                        }
-                        @if (_uploadedUrl is not null)
-                        {
-                            <div class="text-success small mt-1">
-                                ✓ Tag Markdown copié — <code>![Description](@_uploadedUrl)</code>
-                            </div>
-                        }
-                    </div>
-
-                    
-                    <div class="mb-3">
                         <label class="form-label">Titre</label>
                         <input class="form-control"
                                @bind="_postForm.Title"
                                placeholder="ex: Le Système Très Simple"
-                                @oninput="OnPostTitleChanged" />
+                               @oninput="OnPostTitleChanged" />
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Identifiant</label>
@@ -257,10 +229,12 @@
                         @for (var i = 0; i < _blocks.Count; i++)
                         {
                             var index = i;
-                            var charCount = _blocks[index].Length;
+                            var block = _blocks[index];
+                            var charCount = block.Text.Length;
                             var isOver = charCount > MaxBlockLength;
 
                             <div class="border rounded mb-2 @(isOver ? "border-danger" : "border-secondary")">
+
                                 <!-- En-tête du bloc -->
                                 <div class="d-flex justify-content-between align-items-center px-2 py-1
                                             bg-light border-bottom @(isOver ? "border-danger" : "")">
@@ -277,13 +251,48 @@
                                         }
                                     </div>
                                 </div>
+
                                 <!-- Textarea -->
-                                <textarea class="form-control font-monospace border-0 rounded-0 rounded-bottom"
+                                <textarea class="form-control font-monospace border-0 rounded-0"
                                           rows="8"
-                                          @bind="_blocks[index]"
+                                          @bind="block.Text"
                                           @bind:event="oninput"
                                           placeholder="@(index == 0 ? "# Titre\n\nContenu en Markdown…" : "Suite du contenu…")">
                                 </textarea>
+
+                                <!-- Image du bloc -->
+                                <div class="border-top px-2 py-2 bg-light">
+                                    @if (block.ImageUrl is not null)
+                                    {
+                                        <!-- Image existante -->
+                                        <div class="d-flex align-items-center gap-2 mb-1">
+                                            <img src="@block.ImageUrl" alt="Aperçu" style="max-height:48px; max-width:120px; object-fit:cover; border-radius:4px;" />
+                                            <small class="text-muted font-monospace text-truncate flex-grow-1">@block.ImageUrl</small>
+                                            <button class="btn btn-sm btn-outline-danger py-0 px-1"
+                                                    @onclick="() => RemoveBlockImage(index)"
+                                                    title="Supprimer l'image">✕</button>
+                                        </div>
+                                    }
+                                    <div class="d-flex align-items-center gap-2">
+                                        <small class="text-muted">🖼 Image Discord :</small>
+                                        <InputFile OnChange="e => UploadBlockImage(e, index)"
+                                                   accept=".jpg,.jpeg,.png,.gif,.webp"
+                                                   class="form-control form-control-sm"
+                                                   disabled="@block.Uploading" />
+                                        <button class="btn btn-sm btn-outline-secondary flex-shrink-0"
+                                                @onclick="() => OpenImagePicker(index)"
+                                                title="Choisir depuis la galerie">📂</button>
+                                        @if (block.Uploading)
+                                        {
+                                            <div class="spinner-border spinner-border-sm text-secondary flex-shrink-0"></div>
+                                        }
+                                    </div>
+                                    @if (block.UploadError is not null)
+                                    {
+                                        <div class="text-danger small mt-1">@block.UploadError</div>
+                                    }
+                                </div>
+
                             </div>
                         }
 
@@ -299,7 +308,12 @@
                             @for (var i = 0; i < _blocks.Count; i++)
                             {
                                 var index = i;
-                                @RenderMarkdown(_blocks[index])
+                                var block = _blocks[index];
+                                @RenderMarkdown(block.Text)
+                                @if (block.ImageUrl is not null)
+                                {
+                                    <img src="@block.ImageUrl" alt="Image du bloc" class="img-fluid rounded my-2" />
+                                }
                                 @if (index < _blocks.Count - 1)
                                 {
                                     <hr class="border-2 border-secondary opacity-50 my-3" />
@@ -321,14 +335,65 @@
     </div>
 }
 
+<!-- ── Image picker ──────────────────────────────────────────────────────── -->
+@if (_showImagePicker)
+{
+    <div class="modal-backdrop fade show" style="z-index:1060"></div>
+    <div class="modal fade show d-block" tabindex="-1" style="z-index:1070">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">🖼 Choisir une image</h5>
+                    <button type="button" class="btn-close" @onclick="CloseImagePicker"></button>
+                </div>
+                <div class="modal-body">
+                    @if (_galleryLoading)
+                    {
+                        <div class="text-center py-4"><div class="spinner-border text-secondary"></div></div>
+                    }
+                    else if (_galleryImages.Count == 0)
+                    {
+                        <div class="text-center text-muted py-4">Aucune image disponible.</div>
+                    }
+                    else
+                    {
+                        <div class="row g-2">
+                            @foreach (var img in _galleryImages)
+                            {
+                                var imgUrl = img.Url;
+                                <div class="col-6 col-md-3 col-lg-2">
+                                    <div class="card h-100 gallery-item"
+                                         style="cursor:pointer"
+                                         @onclick="() => SelectGalleryImage(imgUrl)">
+                                        <img src="@img.Url" class="card-img-top"
+                                             style="height:100px; object-fit:cover;" alt="@img.FileName" />
+                                        <div class="card-body p-1">
+                                            <small class="text-muted font-monospace text-truncate d-block">@img.FileName</small>
+                                            <small class="text-muted">@img.SizeKb Ko</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseImagePicker">Annuler</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
 
-    private const int MaxBlockLength = 2000;
-    private const string SplitMarker = "---split---";
+    private const int    MaxBlockLength = 2000;
+    private const string SplitMarker   = "---split---";
+    private const string ImageMarker   = "---image---";
 
     // ── État ──────────────────────────────────────────────────────────────────
 
-    private List<RulesSectionDto> _sections        = [];
+    private List<RulesSectionDto> _sections       = [];
     private RulesSectionDto?      _selectedSection;
 
     private bool    _loading = true;
@@ -344,17 +409,18 @@
 
     // ── Modal post ────────────────────────────────────────────────────────────
 
-    private bool         _showPostModal;
-    private bool         _postEditMode;
-    private RulesPostDto _postForm  = new();
-    private List<string> _blocks    = [""];
-    private bool         _showPreview;
+    private bool          _showPostModal;
+    private bool          _postEditMode;
+    private RulesPostDto  _postForm  = new();
+    private List<BlockModel> _blocks = [new()];
+    private bool          _showPreview;
 
-    // ── Upload image ──────────────────────────────────────────────────────────
+    // ── Image picker ─────────────────────────────────────────────────────────
 
-    private bool    _uploadingImage;
-    private string? _uploadError;
-    private string? _uploadedUrl;
+    private bool               _showImagePicker;
+    private int                _imagePickerTargetIndex;
+    private List<ImageInfoDto> _galleryImages  = [];
+    private bool               _galleryLoading;
 
     // ── Init ──────────────────────────────────────────────────────────────────
 
@@ -397,12 +463,8 @@
     {
         var title = e.Value?.ToString() ?? "";
         _sectionForm.Title = title;
-
-        // uniquement en création
         if (!_sectionEditMode)
-        {   
             _sectionForm.Id = SlugUtils.GenerateSlug(title);
-        }
     }
 
     private async Task SaveSection()
@@ -458,7 +520,7 @@
     private void OpenCreatePost()
     {
         _postForm      = new RulesPostDto();
-        _blocks        = [""];
+        _blocks        = [new BlockModel()];
         _showPreview   = false;
         _postEditMode  = false;
         _showPostModal = true;
@@ -467,7 +529,7 @@
     private void OpenEditPost(RulesPostDto post)
     {
         _postForm      = post.Clone();
-        _blocks        = SplitContent(post.Content);
+        _blocks        = ParseBlocks(post.Content);
         _showPreview   = false;
         _postEditMode  = true;
         _showPostModal = true;
@@ -477,12 +539,8 @@
     {
         var title = e.Value?.ToString() ?? "";
         _postForm.Title = title;
-
-        // uniquement en création
         if (!_postEditMode)
-        {
             _postForm.Id = SlugUtils.GenerateSlug(title);
-        }
     }
 
     private void ClosePostModal() => _showPostModal = false;
@@ -490,11 +548,15 @@
     private async Task SavePost()
     {
         if (_selectedSection is null) return;
-        if (string.IsNullOrWhiteSpace(_postForm.Id))    { ShowError("L'identifiant est requis."); return; }
-        if (string.IsNullOrWhiteSpace(_postForm.Title)) { ShowError("Le titre est requis.");      return; }
-        if (_blocks.All(string.IsNullOrWhiteSpace))     { ShowError("Le contenu est requis.");    return; }
+        if (string.IsNullOrWhiteSpace(_postForm.Id))                { ShowError("L'identifiant est requis."); return; }
+        if (string.IsNullOrWhiteSpace(_postForm.Title))             { ShowError("Le titre est requis.");      return; }
+        if (_blocks.All(b => string.IsNullOrWhiteSpace(b.Text)))    { ShowError("Le contenu est requis.");    return; }
 
-        var overLimit = _blocks.Select((b, i) => (b, i)).Where(x => x.b.Length > MaxBlockLength).ToList();
+        var overLimit = _blocks
+            .Select((b, i) => (b.Text, i))
+            .Where(x => x.Text.Length > MaxBlockLength)
+            .ToList();
+
         if (overLimit.Count > 0)
         {
             var nums = string.Join(", ", overLimit.Select(x => x.i + 1));
@@ -505,7 +567,7 @@
         _saving = true;
         try
         {
-            var content   = JoinBlocks(_blocks);
+            var content   = SerializeBlocks(_blocks);
             var sectionId = _selectedSection.Id;
             string? error;
 
@@ -547,21 +609,86 @@
 
     // ── Blocs ─────────────────────────────────────────────────────────────────
 
-    private void AddBlock()    => _blocks.Add("");
-    private void RemoveBlock(int index) => _blocks.RemoveAt(index);
+    private void AddBlock()                  => _blocks.Add(new BlockModel());
+    private void RemoveBlock(int index)      => _blocks.RemoveAt(index);
+    private void RemoveBlockImage(int index) => _blocks[index].ImageUrl = null;
 
-    private static List<string> SplitContent(string? content)
+    private static List<BlockModel> ParseBlocks(string? content)
     {
-        if (string.IsNullOrWhiteSpace(content)) return [""];
+        if (string.IsNullOrWhiteSpace(content)) return [new BlockModel()];
+
         var blocks = content
             .Split(SplitMarker, StringSplitOptions.None)
-            .Select(b => b.Trim('\n', '\r'))
+            .Select(raw =>
+            {
+                var parts    = raw.Split(ImageMarker, 2);
+                var text     = parts[0].Trim('\n', '\r');
+                var imageUrl = parts.Length > 1 ? parts[1].Trim('\n', '\r', ' ') : null;
+                return new BlockModel
+                {
+                    Text     = text,
+                    ImageUrl = string.IsNullOrWhiteSpace(imageUrl) ? null : imageUrl,
+                };
+            })
             .ToList();
-        return blocks.Count > 0 ? blocks : [""];
+
+        return blocks.Count > 0 ? blocks : [new BlockModel()];
     }
 
-    private static string JoinBlocks(List<string> blocks)
-        => string.Join($"\n{SplitMarker}\n", blocks.Where(b => !string.IsNullOrWhiteSpace(b)));
+    private static string SerializeBlocks(List<BlockModel> blocks)
+    {
+        var parts = blocks
+            .Where(b => !string.IsNullOrWhiteSpace(b.Text) || b.ImageUrl is not null)
+            .Select(b => b.ImageUrl is not null
+                ? $"{b.Text}\n{ImageMarker}\n{b.ImageUrl}"
+                : b.Text);
+
+        return string.Join($"\n{SplitMarker}\n", parts);
+    }
+
+    // ── Image picker ─────────────────────────────────────────────────────────
+
+    private async Task OpenImagePicker(int index)
+    {
+        _imagePickerTargetIndex = index;
+        _showImagePicker        = true;
+        _galleryLoading         = true;
+        _galleryImages          = await Api.GetAsync<List<ImageInfoDto>>("/api/images") ?? [];
+        _galleryLoading         = false;
+    }
+
+    private void CloseImagePicker() => _showImagePicker = false;
+
+    private void SelectGalleryImage(string url)
+    {
+        _blocks[_imagePickerTargetIndex].ImageUrl = url;
+        _showImagePicker = false;
+    }
+
+    // ── Upload image de bloc ──────────────────────────────────────────────────
+
+    private async Task UploadBlockImage(InputFileChangeEventArgs e, int index)
+    {
+        var block          = _blocks[index];
+        block.UploadError  = null;
+        block.Uploading    = true;
+
+        try
+        {
+            var file    = e.File;
+            var content = new MultipartFormDataContent();
+            var stream  = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            content.Add(new StreamContent(stream), "file", file.Name);
+
+            var (data, error) = await Api.PostFormAsync("/api/images", content);
+
+            if (error is not null)
+                block.UploadError = error;
+            else
+                block.ImageUrl = data?.GetProperty("url").GetString();
+        }
+        finally { block.Uploading = false; }
+    }
 
     // ── Aperçu ────────────────────────────────────────────────────────────────
 
@@ -574,40 +701,22 @@
         return (MarkupString)Markdown.ToHtml(content, pipeline);
     }
 
-    // ── Upload image ──────────────────────────────────────────────────────────
-
-    private async Task UploadImage(InputFileChangeEventArgs e)
-    {
-        _uploadError    = null;
-        _uploadedUrl    = null;
-        _uploadingImage = true;
-
-        try
-        {
-            var file    = e.File;
-            var content = new MultipartFormDataContent();
-            var stream  = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
-            content.Add(new StreamContent(stream), "file", file.Name);
-
-            var (data, error) = await Api.PostFormAsync("/api/images", content);
-
-            if (error is not null)
-                _uploadError = error;
-            else
-            {
-                _uploadedUrl = data?.GetProperty("url").GetString();
-                if (_uploadedUrl is not null)
-                {
-                    var markdown = $"![Description]({_uploadedUrl})";
-                    await JS.InvokeVoidAsync("navigator.clipboard.writeText", markdown);
-                }
-            }
-        }
-        finally { _uploadingImage = false; }
-    }
-
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private void ShowError(string msg)   { _isError = true;  _message = msg; }
     private void ShowSuccess(string msg) { _isError = false; _message = msg; }
+
+    // ── DTOs ─────────────────────────────────────────────────────────────────
+
+    private sealed record ImageInfoDto(string FileName, string Url, int SizeKb);
+
+    // ── Modèle de bloc ────────────────────────────────────────────────────────
+
+    private sealed class BlockModel
+    {
+        public string  Text        { get; set; } = string.Empty;
+        public string? ImageUrl    { get; set; }
+        public bool    Uploading   { get; set; }
+        public string? UploadError { get; set; }
+    }
 }
