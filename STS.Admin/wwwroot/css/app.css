@@ -24,6 +24,12 @@
     background-color: #f8f9fa;
 }
 
+.rules-page .card {
+    --bs-card-cap-bg: #1a1a2e;
+    --bs-card-cap-color: #fff;
+    --bs-card-border-color: rgba(255,255,255,0.1);
+}
+
 /* Modals sans JS Bootstrap */
 .modal-backdrop {
     position: fixed;
