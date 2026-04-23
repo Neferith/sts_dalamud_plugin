@@ -70,7 +70,9 @@ builder.Services.AddSingleton<IUploadImageUseCase, UploadImageUseCase>();
 builder.Services.AddSingleton<IGetImagesUseCase, GetImagesUseCase>();
 builder.Services.AddSingleton<IDeleteImageUseCase, DeleteImageUseCase>();
 
-builder.Services.AddDiscordBot(builder.Configuration);
+builder.Services.AddDiscordBot(
+    builder.Configuration,
+    builder.Configuration["Discord:MappingsFilePath"]);
 
 // ─── Auth JWT ─────────────────────────────────────────────────────────────────
 

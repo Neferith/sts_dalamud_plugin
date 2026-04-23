@@ -12,14 +12,14 @@ namespace Sts.Discord;
 /// </summary>
 public sealed class DiscordBotService : BackgroundService, IDiscordPublisher
 {
+    private const string SplitMarker = "---split---";
+
     private readonly DiscordSocketClient _client;
     private readonly DiscordMappingStore _mappingStore;
     private readonly string _botToken;
     private readonly ILogger<DiscordBotService> _logger;
 
-    /// <summary>
-    /// Complété quand le client Discord est prêt à accepter des appels.
-    /// </summary>
+    /// <summary>Complété quand le client Discord est prêt à accepter des appels.</summary>
     private readonly TaskCompletionSource _readyTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     /// <param name="mappingStore">Store de mappings STS ↔ Discord.</param>
@@ -54,7 +54,6 @@ public sealed class DiscordBotService : BackgroundService, IDiscordPublisher
         await _client.LoginAsync(TokenType.Bot, _botToken);
         await _client.StartAsync();
 
-        // Maintenir le service en vie jusqu'à l'arrêt de l'application.
         try
         {
             await Task.Delay(Timeout.Infinite, stoppingToken);
@@ -93,18 +92,31 @@ public sealed class DiscordBotService : BackgroundService, IDiscordPublisher
             return;
         }
 
+        var chunks = SplitContent(post.Content);
+        var messageIds = new List<ulong>();
+
+        // Le premier chunk devient le message d'ouverture du thread.
         var thread = await forum.CreatePostAsync(
             title: post.Title,
             archiveDuration: ThreadArchiveDuration.OneWeek,
-            text: FormatContent(post));
+            text: chunks[0]);
 
         // Dans un Forum Discord, l'ID du thread == l'ID du message d'ouverture.
-        _mappingStore.SetThreadId(post.Id, thread.Id);
+        messageIds.Add(thread.Id);
+
+        // Les chunks suivants sont postés en replies dans le thread.
+        for (var i = 1; i < chunks.Count; i++)
+        {
+            var reply = await thread.SendMessageAsync(chunks[i]);
+            messageIds.Add(reply.Id);
+        }
+
+        _mappingStore.SetPostMapping(post.Id, thread.Id, messageIds);
         await _mappingStore.SaveAsync(ct);
 
         _logger.LogInformation(
-            "Post '{PostId}' publié sur Discord (thread {ThreadId}).",
-            post.Id, thread.Id);
+            "Post '{PostId}' publié sur Discord (thread {ThreadId}, {Count} message(s)).",
+            post.Id, thread.Id, messageIds.Count);
     }
 
     /// <inheritdoc/>
@@ -129,22 +141,55 @@ public sealed class DiscordBotService : BackgroundService, IDiscordPublisher
             return;
         }
 
-        // Le message d'ouverture d'un thread Forum a le même ID que le thread.
-        var message = await thread.GetMessageAsync(threadId.Value);
-        if (message is IUserMessage userMessage)
-        {
-            await userMessage.ModifyAsync(m => m.Content = FormatContent(post));
+        var oldMessageIds = _mappingStore.GetMessageIds(post.Id);
+        var newChunks = SplitContent(post.Content);
+        var newMessageIds = new List<ulong>();
 
-            _logger.LogInformation(
-                "Post '{PostId}' mis à jour sur Discord (thread {ThreadId}).",
-                post.Id, threadId.Value);
-        }
-        else
+        // ── Éditer ou créer les messages ─────────────────────────────────────
+
+        for (var i = 0; i < newChunks.Count; i++)
         {
-            _logger.LogError(
-                "Message d'ouverture {MessageId} introuvable ou non éditable pour le post '{PostId}'.",
-                threadId.Value, post.Id);
+            if (i < oldMessageIds.Count)
+            {
+                // Message existant → édition.
+                var existingMsg = await thread.GetMessageAsync(oldMessageIds[i]);
+                if (existingMsg is IUserMessage userMsg)
+                {
+                    await userMsg.ModifyAsync(m => m.Content = newChunks[i]);
+                    newMessageIds.Add(oldMessageIds[i]);
+                }
+                else
+                {
+                    _logger.LogWarning(
+                        "Message {MessageId} introuvable ou non éditable pour le post '{PostId}', remplacement.",
+                        oldMessageIds[i], post.Id);
+                    var replacement = await thread.SendMessageAsync(newChunks[i]);
+                    newMessageIds.Add(replacement.Id);
+                }
+            }
+            else
+            {
+                // Nouveau chunk → nouveau message.
+                var newMsg = await thread.SendMessageAsync(newChunks[i]);
+                newMessageIds.Add(newMsg.Id);
+            }
         }
+
+        // ── Supprimer les messages en surplus ────────────────────────────────
+
+        for (var i = newChunks.Count; i < oldMessageIds.Count; i++)
+        {
+            var surplusMsg = await thread.GetMessageAsync(oldMessageIds[i]);
+            if (surplusMsg is not null)
+                await surplusMsg.DeleteAsync();
+        }
+
+        _mappingStore.SetPostMapping(post.Id, threadId.Value, newMessageIds);
+        await _mappingStore.SaveAsync(ct);
+
+        _logger.LogInformation(
+            "Post '{PostId}' mis à jour sur Discord (thread {ThreadId}, {Count} message(s)).",
+            post.Id, threadId.Value, newMessageIds.Count);
     }
 
     /// <inheritdoc/>
@@ -182,11 +227,22 @@ public sealed class DiscordBotService : BackgroundService, IDiscordPublisher
         => _readyTcs.Task.WaitAsync(ct);
 
     /// <summary>
-    /// Formate le contenu d'un post pour Discord.
-    /// Le contenu STS est déjà en Markdown — Discord l'accepte nativement.
+    /// Découpe le contenu d'un post sur le marqueur <c>---split---</c>.
+    /// Retourne au moins un chunk non vide.
     /// </summary>
-    private static string FormatContent(RulesPost post)
-        => post.Content;
+    private static List<string> SplitContent(string? content)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+            return [string.Empty];
+
+        var chunks = content
+            .Split(SplitMarker, StringSplitOptions.None)
+            .Select(c => c.Trim('\n', '\r'))
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .ToList();
+
+        return chunks.Count > 0 ? chunks : [string.Empty];
+    }
 
     // ─── Événements Discord ──────────────────────────────────────────────────
 
