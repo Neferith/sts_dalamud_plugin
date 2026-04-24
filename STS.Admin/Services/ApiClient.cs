@@ -66,6 +66,16 @@ public class ApiClient
         return (await response.Content.ReadFromJsonAsync<T>(JsonOptions), null);
     }
 
+    public async Task<string?> PostNoContentAsync(string url, object body)
+    {
+        SetAuthHeader();
+        var response = await _http.PostAsJsonAsync(url, body);
+        if (HandleUnauthorized(response)) return "Non autorisé.";
+        if (!response.IsSuccessStatusCode)
+            return await ReadError(response);
+        return null;
+    }
+
     // ─── PUT ──────────────────────────────────────────────────────────────────
 
     public async Task<(T? data, string? error)> PutAsync<T>(string url, object body)

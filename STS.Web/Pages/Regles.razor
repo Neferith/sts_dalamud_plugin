@@ -65,6 +65,9 @@ else
 }
 
 @code {
+    private const string SplitMarker = "---split---";
+    private const string ImageMarker = "---image---";
+
     // ── Pipeline Markdig (extensions courantes : tables, listes de tâches…) ──
     private static readonly MarkdownPipeline _pipeline =
         new MarkdownPipelineBuilder()
@@ -97,8 +100,37 @@ else
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
-    private static string RenderMarkdown(string markdown) =>
-        Markdown.ToHtml(markdown, _pipeline);
+    private static string RenderMarkdown(string? content)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+            return string.Empty;
+
+        // 1. Découper sur ---split--- pour obtenir les blocs
+        // 2. Dans chaque bloc, remplacer ---image---\nurl par ![](url)
+        // 3. Rejoindre les blocs avec un séparateur <hr>
+        var blocks = content
+            .Split(SplitMarker, StringSplitOptions.None)
+            .Select(NormalizeBlock)
+            .Where(b => !string.IsNullOrWhiteSpace(b));
+
+        var normalized = string.Join("\n\n---\n\n", blocks);
+        return Markdown.ToHtml(normalized, _pipeline);
+    }
+
+    /// <summary>
+    /// Transforme <c>---image---\nhttps://...</c> en syntaxe Markdown image <c>![](https://...)</c>.
+    /// </summary>
+    private static string NormalizeBlock(string raw)
+    {
+        var parts    = raw.Split(ImageMarker, 2);
+        var text     = parts[0].Trim('\n', '\r');
+        var imageUrl = parts.Length > 1 ? parts[1].Trim('\n', '\r', ' ') : null;
+
+        if (string.IsNullOrWhiteSpace(imageUrl))
+            return text;
+
+        return $"{text}\n\n![]({imageUrl})";
+    }
 
     private static string PostAnchor(RulesSection section, RulesPost post) =>
         $"{section.Id}-{post.Id}";

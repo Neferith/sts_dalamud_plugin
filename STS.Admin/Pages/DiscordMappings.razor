@@ -13,8 +13,8 @@
 <div class="p-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <h2 class="mb-0">🤖 Mappings Discord</h2>
-            <small class="text-muted">Associez chaque section à un Forum Channel Discord.</small>
+            <h2 class="mb-0">🤖 Discord</h2>
+            <small class="text-muted">Configurez les mappings et publiez les articles sur Discord.</small>
         </div>
     </div>
 
@@ -26,7 +26,9 @@
     }
     else
     {
-        <div class="card">
+        <!-- ── Mappings sections ──────────────────────────────────────────── -->
+        <h5 class="mt-2 mb-2">Sections → Forum Channels</h5>
+        <div class="card mb-4">
             <div class="card-header table-dark text-white fw-medium">
                 Sections <span class="badge bg-secondary ms-1">@_rows.Count</span>
             </div>
@@ -80,17 +82,74 @@
             }
         </div>
 
-        <div class="mt-3 text-muted small">
+        <div class="mb-4 text-muted small">
             <strong>Comment obtenir un Forum Channel ID ?</strong>
             Activez le mode développeur dans Discord (<em>Paramètres → Avancé → Mode développeur</em>),
             puis faites un clic droit sur le Forum Channel → <em>Copier l'identifiant</em>.
+        </div>
+
+        <!-- ── Articles non publiés ──────────────────────────────────────── -->
+        <h5 class="mb-2">Articles</h5>
+        <div class="card">
+            <div class="card-header table-dark text-white fw-medium">
+                Statut Discord par article
+            </div>
+            @if (_postRows.Count == 0)
+            {
+                <div class="card-body text-center text-muted py-4">
+                    Aucun article trouvé.
+                </div>
+            }
+            else
+            {
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Section</th>
+                            <th>Article</th>
+                            <th>Statut</th>
+                            <th style="width:120px"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var post in _postRows)
+                        {
+                            <tr>
+                                <td><small class="text-muted font-monospace">@post.SectionId</small></td>
+                                <td class="fw-medium">@post.PostTitle</td>
+                                <td>
+                                    @if (post.IsPublished)
+                                    {
+                                        <span class="badge bg-success">✓ Publié</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Non publié</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    @if (!post.IsPublished)
+                                    {
+                                        <button class="btn btn-sm btn-outline-primary"
+                                                @onclick="() => PublishPost(post)"
+                                                disabled="@post.Publishing">
+                                            @(post.Publishing ? "…" : "📤 Publier")
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
         </div>
     }
 </div>
 
 @code {
 
-    private List<MappingRow> _rows   = [];
+    private List<MappingRow> _rows     = [];
+    private List<PostRow>    _postRows = [];
     private bool    _loading = true;
     private string? _message;
     private bool    _isError;
@@ -104,17 +163,30 @@
 
     private async Task Load()
     {
-        var sections = await Api.GetAsync<List<RulesSectionDto>>("/api/rules") ?? [];
-        var mappings = await Api.GetAsync<Dictionary<string, string>>("/api/discord/mappings/sections")
-                       ?? [];
+        var sections     = await Api.GetAsync<List<RulesSectionDto>>("/api/rules") ?? [];
+        var sectionMaps  = await Api.GetAsync<Dictionary<string, string>>("/api/discord/mappings/sections") ?? [];
+        var postMaps     = await Api.GetAsync<Dictionary<string, string>>("/api/discord/mappings/posts") ?? [];
 
         _rows = sections.Select(s => new MappingRow
         {
-            SectionId    = s.Id,
-            SectionTitle = s.Title,
-            ForumChannelId = mappings.TryGetValue(s.Id, out var id) ? id : string.Empty,
+            SectionId      = s.Id,
+            SectionTitle   = s.Title,
+            ForumChannelId = sectionMaps.TryGetValue(s.Id, out var id) ? id : string.Empty,
+            HasMapping     = sectionMaps.ContainsKey(s.Id),
         }).ToList();
+
+        _postRows = sections
+            .SelectMany(s => s.Posts.Select(p => new PostRow
+            {
+                SectionId   = s.Id,
+                PostId      = p.Id,
+                PostTitle   = p.Title,
+                IsPublished = postMaps.ContainsKey(p.Id),
+            }))
+            .ToList();
     }
+
+    // ── Mappings sections ─────────────────────────────────────────────────────
 
     private async Task SaveRow(MappingRow row)
     {
@@ -153,17 +225,47 @@
         }
     }
 
+    // ── Publication manuelle ──────────────────────────────────────────────────
+
+    private async Task PublishPost(PostRow post)
+    {
+        post.Publishing = true;
+        try
+        {
+            var error = await Api.PostNoContentAsync(
+                $"/api/discord/publish/{post.SectionId}/{post.PostId}", new { });
+
+            if (error is not null)
+                ShowError(error);
+            else
+            {
+                post.IsPublished = true;
+                ShowSuccess($"« {post.PostTitle} » publié sur Discord.");
+            }
+        }
+        finally { post.Publishing = false; }
+    }
+
     private void ShowError(string msg)   { _isError = true;  _message = msg; }
     private void ShowSuccess(string msg) { _isError = false; _message = msg; }
 
-    // ── Modèle de ligne ──────────────────────────────────────────────────────
+    // ── Modèles ───────────────────────────────────────────────────────────────
 
     private sealed class MappingRow
     {
-        public string SectionId    { get; init; } = string.Empty;
-        public string SectionTitle { get; init; } = string.Empty;
-        public string ForumChannelId { get; set; } = string.Empty;
-        public bool   HasMapping   { get; set; }
-        public bool   Saving       { get; set; }
+        public string SectionId      { get; init; } = string.Empty;
+        public string SectionTitle   { get; init; } = string.Empty;
+        public string ForumChannelId { get; set; }  = string.Empty;
+        public bool   HasMapping     { get; set; }
+        public bool   Saving         { get; set; }
+    }
+
+    private sealed class PostRow
+    {
+        public string SectionId   { get; init; } = string.Empty;
+        public string PostId      { get; init; } = string.Empty;
+        public string PostTitle   { get; init; } = string.Empty;
+        public bool   IsPublished { get; set; }
+        public bool   Publishing  { get; set; }
     }
 }

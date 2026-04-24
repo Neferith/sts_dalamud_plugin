@@ -147,6 +147,12 @@ public sealed class DiscordMappingStore
         return new PostMapping { ThreadId = threadId };
     }
 
+    /// <summary>Retourne tous les mappings post → threadId (postId → threadId string).</summary>
+    public IReadOnlyDictionary<string, string> GetAllPostMappings()
+        => _data.Posts.ToDictionary(
+            kvp => kvp.Key,
+            kvp => kvp.Value.ThreadId);
+
     // ─── Sections ────────────────────────────────────────────────────────────
 
     /// <summary>
