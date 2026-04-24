@@ -15,14 +15,17 @@ namespace Sts.Discord;
 ///   "posts": {
 ///     "systeme-tres-simple": {
 ///       "threadId": "9876543210987654321",
-///       "messageIds": ["9876543210987654321", "1111111111111111111"]
+///       "messages": [
+///         { "id": "9876543210987654321", "imageUrl": null },
+///         { "id": "1111111111111111111", "imageUrl": "https://api.nlrp.fr/images/xxx.png" }
+///       ]
 ///     }
 ///   }
 /// }
 /// </code>
 /// La clé <c>sections</c> associe un <c>RulesSection.Id</c> à l'ID du Forum Channel Discord.
 /// La clé <c>posts</c> associe un <c>RulesPost.Id</c> à son mapping Discord complet.
-/// Le premier <c>messageId</c> est toujours égal au <c>threadId</c> (message d'ouverture).
+/// Le premier message est toujours le message d'ouverture du thread (même ID que le thread).
 /// </remarks>
 public sealed class DiscordMappingStore
 {
@@ -67,8 +70,10 @@ public sealed class DiscordMappingStore
     }
 
     /// <summary>
-    /// Désérialise le fichier en gérant la migration de l'ancien format
-    /// (posts : string) vers le nouveau (posts : PostMapping).
+    /// Désérialise le fichier en gérant la migration des anciens formats :
+    /// - v1 : posts : string (juste un threadId)
+    /// - v2 : posts : { threadId, messageIds: string[] }
+    /// - v3 : posts : { threadId, messages: [{ id, imageUrl }] }  ← format actuel
     /// </summary>
     private static async Task<MappingData> DeserializeWithMigrationAsync(
         Stream stream, CancellationToken ct)
@@ -85,31 +90,61 @@ public sealed class DiscordMappingStore
                 data.Sections[prop.Name] = prop.Value.GetString() ?? string.Empty;
         }
 
-        // ── Posts (avec migration de l'ancien format string) ─────────────────
+        // ── Posts (avec migration des anciens formats) ────────────────────────
         if (root.TryGetProperty("posts", out var postsEl))
         {
             foreach (var prop in postsEl.EnumerateObject())
             {
-                if (prop.Value.ValueKind == JsonValueKind.String)
+                data.Posts[prop.Name] = prop.Value.ValueKind switch
                 {
-                    // Ancien format : "postId": "threadId"
-                    var threadId = prop.Value.GetString() ?? string.Empty;
-                    data.Posts[prop.Name] = new PostMapping
-                    {
-                        ThreadId = threadId,
-                        MessageIds = [threadId],
-                    };
-                }
-                else
-                {
-                    // Nouveau format : "postId": { "threadId": "...", "messageIds": [...] }
-                    data.Posts[prop.Name] = prop.Value.Deserialize<PostMapping>(JsonOptions)
-                                           ?? new PostMapping();
-                }
+                    // v1 : "postId": "threadId"
+                    JsonValueKind.String => MigrateFromV1(prop.Value.GetString() ?? string.Empty),
+
+                    JsonValueKind.Object => MigrateFromObject(prop.Value),
+
+                    _ => new PostMapping(),
+                };
             }
         }
 
         return data;
+    }
+
+    private static PostMapping MigrateFromV1(string threadId) => new()
+    {
+        ThreadId = threadId,
+        Messages = [new MessageEntry { Id = threadId }],
+    };
+
+    private static PostMapping MigrateFromObject(JsonElement obj)
+    {
+        var threadId = obj.TryGetProperty("threadId", out var tid)
+            ? tid.GetString() ?? string.Empty
+            : string.Empty;
+
+        // v3 : { threadId, messages: [...] }
+        if (obj.TryGetProperty("messages", out var messagesEl))
+        {
+            return new PostMapping
+            {
+                ThreadId = threadId,
+                Messages = messagesEl.Deserialize<List<MessageEntry>>(JsonOptions) ?? [],
+            };
+        }
+
+        // v2 : { threadId, messageIds: string[] }
+        if (obj.TryGetProperty("messageIds", out var idsEl))
+        {
+            return new PostMapping
+            {
+                ThreadId = threadId,
+                Messages = idsEl.EnumerateArray()
+                    .Select(e => new MessageEntry { Id = e.GetString() ?? string.Empty })
+                    .ToList(),
+            };
+        }
+
+        return new PostMapping { ThreadId = threadId };
     }
 
     // ─── Sections ────────────────────────────────────────────────────────────
@@ -145,27 +180,21 @@ public sealed class DiscordMappingStore
             && ulong.TryParse(mapping.ThreadId, out var id) ? id : null;
 
     /// <summary>
-    /// Retourne les IDs de tous les messages Discord du post (dans l'ordre),
+    /// Retourne les entrées de messages Discord du post (dans l'ordre),
     /// ou une liste vide si le post n'a jamais été publié.
     /// </summary>
-    public IReadOnlyList<ulong> GetMessageIds(string postId)
-    {
-        if (!_data.Posts.TryGetValue(postId, out var mapping))
-            return [];
+    public IReadOnlyList<MessageEntry> GetMessages(string postId)
+        => _data.Posts.TryGetValue(postId, out var mapping)
+            ? mapping.Messages
+            : [];
 
-        return mapping.MessageIds
-            .Select(raw => ulong.TryParse(raw, out var id) ? id : (ulong?)null)
-            .OfType<ulong>()
-            .ToList();
-    }
-
-    /// <summary>Enregistre le mapping complet d'un post (thread + tous les messages).</summary>
-    public void SetPostMapping(string postId, ulong threadId, IEnumerable<ulong> messageIds)
+    /// <summary>Enregistre le mapping complet d'un post (thread + messages avec images).</summary>
+    public void SetPostMapping(string postId, ulong threadId, IEnumerable<MessageEntry> messages)
     {
         _data.Posts[postId] = new PostMapping
         {
             ThreadId = threadId.ToString(),
-            MessageIds = messageIds.Select(id => id.ToString()).ToList(),
+            Messages = messages.ToList(),
         };
     }
 
@@ -210,7 +239,25 @@ public sealed class DiscordMappingStore
         [JsonPropertyName("threadId")]
         public string ThreadId { get; set; } = string.Empty;
 
-        [JsonPropertyName("messageIds")]
-        public List<string> MessageIds { get; set; } = [];
+        [JsonPropertyName("messages")]
+        public List<MessageEntry> Messages { get; set; } = [];
     }
+}
+
+// ─── Modèle public ───────────────────────────────────────────────────────────
+
+/// <summary>Entrée de message Discord avec l'URL de l'image associée.</summary>
+public sealed class MessageEntry
+{
+    /// <summary>ID du message Discord.</summary>
+    [JsonPropertyName("id")]
+    public string Id { get; set; } = string.Empty;
+
+    /// <summary>URL de l'image postée en attachment, ou <see langword="null"/> si aucune.</summary>
+    [JsonPropertyName("imageUrl")]
+    public string? ImageUrl { get; set; }
+
+    /// <summary>Retourne l'ID parsé en ulong, ou <see langword="null"/> si invalide.</summary>
+    [JsonIgnore]
+    public ulong? DiscordId => ulong.TryParse(Id, out var id) ? id : null;
 }
