@@ -106,5 +106,8 @@ public sealed class QuickLinksRepository : IQuickLinksRepository
     }
 
     private void WriteAll(IEnumerable<QuickLink> links)
-        => File.WriteAllText(_filePath, JsonSerializer.Serialize(links, _json));
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(_filePath)!);
+        File.WriteAllText(_filePath, JsonSerializer.Serialize(links, _json));
+    }
 }

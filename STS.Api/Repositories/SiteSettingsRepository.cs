@@ -26,7 +26,11 @@ public sealed class SiteSettingsRepository : ISiteSettingsRepository
     public Task<SiteSettings> SaveAsync(SiteSettings settings)
     {
         _lock.EnterWriteLock();
-        try { File.WriteAllText(_filePath, JsonSerializer.Serialize(settings, _json)); }
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(_filePath)!);
+            File.WriteAllText(_filePath, JsonSerializer.Serialize(settings, _json));
+        }
         finally { _lock.ExitWriteLock(); }
         return Task.FromResult(settings);
     }
