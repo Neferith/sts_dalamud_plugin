@@ -4,70 +4,12 @@
     "guide-systeme": "1496884315777138780"
   },
   "posts": {
-    "wcs": {
-      "threadId": "1494088805886464174",
-      "messages": [
-        {
-          "id": "1494088805886464174"
-        }
-      ]
-    },
-    "article-de-test": {
-      "threadId": "1496846207274717366",
-      "messages": [
-        {
-          "id": "1496846207274717366"
-        }
-      ]
-    },
-    "un-bel-article": {
-      "threadId": "1496862265431953409",
-      "messages": [
-        {
-          "id": "1496862265431953409"
-        },
-        {
-          "id": "1496862274282065971"
-        }
-      ]
-    },
-    "article-de-test-image": {
-      "threadId": "1496941638390386888",
-      "messages": [
-        {
-          "id": "1496952740071608621",
-          "imageUrl": "http://localhost:50310/images/e95266f6ebb042f98dfd118538546b33.png"
-        }
-      ]
-    },
-    "second-test": {
-      "threadId": "1496943227150799021",
-      "messages": [
-        {
-          "id": "1496943227150799021",
-          "imageUrl": "http://localhost:50310/images/d9e72373fc614fe381c581bf7076ad04.png"
-        },
-        {
-          "id": "1496943577983352945",
-          "imageUrl": "http://localhost:50310/images/c73990bc9b38434685bf555ff2bfd576.png"
-        }
-      ]
-    },
-    "article-3": {
-      "threadId": "1496944649271509145",
-      "messages": [
-        {
-          "id": "1496944987525615897",
-          "imageUrl": "http://localhost:50310/images/a8e33d9e835d4d3995a6384b04d12e99.png"
-        }
-      ]
-    },
     "mock-data-image": {
-      "threadId": "1496952867326529568",
+      "threadId": "1497237578217423029",
       "messages": [
         {
-          "id": "1496952956531118110",
-          "imageUrl": "http://localhost:50310/images/05238399d90a410a824a0af0c735ac53.png"
+          "id": "1497237715320701038",
+          "imageUrl": "http://localhost:50310/images/a7c1a0602bb948acbae8bd68c153de27.jpg"
         }
       ]
     }

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Sts.Discord;
+using Sts.Domain.Content.UseCases;
 
 namespace Sts.Api.Endpoints;
 
@@ -25,6 +26,12 @@ public static class DiscordMappingsEndpoints
         .RequireAuthorization()
         .WithName("GetDiscordSectionMappings")
         .WithSummary("Retourne les mappings section → Forum Channel Discord.");
+
+        group.MapGet("/mappings/posts", ([FromServices] DiscordMappingStore store) =>
+            Results.Ok(store.GetAllPostMappings()))
+        .RequireAuthorization()
+        .WithName("GetDiscordPostMappings")
+        .WithSummary("Retourne les posts déjà publiés sur Discord (postId → threadId).");
 
         // ── Écriture ─────────────────────────────────────────────────────────
 
@@ -55,6 +62,30 @@ public static class DiscordMappingsEndpoints
         .RequireAuthorization()
         .WithName("DeleteDiscordSectionMapping")
         .WithSummary("Supprime le mapping Discord d'une section.");
+
+        // ── Publication manuelle ──────────────────────────────────────────────
+
+        group.MapPost("/publish/{sectionId}/{postId}", async (
+            string sectionId,
+            string postId,
+            [FromServices] IGetRulesUseCase getRules,
+            [FromServices] IDiscordPublisher publisher) =>
+        {
+            var sections = await getRules.ExecuteAsync();
+            var section = sections.FirstOrDefault(s => s.Id == sectionId);
+            if (section is null)
+                return Results.NotFound($"Section '{sectionId}' introuvable.");
+
+            var post = section.Posts.FirstOrDefault(p => p.Id == postId);
+            if (post is null)
+                return Results.NotFound($"Post '{postId}' introuvable dans '{sectionId}'.");
+
+            await publisher.PublishPostAsync(post, sectionId);
+            return Results.NoContent();
+        })
+        .RequireAuthorization()
+        .WithName("PublishPostToDiscord")
+        .WithSummary("Publie manuellement un post sur Discord.");
     }
 }
 
