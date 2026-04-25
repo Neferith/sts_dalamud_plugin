@@ -15,6 +15,7 @@ using Sts.Infrastructure.Data;
 using Sts.Infrastructure.DataSources;
 using STS.Api.Repositories;
 using STS.Api.UseCases;
+using System.Reflection;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -208,7 +209,11 @@ app.UseStaticFiles(new StaticFileOptions
 
 app.MapGet("/api/version", () =>
 {
-    var version = typeof(Program).Assembly.GetName().Version?.ToString() ?? "unknown";
+    var version = typeof(Program).Assembly
+        .GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>()
+        ?.InformationalVersion
+        .Split('+')[0]
+        ?? "unknown";
     return Results.Ok(new { version });
 })
 .WithName("GetVersion")
