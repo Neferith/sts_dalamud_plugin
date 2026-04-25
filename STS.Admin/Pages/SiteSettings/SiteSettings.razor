@@ -1,0 +1,70 @@
+@page "/site-settings"
+@using Sts.Domain.Content
+@using Sts.Domain.Content.Models
+@using STS.Admin.ViewModels
+@inject SiteSettingsViewModel ViewModel
+@inject AuthService Auth
+@inject NavigationManager Nav
+
+<PageTitle>Paramètres du site — STS Admin</PageTitle>
+
+<div class="p-4" style="max-width:640px">
+    <div class="mb-3">
+        <h2 class="mb-0">Paramètres du site</h2>
+        <small class="text-muted">Contenu éditorial affiché sur la home.</small>
+    </div>
+
+    <Alert Message="@ViewModel.Error"   IsError="true"  OnDismiss="() => {}" />
+    <Alert Message="@ViewModel.Success" IsError="false" OnDismiss="() => {}" />
+
+    @if (ViewModel.IsLoading)
+    {
+        <div class="text-center py-5"><div class="spinner-border text-secondary"></div></div>
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label fw-medium">Titre du hero</label>
+                    <input class="form-control" placeholder="ex: Nouvelle Lune"
+                           @bind="ViewModel.FormHeroTitle" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-medium">Texte de présentation</label>
+                    <textarea class="form-control" rows="6"
+                              placeholder="Présentation de la guilde…"
+                              @bind="ViewModel.FormHeroText"></textarea>
+                    <div class="form-text">Affiché sous le titre sur la home publique.</div>
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-6">
+                        <label class="form-label fw-medium">Monde</label>
+                        <input class="form-control" placeholder="ex: Louisoix"
+                               @bind="ViewModel.FormWorld" />
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label fw-medium">Data Center</label>
+                        <input class="form-control" placeholder="ex: Chaos"
+                               @bind="ViewModel.FormDataCenter" />
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer text-end">
+                <button class="btn btn-primary" @onclick="ViewModel.SaveAsync"
+                        disabled="@ViewModel.IsSaving">
+                    @(ViewModel.IsSaving ? "Sauvegarde…" : "Sauvegarder")
+                </button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Auth.IsAuthenticated) { Nav.NavigateTo("/login"); return; }
+        ViewModel.OnStateChanged = StateHasChanged;
+        await ViewModel.LoadAsync();
+    }
+}
