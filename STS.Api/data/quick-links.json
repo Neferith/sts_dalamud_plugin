@@ -7,5 +7,14 @@
     "Category": 0,
     "Order": 0,
     "IsVisible": true
+  },
+  {
+    "Id": "753c562e-375f-465e-86e7-c1a6e352cf16",
+    "Label": "R\u00E8gles",
+    "Url": "http://localhost:5017/regles",
+    "Icon": null,
+    "Category": 1,
+    "Order": 1,
+    "IsVisible": true
   }
 ]

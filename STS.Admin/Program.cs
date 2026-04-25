@@ -16,6 +16,10 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 // Repositories
 builder.Services.AddScoped<IQuickLinksRepository, QuickLinksRemoteRepository>();
 builder.Services.AddScoped<ISiteSettingsRepository, SiteSettingsRemoteRepository>();
+builder.Services.AddScoped<IQuickLinksReadRepository>(sp =>
+    sp.GetRequiredService<IQuickLinksRepository>());
+builder.Services.AddScoped<ISiteSettingsReadRepository>(sp =>
+    sp.GetRequiredService<ISiteSettingsRepository>());
 
 // Use cases — mêmes implémentations que STS.Api, repo différent
 builder.Services.AddScoped<IGetQuickLinksUseCase, GetQuickLinksUseCase>();

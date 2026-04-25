@@ -12,22 +12,24 @@ Le **Système Très Simple (STS)** est un système de jets de dés minimaliste c
 |--------|-------------|
 | `STSPlugin` | Plugin Dalamud — jets de dés en jeu, affichage dans le chat |
 | `STS.Domain` | Bibliothèque partagée — modèles, use cases, moteur STS |
-| `STS.Domain.Content` | Bibliothèque partagée — modèles de contenu (règles) |
+| `STS.Domain.Content` | Bibliothèque partagée — modèles de contenu (règles, QuickLinks, SiteSettings) |
 | `STS.Domain.Tests` | Suite de tests xUnit — couverture du domaine et de l'infrastructure |
 | `STS.Infrastructure` | Accès aux données — EF Core, SQLite, migrations |
 | `STS.Api` | API ASP.NET Core — données, authentification JWT, CRUD |
 | `STS.Admin` | Interface d'administration Blazor WASM (hébergée par l'API) |
-| `STS.Web` | Site joueurs Blazor WASM — règles, métiers, compétences |
+| `STS.Web` | Site joueurs Blazor WASM — home Nouvelle Lune, règles, métiers, compétences |
 
 ### Architecture des couches
 
 ```
 UI (STSPlugin / STS.Admin / STS.Web)
-    └── Use Cases (STS.Domain — interfaces + implémentations)
-            └── Repositories (STS.Domain — interfaces)
-                    └── Infrastructure (STS.Infrastructure — EF Core, JSON)
-                            └── Domain Models (STS.Domain — purs, sans dépendances)
+    └── Use Cases (STS.Domain.Content — interfaces + implémentations partagées)
+            └── Repositories (interfaces en lecture seule ou complètes selon le contexte)
+                    └── Infrastructure (STS.Api → JSON ; STS.Admin/Web → HTTP)
+                            └── Domain Models (STS.Domain.Content — purs, sans dépendances)
 ```
+
+**Principe clé :** les implémentations de use cases sont partagées entre `STS.Api`, `STS.Admin` et `STS.Web`. Seul le repository enregistré dans le DI change selon le projet — JSON pour l'API, HTTP pour les clients.
 
 ---
 
@@ -61,7 +63,7 @@ UI (STSPlugin / STS.Admin / STS.Web)
 ### Architecture
 
 ```
-https://nlrp.fr          → STS.Web   (site joueurs)
+https://nlrp.fr          → STS.Web   (site joueurs — Nouvelle Lune)
 https://admin.nlrp.fr    → STS.Admin (backoffice)
 https://api.nlrp.fr      → STS.Api   (API REST)
 ```
@@ -69,8 +71,7 @@ https://api.nlrp.fr      → STS.Api   (API REST)
 ### Prérequis
 
 - Docker & Docker Compose
-- .NET 8 SDK (pour `STS.Api`, `STS.Admin`, `STS.Infrastructure`)
-- .NET 10 SDK (pour `STS.Web`)
+- .NET 8 SDK
 
 ### Configuration
 
@@ -80,6 +81,7 @@ Créer un fichier `.env` à la racine (ne jamais commiter) :
 JWT_SECRET=your_jwt_secret_here
 ADMIN_USERNAME=your_admin_username
 ADMIN_PASSWORD=your_admin_password
+DISCORD_BOT_TOKEN=your_discord_bot_token
 ```
 
 Un `.env.example` est fourni comme référence.
@@ -95,11 +97,7 @@ docker build -f Dockerfile.web -t sts-web:latest .
 docker compose up -d
 ```
 
-> ⚠️ **Volume JSON** — si `rules.json` n'existe pas encore sur le host, le créer manuellement avant le premier `docker compose up` :
-> ```bash
-> echo "[]" > /data/rules.json
-> ```
-> Sans cette étape, Docker crée un répertoire à cet emplacement au lieu d'un fichier.
+> ⚠️ **Volumes JSON** — les fichiers `quick-links.json` et `site-settings.json` sont créés automatiquement dans le volume `/data/` au premier appel d'écriture. Aucune action manuelle requise.
 
 ---
 
@@ -141,39 +139,24 @@ La base de données SQLite est créée automatiquement au premier démarrage de 
 
 ### Migrations
 
-Les fichiers de migration dans `STS.Infrastructure/Migrations/` sont versionnés et doivent être commités. Ils sont appliqués automatiquement au démarrage de l'API (`db.Database.Migrate()`).
-
-**Créer une migration après modification du schéma :**
-
 ```bash
 cd STS.Infrastructure
 dotnet ef migrations add NomExplicatif --context StsDbContext
 ```
 
-**Appliquer manuellement (optionnel) :**
-
-```bash
-dotnet ef database update --context StsDbContext
-```
-
-> ⚠️ Ne jamais modifier une migration déjà appliquée en production. Toujours créer une nouvelle migration.
+> ⚠️ Ne jamais modifier une migration déjà appliquée en production.
 
 ### Production (Docker)
 
-En production, la base de données est persistée dans le volume `/data/` monté via `docker-compose.yml` et survit aux redéploiements :
+La base de données est persistée dans le volume `/data/` :
 
 ```
 /data/sts.db
+/data/quick-links.json
+/data/site-settings.json
 ```
 
-### Passer à PostgreSQL
-
-L'architecture isole l'accès aux données derrière `IRulesDataSource` dans `STS.Infrastructure`. Pour migrer :
-
-1. Remplacer `Microsoft.EntityFrameworkCore.Sqlite` par `Npgsql.EntityFrameworkCore.PostgreSQL` dans `STS.Infrastructure.csproj`
-2. Changer `UseSqlite(...)` par `UseNpgsql(...)` dans `Program.cs`
-3. Générer une nouvelle migration initiale
-4. Mettre à jour la connection string dans `docker-compose.yml`
+> **Note :** `QuickLinks` et `SiteSettings` sont actuellement persistés en JSON dans ce volume. La migration vers SQLite est prévue — l'architecture repository facilite ce changement sans toucher aux use cases.
 
 ---
 
@@ -181,24 +164,29 @@ L'architecture isole l'accès aux données derrière `IRulesDataSource` dans `ST
 
 ### ✅ Terminé
 
-- **STS.Domain** — modèles purs, use cases (un par opération), `StsEngine`, architecture Clean Architecture complète
-- **STS.Domain.Tests** — suite xUnit avec FluentAssertions, fakes handwrittens (`FakeRulesDataSource`, `FakeRulesRepository`)
-- **STS.Api** — JWT Bearer auth, CRUD complet (jobs, traits, capacités, actions, règles), services thread-safe (`SemaphoreSlim`), `RulesSection` / `RulesPost`
-- **STS.Admin** — auth JWT, `ApiClient` avec injection Bearer, quatre pages CRUD (jobs, traits, capacités, actions), page de gestion des règles
+- **STS.Domain** — modèles purs, use cases, `StsEngine`, Clean Architecture complète
+- **STS.Domain.Content** — modèles de contenu (règles, `QuickLink`, `QuickLinkCategory`, `SiteSettings`), interfaces repository (lecture seule + complètes), use cases partagés
+- **STS.Domain.Tests** — suite xUnit + FluentAssertions, fakes handwritten, tests d'intégration JSON pour `QuickLinksRepository`
+- **STS.Api** — JWT Bearer auth, CRUD complet (jobs, traits, capacités, actions, règles, QuickLinks, SiteSettings), repositories thread-safe (`ReaderWriterLockSlim`)
+- **STS.Admin** — auth JWT, pages CRUD (jobs, traits, capacités, actions, règles, images, Discord), pages home (QuickLinks + SiteSettings) avec architecture ViewModel + RemoteRepository
+- **STS.Web** — home Nouvelle Lune (hero, liens rapides par catégorie, chargement depuis l'API), page règles, architecture ViewModel + repositories lecture seule
+- **STS.Discord** — pattern décorateur sur les use cases post ; `NullDiscordPublisher` si token absent
 - **STSPlugin** — jets de dés en jeu, référence `STS.Domain`, UI ImGui
 - **Docker** — build multi-stage, `docker-compose.yml`, Linux containers
-- **CI/CD** — pipeline GitHub Actions : un tag Git déclenche le build et le déploiement automatique sur le VPS OVH
-- **Déploiement VPS OVH** — Nginx reverse proxy + HTTPS (Let's Encrypt), `nlrp.fr` / `admin.nlrp.fr` / `api.nlrp.fr` en production
+- **CI/CD** — pipeline GitHub Actions : tag Git → build → déploiement automatique OVH VPS
+- **Déploiement VPS OVH** — Caddy reverse proxy + HTTPS (Let's Encrypt)
 
 ### 🔄 En cours / À venir
-- **STS.Web** — site joueurs Blazor WASM (règles, métiers, compétences) — consomme `STS.Api`
-- **RemoteJsonDataSource** — pattern `CachedDataSource` dans le plugin pour fetcher `data.json` depuis l'API
-- **Migration base de données** — couche infrastructure déjà architecturée pour ça
+
+- **Widget "Dernières mises à jour"** sur la home `STS.Web`
+- **Migration SQLite** pour `QuickLinks` et `SiteSettings` (repositories déjà abstraits derrière des interfaces — le changement n'impacte pas les use cases)
+- **RemoteJsonDataSource + CachedDataSource** dans le plugin
+- **Portrait capture** dans le plugin (GPOSE via `ICondition`)
 
 ### 🐛 Bugs connus / Dépréciations intentionnelles
 
-- **GameRandom + Avantage/Désavantage** — les contrôles UI sont désactivés quand `RollSource == GameRandom` (palliation court-terme en attendant une refacto)
-- **Incohérences `data.json`** — certains malus de traits (ex. "Spécialiste à distance") ne sont pas reflétés dans les entrées d'actions associées
+- **GameRandom + Avantage/Désavantage** — contrôles UI désactivés en attendant une refacto
+- **Incohérences `data.json`** — certains malus de traits ne sont pas reflétés dans les actions associées
 
 ---
 

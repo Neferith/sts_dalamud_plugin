@@ -84,6 +84,11 @@ builder.Services.AddSingleton<IQuickLinksRepository>(
     new QuickLinksRepository(quickLinksPath));
 builder.Services.AddSingleton<ISiteSettingsRepository>(
     new SiteSettingsRepository(siteSettingsPath));
+// Repositories lecture seule — pointent vers les mêmes implémentations
+builder.Services.AddSingleton<IQuickLinksReadRepository>(sp =>
+    sp.GetRequiredService<IQuickLinksRepository>());
+builder.Services.AddSingleton<ISiteSettingsReadRepository>(sp =>
+    sp.GetRequiredService<ISiteSettingsRepository>());
 
 // Use cases QuickLinks
 builder.Services.AddScoped<IGetQuickLinksUseCase, GetQuickLinksUseCase>();

@@ -16,7 +16,7 @@ public interface IGetSiteSettingsUseCase
 
 
 /// <inheritdoc cref="IGetSiteSettingsUseCase"/>
-public sealed class GetSiteSettingsUseCase(ISiteSettingsRepository repository) : IGetSiteSettingsUseCase
+public sealed class GetSiteSettingsUseCase(ISiteSettingsReadRepository repository) : IGetSiteSettingsUseCase
 {
     /// <inheritdoc/>
     public Task<SiteSettings> ExecuteAsync() => repository.GetAsync();

@@ -11,7 +11,7 @@ public interface IGetVisibleQuickLinksUseCase
 }
 
 /// <inheritdoc cref="IGetVisibleQuickLinksUseCase"/>
-public sealed class GetVisibleQuickLinksUseCase(IQuickLinksRepository repository) : IGetVisibleQuickLinksUseCase
+public sealed class GetVisibleQuickLinksUseCase(IQuickLinksReadRepository repository) : IGetVisibleQuickLinksUseCase
 {
     /// <inheritdoc/>
     public async Task<IEnumerable<QuickLink>> ExecuteAsync()

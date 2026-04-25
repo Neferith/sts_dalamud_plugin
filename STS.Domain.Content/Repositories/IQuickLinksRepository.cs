@@ -8,19 +8,25 @@ using System.Threading.Tasks;
 
 namespace Sts.Domain.Content.Repositories
 {
-    /// <summary>Accès aux données des <see cref="QuickLink"/>.</summary>
-    public interface IQuickLinksRepository
+
+    /// <summary>Accès en lecture seule aux <see cref="QuickLink"/>.</summary>
+    public interface IQuickLinksReadRepository
     {
         /// <summary>Retourne tous les liens rapides.</summary>
         Task<IEnumerable<QuickLink>> GetAllAsync();
+    }
 
-        /// <summary>Persiste un nouveau lien.</summary>
+
+    /// <summary>Accès complet aux <see cref="QuickLink"/>.</summary>
+    public interface IQuickLinksRepository : IQuickLinksReadRepository
+    {
+        /// <summary>Crée un lien rapide.</summary>
         Task<QuickLink> AddAsync(CreateQuickLinkParameters parameters);
 
-        /// <summary>Met à jour un lien existant.</summary>
+        /// <summary>Met à jour un lien rapide.</summary>
         Task<QuickLink?> UpdateAsync(Guid id, UpdateQuickLinkParameters parameters);
 
-        /// <summary>Supprime un lien par son identifiant.</summary>
+        /// <summary>Supprime un lien rapide.</summary>
         Task<bool> DeleteAsync(Guid id);
     }
 }

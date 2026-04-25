@@ -1,0 +1,101 @@
+@namespace STS.Web.Pages.Home
+@page "/"
+@using Sts.Domain.Content
+@inject HomeViewModel ViewModel
+
+<PageTitle>Nouvelle Lune — Accueil</PageTitle>
+
+@if (ViewModel.IsLoading)
+{
+    <div class="rules-loading">
+        <p>Chargement…</p>
+    </div>
+}
+else if (ViewModel.Error is not null)
+{
+    <div class="rules-error">
+        <p>@ViewModel.Error</p>
+    </div>
+}
+else
+{
+    <!-- ── Hero ──────────────────────────────────────────────────────────── -->
+    <section class="home-hero">
+        <div class="home-hero-inner">
+            <p class="home-hero-kicker">Compagnie Libre · Final Fantasy XIV</p>
+            <h1 class="home-hero-title">@ViewModel.Settings.HeroTitle</h1>
+            @if (!string.IsNullOrWhiteSpace(ViewModel.Settings.HeroText))
+            {
+                <p class="home-hero-text">@ViewModel.Settings.HeroText</p>
+            }
+            <div class="home-hero-meta">
+                @if (!string.IsNullOrWhiteSpace(ViewModel.Settings.World))
+                {
+                    <span class="home-hero-meta-item">
+                        <span class="home-hero-meta-label">Monde</span>
+                        @ViewModel.Settings.World
+                    </span>
+                }
+                @if (!string.IsNullOrWhiteSpace(ViewModel.Settings.DataCenter))
+                {
+                    <span class="home-hero-meta-sep">·</span>
+                    <span class="home-hero-meta-item">
+                        <span class="home-hero-meta-label">Data Center</span>
+                        @ViewModel.Settings.DataCenter
+                    </span>
+                }
+            </div>
+        </div>
+    </section>
+
+    <!-- ── Liens rapides ─────────────────────────────────────────────────── -->
+    <div class="home-links-grid">
+
+        @if (ViewModel.RecruitmentLinks.Count > 0)
+        {
+            <div class="home-links-col">
+                <p class="home-links-label">Rejoindre la guilde</p>
+                <div class="home-links-list">
+                    @foreach (var link in ViewModel.RecruitmentLinks)
+                    {
+                        <a class="sts-card sts-card-accent home-ql" href="@link.Url" target="_blank" rel="noopener">
+                            @if (!string.IsNullOrWhiteSpace(link.Icon))
+                            {
+                                <span class="home-ql-icon">@link.Icon</span>
+                            }
+                            <span class="home-ql-label">@link.Label</span>
+                        </a>
+                    }
+                </div>
+            </div>
+        }
+
+        @if (ViewModel.ResourceLinks.Count > 0)
+        {
+            <div class="home-links-col">
+                <p class="home-links-label">Ressources membres</p>
+                <div class="home-links-list">
+                    @foreach (var link in ViewModel.ResourceLinks)
+                    {
+                        <a class="sts-card sts-card-accent-ice home-ql" href="@link.Url" target="_blank" rel="noopener">
+                            @if (!string.IsNullOrWhiteSpace(link.Icon))
+                            {
+                                <span class="home-ql-icon">@link.Icon</span>
+                            }
+                            <span class="home-ql-label">@link.Label</span>
+                        </a>
+                    }
+                </div>
+            </div>
+        }
+
+    </div>
+}
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        ViewModel.OnStateChanged = StateHasChanged;
+        await ViewModel.LoadAsync();
+    }
+}

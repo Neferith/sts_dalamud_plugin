@@ -6,13 +6,17 @@ using System.Threading.Tasks;
 
 namespace Sts.Domain.Content.Repositories
 {
-    /// <summary>Accès aux <see cref="SiteSettings"/> (singleton JSON).</summary>
-    public interface ISiteSettingsRepository
+    /// <summary>Accès en lecture seule aux <see cref="SiteSettings"/>.</summary>
+    public interface ISiteSettingsReadRepository
     {
         /// <summary>Retourne les paramètres courants.</summary>
         Task<SiteSettings> GetAsync();
+    }
 
-        /// <summary>Persiste les paramètres.</summary>
+    /// <summary>Accès complet aux <see cref="SiteSettings"/>.</summary>
+    public interface ISiteSettingsRepository : ISiteSettingsReadRepository
+    {
+        /// <summary>Persiste les paramètres et les retourne.</summary>
         Task<SiteSettings> SaveAsync(SiteSettings settings);
     }
 }
