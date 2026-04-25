@@ -21,7 +21,8 @@ else
 {
     <!-- ── Hero ──────────────────────────────────────────────────────────── -->
     <section class="home-hero">
-        <div class="home-hero-inner">
+    <div class="home-hero-inner">
+        <div>
             <div class="home-hero-logo">
                 <img src="img/logo_home.png" alt="Logo Nouvelle Lune" />
             </div>
@@ -48,6 +49,25 @@ else
                     </span>
                 }
             </div>
+        </div>
+
+        <!-- Carte identité — visible uniquement ≥ 1280px via CSS grid -->
+        <div class="home-hero-identity">
+            @if (!string.IsNullOrWhiteSpace(ViewModel.Settings.World))
+            {
+                <div class="home-hero-identity-item">
+                    <p class="home-hero-meta-label">Monde</p>
+                    <p class="home-hero-title" style="font-size:16px;margin:0">@ViewModel.Settings.World</p>
+                </div>
+            }
+            @if (!string.IsNullOrWhiteSpace(ViewModel.Settings.DataCenter))
+            {
+                <div class="home-hero-identity-item">
+                    <p class="home-hero-meta-label">Data Center</p>
+                    <p class="home-hero-title" style="font-size:16px;margin:0">@ViewModel.Settings.DataCenter</p>
+                </div>
+            }
+        </div>
         </div>
     </section>
 
