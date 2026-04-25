@@ -7,13 +7,15 @@ using Sts.Api.DataSources;
 using Sts.Api.Endpoints;
 using Sts.Api.Repositories;
 using Sts.Api.Services;
+using Sts.Discord;
 using Sts.Domain.Content.DataSources;
 using Sts.Domain.Content.Repositories;
 using Sts.Domain.Content.UseCases;
 using Sts.Infrastructure.Data;
 using Sts.Infrastructure.DataSources;
+using STS.Api.Repositories;
+using STS.Api.UseCases;
 using System.Text;
-using Sts.Discord;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -69,6 +71,35 @@ builder.Services.AddSingleton<IImageRepository, ImageRepository>();
 builder.Services.AddSingleton<IUploadImageUseCase, UploadImageUseCase>();
 builder.Services.AddSingleton<IGetImagesUseCase, GetImagesUseCase>();
 builder.Services.AddSingleton<IDeleteImageUseCase, DeleteImageUseCase>();
+
+// Chemins fichiers
+var quickLinksPath = builder.Configuration["Data:QuickLinksFilePath"]
+    ?? throw new InvalidOperationException("La clé Data:QuickLinksFilePath est manquante dans la configuration.");
+
+var siteSettingsPath = builder.Configuration["Data:SiteSettingsFilePath"]
+    ?? throw new InvalidOperationException("La clé Data:SiteSettingsFilePath est manquante dans la configuration.");
+
+// Repositories
+builder.Services.AddSingleton<IQuickLinksRepository>(
+    new QuickLinksRepository(quickLinksPath));
+builder.Services.AddSingleton<ISiteSettingsRepository>(
+    new SiteSettingsRepository(siteSettingsPath));
+// Repositories lecture seule — pointent vers les mêmes implémentations
+builder.Services.AddSingleton<IQuickLinksReadRepository>(sp =>
+    sp.GetRequiredService<IQuickLinksRepository>());
+builder.Services.AddSingleton<ISiteSettingsReadRepository>(sp =>
+    sp.GetRequiredService<ISiteSettingsRepository>());
+
+// Use cases QuickLinks
+builder.Services.AddScoped<IGetQuickLinksUseCase, GetQuickLinksUseCase>();
+builder.Services.AddScoped<IGetVisibleQuickLinksUseCase, GetVisibleQuickLinksUseCase>();
+builder.Services.AddScoped<ICreateQuickLinkUseCase, CreateQuickLinkUseCase>();
+builder.Services.AddScoped<IUpdateQuickLinkUseCase, UpdateQuickLinkUseCase>();
+builder.Services.AddScoped<IDeleteQuickLinkUseCase, DeleteQuickLinkUseCase>();
+
+// Use cases SiteSettings
+builder.Services.AddScoped<IGetSiteSettingsUseCase, GetSiteSettingsUseCase>();
+builder.Services.AddScoped<IUpdateSiteSettingsUseCase, UpdateSiteSettingsUseCase>();
 
 builder.Services.AddDiscordBot(
     builder.Configuration,
@@ -193,6 +224,8 @@ app.MapTraitEndpoints();    // CRUD  /api/traits        (auth requis)
 app.MapAbilityEndpoints();  // CRUD  /api/abilities     (auth requis)
 app.MapActionEndpoints();   // CRUD  /api/actions       (auth requis)
 app.MapImageEndpoints();
+app.MapQuickLinksEndpoints();   // GET /api/quick-links (public) + CRUD (auth)
+app.MapSiteSettingsEndpoints(); // GET /api/site-settings (public) + PUT (auth)
 app.MapDiscordMappingsEndpoints(); // ← supprimer si Discord désactivé
 
 app.MapFallbackToFile("index.html");

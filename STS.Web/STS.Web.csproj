@@ -20,7 +20,6 @@
 
     <ItemGroup>
         <Folder Include="Shared\" />
-        <Folder Include="wwwroot\img\" />
     </ItemGroup>
 
 </Project>

@@ -1,6 +1,11 @@
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using Sts.Domain.Content;
+using Sts.Domain.Content.Repositories;
+using Sts.Domain.Content.UseCases;
 using STS.Web;
+using STS.Web.Pages.Home;
+using STS.Web.Repositories;
 using STS.Web.Services;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
@@ -18,4 +23,13 @@ builder.Services.AddScoped(sp =>
 
 builder.Services.AddScoped<StsDataService>();
 
+// Repositories lecture seule
+builder.Services.AddScoped<IQuickLinksReadRepository, QuickLinksPublicRepository>();
+builder.Services.AddScoped<ISiteSettingsReadRepository, SiteSettingsPublicRepository>();
+
+// Use cases lecture
+builder.Services.AddScoped<IGetVisibleQuickLinksUseCase, GetVisibleQuickLinksUseCase>();
+builder.Services.AddScoped<IGetSiteSettingsUseCase, GetSiteSettingsUseCase>();
+
+builder.Services.AddScoped<HomeViewModel>();
 await builder.Build().RunAsync();
