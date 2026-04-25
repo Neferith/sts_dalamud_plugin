@@ -22,6 +22,9 @@ else
     <!-- ── Hero ──────────────────────────────────────────────────────────── -->
     <section class="home-hero">
         <div class="home-hero-inner">
+            <div class="home-hero-logo">
+                <img src="img/logo_home.png" alt="Logo Nouvelle Lune" />
+            </div>
             <p class="home-hero-kicker">Compagnie Libre · Final Fantasy XIV</p>
             <h1 class="home-hero-title">@ViewModel.Settings.HeroTitle</h1>
             @if (!string.IsNullOrWhiteSpace(ViewModel.Settings.HeroText))
@@ -61,7 +64,14 @@ else
                         <a class="sts-card sts-card-accent home-ql" href="@link.Url" target="_blank" rel="noopener">
                             @if (!string.IsNullOrWhiteSpace(link.Icon))
                             {
-                                <span class="home-ql-icon">@link.Icon</span>
+                                @if (link.Icon.StartsWith("fa"))
+                                {
+                                    <i class="@link.Icon home-ql-icon-fa"></i>
+                                }
+                                else
+                                {
+                                    <span class="home-ql-icon">@link.Icon</span>
+                                }
                             }
                             <span class="home-ql-label">@link.Label</span>
                         </a>
