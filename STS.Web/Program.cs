@@ -7,6 +7,7 @@ using STS.Web;
 using STS.Web.Pages.Home;
 using STS.Web.Repositories;
 using STS.Web.Services;
+using STS.Web.ViewModels;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
@@ -32,6 +33,11 @@ builder.Services.AddScoped<IGetVisibleQuickLinksUseCase, GetVisibleQuickLinksUse
 builder.Services.AddScoped<IGetSiteSettingsUseCase, GetSiteSettingsUseCase>();
 
 builder.Services.AddScoped<AuthService>();
+
+builder.Services.AddScoped<CharacterApiService>();
+builder.Services.AddScoped<CharactersViewModel>();
+builder.Services.AddScoped<CharacterDetailViewModel>();
+builder.Services.AddScoped<CharacterCreateViewModel>();
 
 builder.Services.AddScoped<HomeViewModel>();
 await builder.Build().RunAsync();

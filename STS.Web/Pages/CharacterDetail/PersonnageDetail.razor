@@ -1,0 +1,201 @@
+@page "/personnages/{Id:guid}"
+@using STS.Web.ViewModels
+@using Sts.Domain.Character
+@using Sts.Domain
+@inject AuthService Auth
+@inject NavigationManager Nav
+@inject CharacterDetailViewModel VM
+@inject IJSRuntime JS
+
+<PageTitle>@(VM.Character?.Name ?? "Personnage") — STS</PageTitle>
+
+<div class="sts-page-header">
+    <a href="/personnages" class="sts-back-link">← Personnages</a>
+    @if (VM.IsOwner)
+    {
+        <button class="sts-btn sts-btn-ghost sts-btn-sm" style="margin-left:auto"
+                @onclick="Delete">
+            Supprimer
+        </button>
+    }
+</div>
+
+@if (VM.IsLoading)
+{
+    <div class="sts-loading"><div class="sts-spinner-lg"></div></div>
+}
+else if (VM.Error is not null)
+{
+    <div class="sts-alert sts-alert-error">@VM.Error</div>
+}
+else if (VM.Character is { } c)
+{
+    var rank = Rank.Get(c.RankKey);
+
+    <!-- En-tête -->
+    <div class="sts-char-header">
+        <div>
+            <h1 class="sts-page-title">@c.Name</h1>
+            <div class="sts-card-meta">
+                <span>@c.Race.Label()</span>
+                <span class="sts-card-meta-dot"></span>
+                <span>@rank.Label</span>
+                <span class="sts-card-meta-dot"></span>
+                <span>Palier @rank.Palier+</span>
+                <span class="sts-card-meta-dot"></span>
+                <span>@rank.Rerolls reroll(s)</span>
+            </div>
+        </div>
+
+        <div class="sts-stat-grid" style="margin-top: 0.75rem;">
+            <div class="sts-stat-box">
+                <div class="sts-stat-label">Points de compétence</div>
+                <div class="sts-stat-value">@c.SpentSkillPoints / @c.SkillPoints</div>
+            </div>
+            <div class="sts-stat-box">
+                <div class="sts-stat-label">Réputation</div>
+                <div class="sts-stat-value" style="font-size:16px;">
+                    @Reputation.GetLabel(c.ReputationLevel)
+                    <small style="font-size:11px; color:var(--text-muted);">
+                        (@(c.ReputationLevel >= 0 ? "+" : "")@c.ReputationLevel)
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Histoire -->
+    @if (!string.IsNullOrWhiteSpace(c.Histoire))
+    {
+        <div class="sts-card" style="margin-top: 1rem;">
+            <div class="sts-card-desc" style="white-space: pre-wrap;">@c.Histoire</div>
+        </div>
+    }
+
+    <!-- Certifications -->
+    @if (c.Certifications.Count > 0)
+    {
+        <h2 class="sts-section-title">Certifications</h2>
+        <div class="sts-cards">
+            @foreach (var cert in c.Certifications)
+            {
+                <div class="sts-card">
+                    <div class="sts-card-header">
+                        <span style="color:var(--amber)">★</span>
+                        <span class="sts-card-title">@cert.Name</span>
+                    </div>
+                    <div class="sts-card-meta">
+                        @if (cert.LinkedOriginTraitId is not null)
+                        {
+                            <span>Trait d'origine : @cert.LinkedOriginTraitId</span>
+                        }
+                        @if (cert.LinkedAbilityId is not null && cert.FreePoints > 0)
+                        {
+                            <span>@cert.FreePoints pt(s) gratuit(s) sur @cert.LinkedAbilityId</span>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    <!-- Trait d'origine -->
+    @if (c.OriginTraitId is not null)
+    {
+        <h2 class="sts-section-title">Trait d'origine</h2>
+        <div class="sts-card sts-card-accent-amber">
+            <div class="sts-card-title">@c.OriginTraitId</div>
+        </div>
+    }
+
+    <!-- Traits -->
+    @if (c.EquippedTraitIds.Count > 0)
+    {
+        <h2 class="sts-section-title">Traits (@c.EquippedTraitIds.Count / @rank.Traits)</h2>
+        <div class="sts-cards">
+            @foreach (var tid in c.EquippedTraitIds)
+            {
+                <div class="sts-card">
+                    <div class="sts-card-title">@tid</div>
+                </div>
+            }
+        </div>
+    }
+
+    <!-- Compétences -->
+    @if (c.EquippedAbilities.Count > 0)
+    {
+        <h2 class="sts-section-title">Compétences</h2>
+        <div class="sts-cards">
+            @foreach (var eq in c.EquippedAbilities)
+            {
+                var fp = c.GetFreePointsForAbility(eq.AbilityId);
+                <div class="sts-card">
+                    <div class="sts-card-header">
+                        <span class="sts-card-title">@eq.AbilityId</span>
+                        <span class="sts-badge sts-badge-active">Lv@(eq.Level)</span>
+                        @if (fp > 0)
+                        {
+                            <span class="sts-badge sts-badge-passive">@fp pt(s) certif.</span>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    <!-- Inventaire -->
+    @if (c.Inventory.Count > 0)
+    {
+        <h2 class="sts-section-title">Inventaire</h2>
+        <div class="sts-cards">
+            @foreach (var item in c.Inventory.OrderBy(i => i.SortIndex))
+            {
+                <div class="sts-card">
+                    <div class="sts-card-header">
+                        <span class="sts-card-title">@item.Name</span>
+                        @if (item.Category == ItemCategory.Weapon)
+                        {
+                            <span class="sts-badge sts-badge-weapon">Arme</span>
+                        }
+                        @if (item.IsEquipped)
+                        {
+                            <span class="sts-badge sts-badge-passive">Équipée</span>
+                        }
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(item.Description))
+                    {
+                        <div class="sts-card-desc">@item.Description</div>
+                    }
+                </div>
+            }
+        </div>
+    }
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Auth.IsAuthenticated)
+        {
+            Auth.RequestLogin();
+            Nav.NavigateTo("/");
+            return;
+        }
+
+        VM.OnStateChanged = StateHasChanged;
+        await VM.LoadAsync(Id);
+    }
+
+    private async Task Delete()
+    {
+        if (!await JS.InvokeAsync<bool>("confirm",
+            $"Supprimer la fiche de « {VM.Character?.Name} » ? Cette action est irréversible."))
+            return;
+
+        var error = await VM.DeleteAsync();
+        if (error is null) Nav.NavigateTo("/personnages");
+    }
+}

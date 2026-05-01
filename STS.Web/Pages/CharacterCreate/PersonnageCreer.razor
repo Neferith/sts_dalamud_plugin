@@ -1,0 +1,95 @@
+@page "/personnages/creer"
+@using STS.Web.ViewModels
+@using Sts.Domain.Character
+@using Sts.Domain
+@inject AuthService Auth
+@inject NavigationManager Nav
+@inject CharacterCreateViewModel VM
+
+<PageTitle>Nouveau personnage — STS</PageTitle>
+
+<div class="sts-page-header">
+    <a href="/personnages" class="sts-back-link">← Personnages</a>
+</div>
+
+<h1 class="sts-page-title" style="margin-bottom: 1.5rem;">Nouveau personnage</h1>
+
+@if (VM.Error is not null)
+{
+    <div class="sts-alert sts-alert-error" style="margin-bottom: 1rem;">@VM.Error</div>
+}
+
+<div class="sts-card" style="max-width: 480px;">
+    <div class="sts-card-body">
+
+        <!-- Nom -->
+        <div class="sts-field" style="margin-bottom: 1.25rem;">
+            <label class="sts-label">Nom du personnage</label>
+            <input class="sts-input"
+                   type="text"
+                   @bind="VM.FormName"
+                   @bind:event="oninput"
+                   placeholder="ex : Adrila Messor"
+                   maxlength="64"
+                   disabled="@VM.IsSaving" />
+        </div>
+
+        <!-- Rang -->
+        <div class="sts-field" style="margin-bottom: 1.5rem;">
+            <label class="sts-label">Rang initial</label>
+            <div class="sts-rank-buttons">
+                @foreach (var rk in Enum.GetValues<RankKey>())
+                {
+                    var rank = Rank.Get(rk);
+                    <button class="sts-rank-btn @(VM.FormRank == rk ? "active" : "")"
+                            @onclick="() => VM.FormRank = rk"
+                            disabled="@VM.IsSaving"
+                            type="button">
+                        @rank.Label
+                    </button>
+                }
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+            <a href="/personnages" class="sts-btn sts-btn-ghost">Annuler</a>
+            <button class="sts-btn sts-btn-primary"
+                    @onclick="Create"
+                    disabled="@(VM.IsSaving || string.IsNullOrWhiteSpace(VM.FormName))"
+                    type="button">
+                @if (VM.IsSaving)
+                {
+                    <span class="sts-spinner"></span>
+                    <span>Création…</span>
+                }
+                else
+                {
+                    <span>Créer</span>
+                }
+            </button>
+        </div>
+
+    </div>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        if (!Auth.IsAuthenticated)
+        {
+            Auth.RequestLogin();
+            Nav.NavigateTo("/");
+            return;
+        }
+
+        VM.OnStateChanged = StateHasChanged;
+    }
+
+    private async Task Create()
+    {
+        var character = await VM.CreateAsync();
+        if (character is not null)
+            Nav.NavigateTo($"/personnages/{character.Id}");
+    }
+}
