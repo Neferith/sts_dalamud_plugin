@@ -31,5 +31,7 @@ builder.Services.AddScoped<ISiteSettingsReadRepository, SiteSettingsPublicReposi
 builder.Services.AddScoped<IGetVisibleQuickLinksUseCase, GetVisibleQuickLinksUseCase>();
 builder.Services.AddScoped<IGetSiteSettingsUseCase, GetSiteSettingsUseCase>();
 
+builder.Services.AddScoped<AuthService>();
+
 builder.Services.AddScoped<HomeViewModel>();
 await builder.Build().RunAsync();

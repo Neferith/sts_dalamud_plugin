@@ -1,5 +1,7 @@
 @inherits LayoutComponentBase
+@implements IDisposable
 @inject HttpClient Http
+@inject AuthService Auth
 
 <div class="sts-layout">
 
@@ -13,11 +15,39 @@
         </a>
 
         <div class="sts-nav-links @(_navOpen ? "open" : "")">
-            <NavLink class="sts-nav-link" href="/regles"     @onclick="CloseNav">Règles</NavLink>
-            <NavLink class="sts-nav-link" href="/traits"     @onclick="CloseNav">Traits</NavLink>
-            <NavLink class="sts-nav-link" href="/capacites"  @onclick="CloseNav">Capacités</NavLink>
-            <NavLink class="sts-nav-link" href="/metiers"    @onclick="CloseNav">Métiers</NavLink>
-            <span class="sts-nav-link locked">Personnages</span>
+            <NavLink class="sts-nav-link" href="/regles"    @onclick="CloseNav">Règles</NavLink>
+            <NavLink class="sts-nav-link" href="/traits"    @onclick="CloseNav">Traits</NavLink>
+            <NavLink class="sts-nav-link" href="/capacites" @onclick="CloseNav">Capacités</NavLink>
+            <NavLink class="sts-nav-link" href="/metiers"   @onclick="CloseNav">Métiers</NavLink>
+            @if (Auth.IsAuthenticated)
+            {
+                <NavLink class="sts-nav-link" href="/personnages" @onclick="CloseNav">Personnages</NavLink>
+            }
+            else
+            {
+                <span class="sts-nav-link locked" title="Connexion requise"
+                      @onclick="() => { CloseNav(); OpenLogin(); }"
+                      style="pointer-events:auto; cursor:pointer; opacity:0.5;">
+                    Personnages 🔒
+                </span>
+            }
+        </div>
+
+        <!-- Auth desktop uniquement -->
+        <div class="sts-nav-auth">
+            @if (Auth.IsAuthenticated)
+            {
+                <span class="sts-nav-username">@Auth.Username</span>
+                <button class="sts-btn sts-btn-ghost sts-btn-sm" @onclick="Logout">
+                    Déconnexion
+                </button>
+            }
+            else
+            {
+                <button class="sts-btn sts-btn-primary sts-btn-sm" @onclick="OpenLogin">
+                    Connexion
+                </button>
+            }
         </div>
 
         <button class="sts-nav-hamburger" @onclick="ToggleNav">
@@ -31,25 +61,38 @@
 
 </div>
 
+<LoginModal Visible="_loginOpen" OnClose="CloseLogin" />
+
 @code {
-    private bool   _navOpen = false;
-    private string _version = "…";
+    private bool   _navOpen   = false;
+    private bool   _loginOpen = false;
+    private string _version   = "…";
 
     protected override async Task OnInitializedAsync()
     {
+        Auth.OnAuthChanged   += StateHasChanged;
+        Auth.OnLoginRequested += OpenLogin;
+
         try
         {
             var result = await Http.GetFromJsonAsync<VersionResponse>("api/version");
             _version = result?.Version is { } v ? $"v{v}" : "v?";
         }
-        catch
-        {
-            _version = "v?";
-        }
+        catch { _version = "v?"; }
+    }
+
+    public void Dispose()
+    {
+        Auth.OnAuthChanged    -= StateHasChanged;
+        Auth.OnLoginRequested -= OpenLogin;
     }
 
     private void ToggleNav() => _navOpen = !_navOpen;
     private void CloseNav()  => _navOpen = false;
+
+    private void OpenLogin()  { CloseNav(); _loginOpen = true; StateHasChanged(); }
+    private void CloseLogin() { _loginOpen = false; StateHasChanged(); }
+    private void Logout()     { Auth.Logout(); CloseNav(); }
 
     private sealed record VersionResponse(string Version);
 }

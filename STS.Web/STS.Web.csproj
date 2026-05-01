@@ -23,4 +23,8 @@
         <Folder Include="Shared\" />
     </ItemGroup>
 
+    <ItemGroup>
+      <None Include="wwwroot\css\login-modal.css" />
+    </ItemGroup>
+
 </Project>

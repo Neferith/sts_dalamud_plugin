@@ -602,7 +602,6 @@ code {
     padding: 6px 10px;
     cursor: pointer;
     font-size: 16px;
-    margin-left: auto;
 }
 
 .sts-mobile-toggle {
@@ -740,4 +739,76 @@ pre {
 img {
     max-width: 100%;
     height: auto;
+}
+
+
+/* ── Zone auth desktop ───────────────────────────────────────────────────── */
+
+.sts-nav-auth {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-left: auto;
+}
+
+.sts-nav-username {
+    font-size: 13px;
+    color: var(--text-secondary);
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ── Zone auth mobile (dans le menu déroulant) ───────────────────────────── */
+
+/* Auth mobile — visible par défaut, masqué sur desktop */
+.sts-nav-auth-mobile {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--border);
+    margin-top: 4px;
+    padding-top: 4px;
+}
+
+.sts-nav-auth-mobile-user {
+    font-size: 12px;
+    color: var(--text-muted);
+    padding: 6px 1.5rem 2px;
+}
+
+.sts-nav-auth-mobile-btn {
+    color: var(--teal) !important;
+    cursor: pointer;
+    background: none;
+    border: none;
+    text-align: left;
+    width: 100%;
+}
+
+.sts-nav-auth {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-left: auto;
+}
+
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+    /* Masquer auth desktop */
+    .sts-nav-auth {
+        display: none !important;
+    }
+
+    /* Afficher auth mobile dans le menu */
+    .sts-nav-auth-mobile {
+        display: flex;
+    }
+
+    /* Le hamburger ne doit pas être poussé par l'auth */
+    .sts-nav-hamburger {
+        margin-left: auto;
+    }
 }
