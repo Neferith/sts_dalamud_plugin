@@ -17,6 +17,9 @@ using STS.Api.Repositories;
 using STS.Api.UseCases;
 using System.Reflection;
 using System.Text;
+using Sts.Api.Auth;
+using Sts.Domain.User;
+using Sts.Domain.Character;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -73,6 +76,40 @@ builder.Services.AddSingleton<IUploadImageUseCase, UploadImageUseCase>();
 builder.Services.AddSingleton<IGetImagesUseCase, GetImagesUseCase>();
 builder.Services.AddSingleton<IDeleteImageUseCase, DeleteImageUseCase>();
 
+// ─── Chemins fichiers User / Character ───────────────────────────────────────
+
+var usersPath = builder.Configuration["Data:UsersFilePath"]
+    ?? throw new InvalidOperationException("La clé Data:UsersFilePath est manquante dans la configuration.");
+
+var charactersPath = builder.Configuration["Data:CharactersFilePath"]
+    ?? throw new InvalidOperationException("La clé Data:CharactersFilePath est manquante dans la configuration.");
+
+// ─── Auth + User ──────────────────────────────────────────────────────────────
+
+builder.Services.AddSingleton<IPasswordHasher, BCryptPasswordHasher>();
+
+builder.Services.AddSingleton<IUserRepository>(
+    new UserRepository(usersPath));
+
+builder.Services.AddScoped<IGetAllUsersUseCase, GetAllUsersUseCase>();
+builder.Services.AddScoped<ICreateUserUseCase, CreateUserUseCase>();
+builder.Services.AddScoped<IUpdateUserCodeUseCase, UpdateUserCodeUseCase>();
+builder.Services.AddScoped<IDeleteUserUseCase, DeleteUserUseCase>();
+builder.Services.AddScoped<IAuthenticateUserUseCase, AuthenticateUserUseCase>();
+builder.Services.AddScoped<ISeedAdminUseCase, SeedAdminUseCase>();
+
+// ─── Characters ───────────────────────────────────────────────────────────────
+
+builder.Services.AddSingleton<ICharacterRepository>(
+    new CharacterRepository(charactersPath));
+
+builder.Services.AddScoped<IGetAllCharactersUseCase, GetAllCharactersUseCase>();
+builder.Services.AddScoped<IGetCharactersByUserUseCase, GetCharactersByUserUseCase>();
+builder.Services.AddScoped<IGetCharacterByIdUseCase, GetCharacterByIdUseCase>();
+builder.Services.AddScoped<ICreateCharacterUseCase, CreateCharacterUseCase>();
+builder.Services.AddScoped<IUpdateCharacterUseCase, UpdateCharacterUseCase>();
+builder.Services.AddScoped<IDeleteCharacterUseCase, DeleteCharacterUseCase>();
+
 // Chemins fichiers
 var quickLinksPath = builder.Configuration["Data:QuickLinksFilePath"]
     ?? throw new InvalidOperationException("La clé Data:QuickLinksFilePath est manquante dans la configuration.");
@@ -101,6 +138,8 @@ builder.Services.AddScoped<IDeleteQuickLinkUseCase, DeleteQuickLinkUseCase>();
 // Use cases SiteSettings
 builder.Services.AddScoped<IGetSiteSettingsUseCase, GetSiteSettingsUseCase>();
 builder.Services.AddScoped<IUpdateSiteSettingsUseCase, UpdateSiteSettingsUseCase>();
+
+builder.Services.AddHostedService<AdminSeedService>();
 
 builder.Services.AddDiscordBot(
     builder.Configuration,
@@ -131,7 +170,14 @@ builder.Services
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("admin", policy =>
+        policy.RequireRole("admin"));
+
+    options.AddPolicy("member", policy =>
+        policy.RequireRole("member"));
+});
 
 // ─── Swagger ──────────────────────────────────────────────────────────────────
 
@@ -221,7 +267,9 @@ app.MapGet("/api/version", () =>
 .WithSummary("Retourne la version de l'application.")
 .AllowAnonymous();
 
-app.MapAuthEndpoints();     // POST  /api/auth/login   (public)
+app.MapUserEndpoints();     // GET/POST /api/users         (auth requis)
+app.MapCharacterEndpoints();  // CRUD  /api/characters     (auth requis)
+app.MapAuthEndpoints(builder.Configuration);     // POST  /api/auth/login   (public)
 app.MapDataEndpoints();     // GET   /api/data          (public — plugin)
 app.MapRulesEndpoints();    // GET   /api/rules         (public — web)
 app.MapJobEndpoints();      // CRUD  /api/jobs          (auth requis)

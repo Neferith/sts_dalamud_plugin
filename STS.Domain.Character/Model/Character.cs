@@ -1,10 +1,11 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Sts.Domain;
 
 namespace Sts.Domain.Character;
 
-/// <summary>
-/// Représente un personnage joueur.
-/// </summary>
+/// <summary>Représente un personnage joueur.</summary>
 public class Character
 {
     /// <summary>Identifiant unique du personnage.</summary>
@@ -29,10 +30,10 @@ public class Character
     public int ReputationLevel { get; set; } = 0;
 
     /// <summary>
-    /// Identifiant du joueur propriétaire de ce personnage.
+    /// Identifiant de l'utilisateur propriétaire de ce personnage.
     /// Null pour les personnages créés localement dans le plugin (rétrocompatibilité).
     /// </summary>
-    public Guid? PlayerId { get; set; } = null;
+    public Guid? UserId { get; set; } = null;
 
     /// <summary>Trait d'origine équipé. Gratuit si une certification le débloque.</summary>
     public string? OriginTraitId { get; set; } = null;
@@ -70,9 +71,7 @@ public class Character
     public IEnumerable<CharacterItem> EquippedWeapons
         => Inventory.Where(i => i.Category == ItemCategory.Weapon && i.IsEquipped);
 
-    /// <summary>
-    /// Indique si une arme équipée n'a pas la compétence requise (palier → 8).
-    /// </summary>
+    /// <summary>Indique si une arme équipée n'a pas la compétence requise (palier → 8).</summary>
     /// <param name="weapon">L'arme à vérifier.</param>
     public bool IsWeaponUnmastered(CharacterItem weapon)
         => weapon.Category == ItemCategory.Weapon

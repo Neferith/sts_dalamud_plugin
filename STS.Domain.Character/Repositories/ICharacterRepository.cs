@@ -1,18 +1,20 @@
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
 namespace Sts.Domain.Character;
 
-/// <summary>
-/// Contrat d'accès aux fiches personnages.
-/// </summary>
+/// <summary>Contrat d'accès aux fiches personnages.</summary>
 public interface ICharacterRepository
 {
     /// <summary>Retourne tous les personnages, triés par nom.</summary>
     Task<IReadOnlyList<Character>> GetAllAsync();
 
     /// <summary>
-    /// Retourne tous les personnages appartenant à un joueur donné, triés par nom.
+    /// Retourne tous les personnages appartenant à un utilisateur donné, triés par nom.
     /// </summary>
-    /// <param name="playerId">Identifiant du joueur propriétaire.</param>
-    Task<IReadOnlyList<Character>> GetByPlayerIdAsync(Guid playerId);
+    /// <param name="userId">Identifiant de l'utilisateur propriétaire.</param>
+    Task<IReadOnlyList<Character>> GetByUserIdAsync(Guid userId);
 
     /// <summary>
     /// Retourne un personnage par son identifiant, ou null s'il n'existe pas.

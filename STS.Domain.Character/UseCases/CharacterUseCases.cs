@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using Sts.Domain;
 
 namespace Sts.Domain.Character;
@@ -25,31 +28,31 @@ public class GetAllCharactersUseCase : IGetAllCharactersUseCase
         => _repository.GetAllAsync();
 }
 
-// ── GetByPlayer ───────────────────────────────────────────────────────────────
+// ── GetByUser ─────────────────────────────────────────────────────────────────
 
-/// <summary>Cas d'usage : récupérer les personnages d'un joueur donné.</summary>
-public interface IGetCharactersByPlayerUseCase
+/// <summary>Cas d'usage : récupérer les personnages d'un utilisateur donné.</summary>
+public interface IGetCharactersByUserUseCase
 {
     /// <summary>
-    /// Retourne les personnages appartenant au joueur <paramref name="playerId"/>,
+    /// Retourne les personnages appartenant à l'utilisateur <paramref name="userId"/>,
     /// triés par nom.
     /// </summary>
-    /// <param name="playerId">Identifiant du joueur propriétaire.</param>
-    Task<IReadOnlyList<Character>> ExecuteAsync(Guid playerId);
+    /// <param name="userId">Identifiant de l'utilisateur propriétaire.</param>
+    Task<IReadOnlyList<Character>> ExecuteAsync(Guid userId);
 }
 
-/// <summary>Implémentation par défaut de <see cref="IGetCharactersByPlayerUseCase"/>.</summary>
-public class GetCharactersByPlayerUseCase : IGetCharactersByPlayerUseCase
+/// <summary>Implémentation par défaut de <see cref="IGetCharactersByUserUseCase"/>.</summary>
+public class GetCharactersByUserUseCase : IGetCharactersByUserUseCase
 {
     private readonly ICharacterRepository _repository;
 
     /// <param name="repository">Repository de persistance des personnages.</param>
-    public GetCharactersByPlayerUseCase(ICharacterRepository repository)
+    public GetCharactersByUserUseCase(ICharacterRepository repository)
         => _repository = repository;
 
     /// <inheritdoc/>
-    public Task<IReadOnlyList<Character>> ExecuteAsync(Guid playerId)
-        => _repository.GetByPlayerIdAsync(playerId);
+    public Task<IReadOnlyList<Character>> ExecuteAsync(Guid userId)
+        => _repository.GetByUserIdAsync(userId);
 }
 
 // ── GetById ───────────────────────────────────────────────────────────────────
@@ -85,17 +88,17 @@ public class GetCharacterByIdUseCase : IGetCharacterByIdUseCase
 public interface ICreateCharacterUseCase
 {
     /// <summary>
-    /// Crée un personnage avec le nom, le rang et le joueur propriétaire fournis,
+    /// Crée un personnage avec le nom, le rang et l'utilisateur propriétaire fournis,
     /// lui assigne un nouvel identifiant et le persiste immédiatement.
     /// </summary>
     /// <param name="name">Nom du personnage.</param>
     /// <param name="rank">Rang STS initial.</param>
-    /// <param name="playerId">
-    /// Identifiant du joueur propriétaire.
+    /// <param name="userId">
+    /// Identifiant de l'utilisateur propriétaire.
     /// Null pour une création locale (plugin sans compte web).
     /// </param>
     /// <returns>Le personnage créé.</returns>
-    Task<Character> ExecuteAsync(string name, RankKey rank, Guid? playerId = null);
+    Task<Character> ExecuteAsync(string name, RankKey rank, Guid? userId = null);
 }
 
 /// <summary>Implémentation par défaut de <see cref="ICreateCharacterUseCase"/>.</summary>
@@ -108,13 +111,13 @@ public class CreateCharacterUseCase : ICreateCharacterUseCase
         => _repository = repository;
 
     /// <inheritdoc/>
-    public async Task<Character> ExecuteAsync(string name, RankKey rank, Guid? playerId = null)
+    public async Task<Character> ExecuteAsync(string name, RankKey rank, Guid? userId = null)
     {
         var character = new Character
         {
-            Name     = name.Trim(),
-            RankKey  = rank,
-            PlayerId = playerId,
+            Name   = name.Trim(),
+            RankKey = rank,
+            UserId = userId,
         };
 
         await _repository.SaveAsync(character);
@@ -129,7 +132,7 @@ public interface IUpdateCharacterUseCase
 {
     /// <summary>
     /// Persiste les modifications apportées au personnage.
-    /// L'identifiant et le <c>PlayerId</c> ne sont jamais modifiés par ce cas d'usage.
+    /// L'identifiant et le <c>UserId</c> ne sont jamais modifiés par ce cas d'usage.
     /// </summary>
     /// <param name="character">Le personnage avec ses nouvelles valeurs.</param>
     Task ExecuteAsync(Character character);
@@ -145,8 +148,8 @@ public class UpdateCharacterUseCase : IUpdateCharacterUseCase
         => _repository = repository;
 
     /// <inheritdoc/>
-    public Task ExecuteAsync(Character character)
-        => _repository.SaveAsync(character);
+    public async Task ExecuteAsync(Character character)
+        => await _repository.SaveAsync(character);
 }
 
 // ── Delete ────────────────────────────────────────────────────────────────────

@@ -1,10 +1,10 @@
-using Sts.Domain.Character;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Sts.Domain.Character;
 
 namespace STSPlugin.Repository;
 
@@ -19,14 +19,10 @@ public class LocalCharacterRepository : ICharacterRepository
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        WriteIndented = true,
+        WriteIndented        = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
     };
 
-    /// <summary>
-    /// Initialise le repository avec le dossier de stockage.
-    /// Le dossier est créé s'il n'existe pas.
-    /// </summary>
     /// <param name="directory">Chemin absolu du dossier de stockage des fiches.</param>
     public LocalCharacterRepository(string directory)
     {
@@ -50,10 +46,10 @@ public class LocalCharacterRepository : ICharacterRepository
     }
 
     /// <inheritdoc/>
-    public async Task<IReadOnlyList<Character>> GetByPlayerIdAsync(Guid playerId)
+    public async Task<IReadOnlyList<Character>> GetByUserIdAsync(Guid userId)
     {
         var all = await GetAllAsync();
-        return [.. all.Where(c => c.PlayerId == playerId)];
+        return [.. all.Where(c => c.UserId == userId)];
     }
 
     /// <inheritdoc/>
@@ -74,9 +70,7 @@ public class LocalCharacterRepository : ICharacterRepository
     public Task DeleteAsync(Guid id)
     {
         var path = FilePath(id);
-        if (File.Exists(path))
-            File.Delete(path);
-
+        if (File.Exists(path)) File.Delete(path);
         return Task.CompletedTask;
     }
 
@@ -93,7 +87,6 @@ public class LocalCharacterRepository : ICharacterRepository
         }
         catch
         {
-            // Fichier corrompu ou illisible — ignoré silencieusement
             return null;
         }
     }

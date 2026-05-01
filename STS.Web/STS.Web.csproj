@@ -15,6 +15,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\STS.Domain\STS.Domain.csproj" />
+        <ProjectReference Include="..\STS.Domain.User\STS.Domain.User.csproj" />
         <ProjectReference Include="..\STS.Domain.Content\STS.Domain.Content.csproj" />
     </ItemGroup>
 
