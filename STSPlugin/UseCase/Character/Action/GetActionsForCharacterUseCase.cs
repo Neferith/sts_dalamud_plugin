@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Sts.Domain;
 using STSPlugin.Repository;
+using Sts.Domain.Character;
 
 namespace STSPlugin.CharacterUseCases;
 

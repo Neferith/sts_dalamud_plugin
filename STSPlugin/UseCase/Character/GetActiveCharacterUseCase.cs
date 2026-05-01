@@ -1,11 +1,10 @@
-using Sts.Domain;
-using STSPlugin.Repository;
 using Sts.Domain.Character;
 
 namespace STSPlugin.CharacterUseCases;
 
 /// <summary>
 /// Cas d'usage : récupérer le personnage actuellement actif.
+/// Plugin-specific — reste synchrone (appelé depuis le render thread ImGui).
 /// </summary>
 public interface GetActiveCharacterUseCase
 {
@@ -16,23 +15,23 @@ public interface GetActiveCharacterUseCase
     Character? Execute();
 }
 
-/// <summary>
-/// Implémentation par défaut de <see cref="GetActiveCharacterUseCase"/>.
-/// </summary>
+/// <summary>Implémentation par défaut de <see cref="GetActiveCharacterUseCase"/>.</summary>
 public class DefaultGetActiveCharacterUseCase : GetActiveCharacterUseCase
 {
-    private readonly CharacterRepository _repository;
-    private readonly Configuration _configuration;
+    private readonly ICharacterRepository _repository;
+    private readonly Configuration        _configuration;
 
-    public DefaultGetActiveCharacterUseCase(CharacterRepository repository, Configuration configuration)
+    public DefaultGetActiveCharacterUseCase(
+        ICharacterRepository repository,
+        Configuration configuration)
     {
-        _repository = repository;
+        _repository    = repository;
         _configuration = configuration;
     }
 
     /// <inheritdoc/>
     public Character? Execute()
         => _configuration.ActiveCharacterId is { } id
-            ? _repository.GetById(id)
+            ? _repository.GetByIdAsync(id).GetAwaiter().GetResult()
             : null;
 }

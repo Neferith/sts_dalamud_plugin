@@ -1,9 +1,12 @@
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Windowing;
 using Sts.Domain;
+using Sts.Domain.Character;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Threading.Tasks;
 
 namespace STSPlugin.Windows;
 
@@ -23,7 +26,16 @@ public class MainWindow : Window, IDisposable
     private static readonly Vector4 ColWarn = new(0.52f, 0.31f, 0.04f, 1f);
     private static readonly Vector4 ColActive = new(0.20f, 0.20f, 0.20f, 0.40f);
 
-    // État onglet personnages
+    // ── Cache async ────────────────────────────────────────────────────────────
+    // Draw() est synchrone (render thread). Les use cases sont async.
+    // On ne lit jamais directement les use cases dans Draw() — uniquement le cache.
+
+    private IReadOnlyList<Character> _characters = [];
+    private Character? _activeCharacter;
+    private bool _isLoading;
+    private Task? _refreshTask;
+
+    // ── État UI ────────────────────────────────────────────────────────────────
     private string _newCharName = string.Empty;
     private Guid? _selectedId = null;
 
@@ -38,9 +50,44 @@ public class MainWindow : Window, IDisposable
             MaximumSize = new Vector2(520, 860),
         };
         Size = new Vector2(370, 560);
+
+        // Chargement initial
+        TriggerRefresh();
     }
 
     public void Dispose() { }
+
+    // ── Refresh async ──────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Déclenche un refresh des données en arrière-plan.
+    /// Ignoré si un refresh est déjà en cours.
+    /// </summary>
+    private void TriggerRefresh()
+    {
+        if (_refreshTask is { IsCompleted: false }) return;
+
+        _isLoading = true;
+        _refreshTask = Task.Run(RefreshAsync);
+    }
+
+    private async Task RefreshAsync()
+    {
+        try
+        {
+            var characters = await plugin.GetAllCharacters.ExecuteAsync();
+            var activeCharacter = plugin.GetActiveCharacter.Execute();
+
+            _characters = characters;
+            _activeCharacter = activeCharacter;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    // ── Draw ───────────────────────────────────────────────────────────────────
 
     public override void Draw()
     {
@@ -63,11 +110,30 @@ public class MainWindow : Window, IDisposable
         ImGui.EndTabBar();
     }
 
+    // ── Loader ─────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Affiche un indicateur de chargement inline.
+    /// À enrichir (spinner animé, etc.) selon les besoins futurs.
+    /// </summary>
+    private static void DrawLoader()
+    {
+        ImGui.Spacing();
+        ImGui.TextColored(new Vector4(0.60f, 0.60f, 0.58f, 0.8f), "Chargement…");
+        ImGui.Spacing();
+    }
+
     // ================================================================== Onglet Dés
 
     private void DrawDiceTab()
     {
-        var active = plugin.GetActiveCharacter.Execute();
+        if (_isLoading)
+        {
+            DrawLoader();
+            return;
+        }
+
+        var active = _activeCharacter;
 
         if (active is null)
         {
@@ -114,7 +180,6 @@ public class MainWindow : Window, IDisposable
 
         ImGui.Text(active.Name);
         ImGui.SameLine();
-
         ImGui.TextColored(ColMuted, $"— {rank.Label}");
     }
 
@@ -183,7 +248,8 @@ public class MainWindow : Window, IDisposable
 
         var mod = Engine.Modifier;
         var modStr = mod == 0 ? "0" : mod > 0 ? $"+{mod}" : $"{mod}";
-        var modCol = mod > 0 ? ColSuccess : mod < 0 ? ColDanger : ImGui.GetStyle().Colors[(int)ImGuiCol.Text];
+        var modCol = mod > 0 ? ColSuccess : mod < 0 ? ColDanger
+                              : ImGui.GetStyle().Colors[(int)ImGuiCol.Text];
         ImGui.TextColored(modCol, modStr);
         ImGui.SameLine();
 
@@ -193,7 +259,9 @@ public class MainWindow : Window, IDisposable
         if (mod != 0)
         {
             ImGui.SameLine();
-            var help = mod > 0 ? $"Palier facilité → {Engine.EffectivePalier}+" : $"Palier durci → {Engine.EffectivePalier}+";
+            var help = mod > 0
+                ? $"Palier facilité → {Engine.EffectivePalier}+"
+                : $"Palier durci → {Engine.EffectivePalier}+";
             ImGui.TextColored(ColMuted, help);
         }
     }
@@ -350,8 +418,14 @@ public class MainWindow : Window, IDisposable
 
     private void DrawCharacterTab()
     {
-        var characters = plugin.GetAllCharacters.Execute();
-        var activeId = plugin.Configuration.ActiveCharacterId;
+        if (_isLoading)
+        {
+            DrawLoader();
+            return;
+        }
+
+        var characters = _characters;
+        var activeId = _activeCharacter?.Id;
 
         // ---- Liste des personnages ----
         ImGui.TextColored(ColMuted, "PERSONNAGES");
@@ -370,7 +444,6 @@ public class MainWindow : Window, IDisposable
                 var isActive = character.Id == activeId;
                 var isSelected = character.Id == _selectedId;
 
-                // Indicateur actif
                 if (isActive)
                 {
                     ImGui.PushStyleColor(ImGuiCol.Text, ColSuccess);
@@ -383,7 +456,6 @@ public class MainWindow : Window, IDisposable
                 }
                 ImGui.SameLine();
 
-                // Sélection
                 if (ImGui.Selectable(
                     $"{character.Name}  [{Rank.Get(character.RankKey).Label}]##{character.Id}",
                     isSelected))
@@ -391,7 +463,6 @@ public class MainWindow : Window, IDisposable
                     _selectedId = isSelected ? null : character.Id;
                 }
 
-                // Double-clic → activer
                 if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
                 {
                     plugin.SetActiveCharacter.Execute(character.Id);
@@ -414,15 +485,20 @@ public class MainWindow : Window, IDisposable
             ImGui.TextColored(ColMuted, $"Sélectionné : {selected.Name}");
             ImGui.Spacing();
 
-            // Activer / Désactiver
             var avail = ImGui.GetContentRegionAvail().X;
+
+            // Activer / Désactiver
             if (!isActive)
             {
                 ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.09f, 0.37f, 0.65f, 0.25f));
                 ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.09f, 0.37f, 0.65f, 0.40f));
                 ImGui.PushStyleColor(ImGuiCol.Text, ColInfo);
                 if (ImGui.Button("Activer ce personnage##activate", new Vector2(avail, 0)))
+                {
                     plugin.SetActiveCharacter.Execute(selectedId);
+                    plugin.RefreshEquippedTraits();
+                    TriggerRefresh();
+                }
                 ImGui.PopStyleColor(3);
             }
             else
@@ -431,19 +507,20 @@ public class MainWindow : Window, IDisposable
                 ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.52f, 0.31f, 0.04f, 0.35f));
                 ImGui.PushStyleColor(ImGuiCol.Text, ColWarn);
                 if (ImGui.Button("Désactiver##deactivate", new Vector2(avail, 0)))
+                {
                     plugin.SetActiveCharacter.Execute(null);
+                    TriggerRefresh();
+                }
                 ImGui.PopStyleColor(3);
             }
 
             ImGui.Spacing();
 
             // Ouvrir la fiche
-          //  var avail = ImGui.GetContentRegionAvail().X;
             if (ImGui.Button("Ouvrir la fiche##open_char", new Vector2(avail, 0)))
                 plugin.OpenCharacterWindow(selected);
 
             ImGui.Spacing();
-
 
             // Supprimer
             ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.64f, 0.17f, 0.17f, 0.20f));
@@ -451,7 +528,11 @@ public class MainWindow : Window, IDisposable
             ImGui.PushStyleColor(ImGuiCol.Text, ColDanger);
             if (ImGui.Button($"Supprimer {selected.Name}##delete", new Vector2(avail, 0)))
             {
-                plugin.DeleteCharacter.Execute(selectedId);
+                _ = Task.Run(async () =>
+                {
+                    await plugin.DeleteCharacter.ExecuteAsync(selectedId);
+                    TriggerRefresh();
+                });
                 _selectedId = null;
             }
             ImGui.PopStyleColor(3);
@@ -475,12 +556,19 @@ public class MainWindow : Window, IDisposable
             ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.3f, 0.3f, 0.3f, 0.3f));
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.3f, 0.3f, 0.3f, 0.3f));
         }
+
+        var nameToCreate = _newCharName;
         if (ImGui.Button("Créer##create") && canCreate)
         {
-            var created = plugin.CreateCharacter.Execute(_newCharName, RankKey.Novice);
-            _selectedId = created.Id;
             _newCharName = string.Empty;
+            _ = Task.Run(async () =>
+            {
+                var created = await plugin.CreateCharacter.ExecuteAsync(nameToCreate, RankKey.Novice);
+                _selectedId = created.Id;
+                TriggerRefresh();
+            });
         }
+
         if (!canCreate) ImGui.PopStyleColor(2);
     }
 }

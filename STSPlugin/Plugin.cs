@@ -44,7 +44,7 @@ public sealed class Plugin : IDalamudPlugin
     public StsEngine Engine { get; init; }
 
     private readonly MainDiContainer _factory;
-    public CharacterRepository CharacterRepository { get; init; }
+    public ICharacterRepository CharacterRepository { get; init; }
     // Changer init → set sur les 4 repositories liés aux données
     public TraitRepository TraitRepository { get; private set; }
     public JobRepository JobRepository { get; private set; }
@@ -52,11 +52,11 @@ public sealed class Plugin : IDalamudPlugin
     public AbilityRepository AbilityRepository { get; private set; }
 
     // --- use cases personnages ---
-    public GetAllCharactersUseCase GetAllCharacters { get; init; }
+    public IGetAllCharactersUseCase GetAllCharacters { get; init; }
     public GetActiveCharacterUseCase GetActiveCharacter { get; init; }
-    public CreateCharacterUseCase CreateCharacter { get; init; }
-    public UpdateCharacterUseCase UpdateCharacter { get; init; }
-    public DeleteCharacterUseCase DeleteCharacter { get; init; }
+    public ICreateCharacterUseCase CreateCharacter { get; init; }
+    public IUpdateCharacterUseCase UpdateCharacter { get; init; }
+    public IDeleteCharacterUseCase DeleteCharacter { get; init; }
     public SetActiveCharacterUseCase SetActiveCharacter { get; init; }
 
     // --- use cases traits / job ---

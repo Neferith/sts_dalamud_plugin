@@ -1,4 +1,5 @@
-using Sts.Domain;
+using System.Threading.Tasks;
+using Sts.Domain.Character;
 using STSPlugin.Repository;
 
 namespace STSPlugin.CharacterUseCases;
@@ -16,30 +17,28 @@ public interface SetJobUseCase
     /// </summary>
     /// <param name="character">Le personnage à modifier.</param>
     /// <param name="jobId">L'identifiant du job, ou null pour retirer le job.</param>
-    void Execute(Character character, string? jobId);
+    Task ExecuteAsync(Character character, string? jobId);
 }
 
-/// <summary>
-/// Implémentation par défaut de <see cref="SetJobUseCase"/>.
-/// </summary>
+/// <summary>Implémentation par défaut de <see cref="SetJobUseCase"/>.</summary>
 public class DefaultSetJobUseCase : SetJobUseCase
 {
-    private readonly CharacterRepository _characterRepository;
-    private readonly JobRepository _jobRepository;
+    private readonly ICharacterRepository _characterRepository;
+    private readonly JobRepository        _jobRepository;
 
-    public DefaultSetJobUseCase(CharacterRepository characterRepository, JobRepository jobRepository)
+    public DefaultSetJobUseCase(ICharacterRepository characterRepository, JobRepository jobRepository)
     {
         _characterRepository = characterRepository;
-        _jobRepository = jobRepository;
+        _jobRepository       = jobRepository;
     }
 
     /// <inheritdoc/>
-    public void Execute(Character character, string? jobId)
+    public async Task ExecuteAsync(Character character, string? jobId)
     {
         if (jobId != null && _jobRepository.GetById(jobId) is null)
             return;
 
         character.JobId = jobId;
-        _characterRepository.Save(character);
+        await _characterRepository.SaveAsync(character);
     }
 }

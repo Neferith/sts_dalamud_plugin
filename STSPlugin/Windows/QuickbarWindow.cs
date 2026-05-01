@@ -4,6 +4,8 @@ using Sts.Domain;
 using System;
 using System.Linq;
 using System.Numerics;
+using System.Threading.Tasks;
+using Sts.Domain.Character;
 
 namespace STSPlugin.Windows;
 
@@ -14,12 +16,10 @@ public class QuickbarWindow : Window, IDisposable
 {
     private readonly Plugin _plugin;
 
-    // --- état UI ---
     private bool _editMode = false;
     private string _newActionName = string.Empty;
     private string _newActionCtxs = string.Empty;
 
-    // Couleurs
     private static readonly Vector4 ColMuted = new(0.60f, 0.60f, 0.58f, 1f);
     private static readonly Vector4 ColInfo = new(0.09f, 0.37f, 0.65f, 1f);
     private static readonly Vector4 ColDanger = new(0.64f, 0.17f, 0.17f, 1f);
@@ -43,8 +43,6 @@ public class QuickbarWindow : Window, IDisposable
 
     public override void Draw()
     {
-        // Mode normal : barre compacte sans scroll
-        // Mode édition : scroll autorisé (liste potentiellement longue)
         Flags = _editMode
             ? ImGuiWindowFlags.None
             : ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse;
@@ -126,8 +124,6 @@ public class QuickbarWindow : Window, IDisposable
             {
                 if (isSelected)
                 {
-                    // Ajouter à la sélection
-                    // Si c'était "tout sélectionné" (liste vide), initialiser avec tous sauf celui-ci décoché
                     if (active.QuickbarActionIds.Count == 0)
                         active.QuickbarActionIds.AddRange(allActions.Select(a => a.Id));
 
@@ -136,18 +132,16 @@ public class QuickbarWindow : Window, IDisposable
                 }
                 else
                 {
-                    // Si c'était "tout sélectionné", initialiser avec tous puis retirer
                     if (active.QuickbarActionIds.Count == 0)
                         active.QuickbarActionIds.AddRange(allActions.Select(a => a.Id));
 
                     active.QuickbarActionIds.Remove(action.Id);
                 }
 
-                // Si tout est sélectionné, revenir à la liste vide (= tout)
                 if (active.QuickbarActionIds.Count == allActions.Count)
                     active.QuickbarActionIds.Clear();
 
-                _plugin.UpdateCharacter.Execute(active);
+                _ = Task.Run(() => _plugin.UpdateCharacter.ExecuteAsync(active));
             }
 
             ImGui.SameLine();
@@ -167,8 +161,8 @@ public class QuickbarWindow : Window, IDisposable
                 ImGui.PushStyleColor(ImGuiCol.Text, ColDanger);
                 if (ImGui.Button($"✕##del_{action.Id}"))
                 {
-                    _plugin.DeleteCustomAction.Execute(active, action.Id);
                     active.QuickbarActionIds.Remove(action.Id);
+                    _ = Task.Run(() => _plugin.DeleteCustomAction.ExecuteAsync(active, action.Id));
                 }
                 ImGui.PopStyleColor(3);
             }
@@ -244,14 +238,16 @@ public class QuickbarWindow : Window, IDisposable
             var contexts = _newActionCtxs
                 .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .ToList();
-
-            var created = _plugin.CreateCustomAction.Execute(active, _newActionName, contexts);
+            var actionName = _newActionName;
             _newActionName = string.Empty;
             _newActionCtxs = string.Empty;
 
-            // Ajouter automatiquement à la sélection si une sélection est active
-            if (active.QuickbarActionIds.Count > 0)
-                active.QuickbarActionIds.Add(created.Id);
+            _ = Task.Run(async () =>
+            {
+                var created = await _plugin.CreateCustomAction.ExecuteAsync(active, actionName, contexts);
+                if (active.QuickbarActionIds.Count > 0)
+                    active.QuickbarActionIds.Add(created.Id);
+            });
         }
 
         if (!canCreate) ImGui.PopStyleColor(2);

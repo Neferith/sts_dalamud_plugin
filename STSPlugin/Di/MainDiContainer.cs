@@ -13,6 +13,11 @@ namespace STSPlugin;
 /// <summary>
 /// Implémentation principale de <see cref="IPluginFactory"/>.
 /// Tous les services sont des singletons — créés à la première demande et réutilisés ensuite.
+///
+/// Deux modes de stockage des personnages :
+/// - Local (défaut) : <see cref="LocalCharacterRepository"/> — fichiers JSON dans le dossier config
+/// - Remote (à venir) : RemoteCharacterRepository — appels vers STS.Api
+/// Le mode est sélectionnable depuis les Settings du plugin.
 /// </summary>
 public class MainDiContainer : IPluginFactory
 {
@@ -21,40 +26,46 @@ public class MainDiContainer : IPluginFactory
     private readonly string _configDir;
     private readonly IPluginLog _log;
 
-    // --- Singletons ---
+    // --- Infrastructure ---
     private StsEngine? _engine;
     private IDataSource? _dataSource;
-    private LocalJsonDataSource? _local;
-    private RemoteJsonDataSource? _remote;
-    private CharacterRepository? _characterRepository;
+    private ICharacterRepository? _characterRepository;
     private TraitRepository? _traitRepository;
     private JobRepository? _jobRepository;
     private ActionRepository? _actionRepository;
     private AbilityRepository? _abilityRepository;
 
-    private GetAllCharactersUseCase? _getAllCharacters;
+    // --- Use cases personnages (domain) ---
+    private IGetAllCharactersUseCase? _getAllCharacters;
+    private ICreateCharacterUseCase? _createCharacter;
+    private IUpdateCharacterUseCase? _updateCharacter;
+    private IDeleteCharacterUseCase? _deleteCharacter;
+
+    // --- Use cases personnages (plugin-specific, sync) ---
     private GetActiveCharacterUseCase? _getActiveCharacter;
-    private CreateCharacterUseCase? _createCharacter;
-    private UpdateCharacterUseCase? _updateCharacter;
-    private DeleteCharacterUseCase? _deleteCharacter;
     private SetActiveCharacterUseCase? _setActiveCharacter;
 
+    // --- Use cases traits / job ---
     private SetJobUseCase? _setJob;
     private SetOriginTraitUseCase? _setOriginTrait;
     private EquipTraitUseCase? _equipTrait;
     private UnequipTraitUseCase? _unequipTrait;
 
+    // --- Use cases actions ---
     private GetActionsForCharacterUseCase? _getActionsForCharacter;
     private CreateCustomActionUseCase? _createCustomAction;
     private DeleteCustomActionUseCase? _deleteCustomAction;
 
+    // --- Use cases compétences ---
     private EquipAbilityUseCase? _equipAbility;
     private UnequipAbilityUseCase? _unequipAbility;
     private SetSkillPointsUseCase? _setSkillPoints;
 
+    // --- Use cases certifications ---
     private AddCertificationUseCase? _addCertification;
     private RemoveCertificationUseCase? _removeCertification;
 
+    // --- Use cases inventaire ---
     private AddInventoryItemUseCase? _addInventoryItem;
     private RemoveInventoryItemUseCase? _removeInventoryItem;
     private SetItemSlotUseCase? _setItemSlot;
@@ -66,40 +77,30 @@ public class MainDiContainer : IPluginFactory
         IDalamudPluginInterface pluginInterface,
         IPluginLog log)
     {
-        _config      = config;
+        _config = config;
         _assemblyDir = pluginInterface.AssemblyLocation.DirectoryName!;
-        _configDir   = pluginInterface.GetPluginConfigDirectory();
-        _log         = log;
+        _configDir = pluginInterface.GetPluginConfigDirectory();
+        _log = log;
     }
 
-    // --- Moteur ---
+    // ── Moteur ────────────────────────────────────────────────────────────────
 
     public StsEngine MakeEngine()
         => _engine ??= StsEngine.CreateDefault(new DalamudStsLogger(_log));
 
-    // --- DataSource ---
+    // ── DataSource ────────────────────────────────────────────────────────────
 
     public IDataSource MakeDataSource()
     {
         if (_dataSource != null) return _dataSource;
 
         var remote = new RemoteJsonDataSource(_config.BackendUrl);
-        var local = new LocalJsonDataSource(
-            Path.Combine(_assemblyDir, "data.json"));
+        var local = new LocalJsonDataSource(Path.Combine(_assemblyDir, "data.json"));
         var cachePath = Path.Combine(_configDir, "data_cache.json");
 
         _dataSource = new CachedDataSource(remote, local, cachePath, _log);
         return _dataSource;
     }
-
-
-
-    /*  private LocalJsonDataSource MakeLocalDataSource()
-          => _local ??= new LocalJsonDataSource(
-              Path.Combine(_assemblyDir, "data.json"));
-
-      private RemoteJsonDataSource MakeRemoteDataSource()
-          => _remote ??= new RemoteJsonDataSource(_config.BackendUrl);*/
 
     /// <summary>
     /// Invalide la datasource et les repositories qui en dépendent.
@@ -107,19 +108,50 @@ public class MainDiContainer : IPluginFactory
     /// </summary>
     public void ReloadDataSources()
     {
-      
-         _dataSource = null; // mode Local → pas de CachedDataSource, on force la recréation
+        _dataSource = null;
         _traitRepository = null;
         _jobRepository = null;
         _actionRepository = null;
         _abilityRepository = null;
     }
 
-    // --- Repositories ---
+    // ── Repository personnages ────────────────────────────────────────────────
 
-    public CharacterRepository MakeCharacterRepository()
-        => _characterRepository ??= new DefaultCharacterRepository(
+    /// <summary>
+    /// Retourne le repository de personnages actif selon le mode configuré.
+    /// Mode local (défaut) : <see cref="LocalCharacterRepository"/>.
+    /// Mode remote (à venir) : RemoteCharacterRepository.
+    /// </summary>
+    public ICharacterRepository MakeCharacterRepository()
+    {
+        if (_characterRepository != null) return _characterRepository;
+
+        // TODO : quand le mode remote sera implémenté, brancher ici selon _config.CharacterMode
+        // if (_config.CharacterMode == CharacterMode.Remote)
+        //     _characterRepository = new RemoteCharacterRepository(_config.BackendUrl, _log);
+        // else
+        _characterRepository = new LocalCharacterRepository(
             Path.Combine(_configDir, "characters"));
+
+        return _characterRepository;
+    }
+
+    /// <summary>
+    /// Invalide le repository de personnages et les use cases qui en dépendent.
+    /// À appeler depuis les Settings lors du changement de mode Local ↔ Remote.
+    /// </summary>
+    public void ReloadCharacterRepository()
+    {
+        _characterRepository = null;
+        _getAllCharacters = null;
+        _createCharacter = null;
+        _updateCharacter = null;
+        _deleteCharacter = null;
+        _getActiveCharacter = null;
+        _setActiveCharacter = null;
+    }
+
+    // ── Repositories données de référence ─────────────────────────────────────
 
     public TraitRepository MakeTraitRepository()
         => _traitRepository ??= new DefaultTraitRepository(MakeDataSource());
@@ -133,28 +165,30 @@ public class MainDiContainer : IPluginFactory
     public AbilityRepository MakeAbilityRepository()
         => _abilityRepository ??= new DefaultAbilityRepository(MakeDataSource());
 
-    // --- Use cases personnages ---
+    // ── Use cases personnages (STS.Domain.Character) ──────────────────────────
 
-    public GetAllCharactersUseCase MakeGetAllCharacters()
-        => _getAllCharacters ??= new DefaultGetAllCharactersUseCase(MakeCharacterRepository());
+    public IGetAllCharactersUseCase MakeGetAllCharacters()
+        => _getAllCharacters ??= new GetAllCharactersUseCase(MakeCharacterRepository());
+
+    public ICreateCharacterUseCase MakeCreateCharacter()
+        => _createCharacter ??= new CreateCharacterUseCase(MakeCharacterRepository());
+
+    public IUpdateCharacterUseCase MakeUpdateCharacter()
+        => _updateCharacter ??= new UpdateCharacterUseCase(MakeCharacterRepository());
+
+    public IDeleteCharacterUseCase MakeDeleteCharacter()
+        => _deleteCharacter ??= new DeleteCharacterUseCase(MakeCharacterRepository());
+
+    // ── Use cases personnages (plugin-specific, sync) ─────────────────────────
 
     public GetActiveCharacterUseCase MakeGetActiveCharacter()
         => _getActiveCharacter ??= new DefaultGetActiveCharacterUseCase(MakeCharacterRepository(), _config);
-
-    public CreateCharacterUseCase MakeCreateCharacter()
-        => _createCharacter ??= new DefaultCreateCharacterUseCase(MakeCharacterRepository());
-
-    public UpdateCharacterUseCase MakeUpdateCharacter()
-        => _updateCharacter ??= new DefaultUpdateCharacterUseCase(MakeCharacterRepository());
-
-    public DeleteCharacterUseCase MakeDeleteCharacter()
-        => _deleteCharacter ??= new DefaultDeleteCharacterUseCase(MakeCharacterRepository(), _config);
 
     public SetActiveCharacterUseCase MakeSetActiveCharacter()
         => _setActiveCharacter ??= new DefaultSetActiveCharacterUseCase(
             MakeCharacterRepository(), _config, MakeEngine());
 
-    // --- Use cases traits / job ---
+    // ── Use cases traits / job ────────────────────────────────────────────────
 
     public SetJobUseCase MakeSetJob()
         => _setJob ??= new DefaultSetJobUseCase(MakeCharacterRepository(), MakeJobRepository());
@@ -168,7 +202,7 @@ public class MainDiContainer : IPluginFactory
     public UnequipTraitUseCase MakeUnequipTrait()
         => _unequipTrait ??= new DefaultUnequipTraitUseCase(MakeCharacterRepository());
 
-    // --- Use cases actions ---
+    // ── Use cases actions ─────────────────────────────────────────────────────
 
     public GetActionsForCharacterUseCase MakeGetActionsForCharacter()
         => _getActionsForCharacter ??= new DefaultGetActionsForCharacterUseCase(MakeActionRepository());
@@ -179,7 +213,7 @@ public class MainDiContainer : IPluginFactory
     public DeleteCustomActionUseCase MakeDeleteCustomAction()
         => _deleteCustomAction ??= new DefaultDeleteCustomActionUseCase(MakeCharacterRepository());
 
-    // --- Use cases compétences ---
+    // ── Use cases compétences ─────────────────────────────────────────────────
 
     public EquipAbilityUseCase MakeEquipAbility()
         => _equipAbility ??= new DefaultEquipAbilityUseCase(MakeCharacterRepository(), MakeAbilityRepository());
@@ -190,7 +224,7 @@ public class MainDiContainer : IPluginFactory
     public SetSkillPointsUseCase MakeSetSkillPoints()
         => _setSkillPoints ??= new DefaultSetSkillPointsUseCase(MakeCharacterRepository());
 
-    // --- Use cases certifications ---
+    // ── Use cases certifications ──────────────────────────────────────────────
 
     public AddCertificationUseCase MakeAddCertification()
         => _addCertification ??= new DefaultAddCertificationUseCase(MakeCharacterRepository());
@@ -198,7 +232,7 @@ public class MainDiContainer : IPluginFactory
     public RemoveCertificationUseCase MakeRemoveCertification()
         => _removeCertification ??= new DefaultRemoveCertificationUseCase(MakeCharacterRepository());
 
-    // --- Use cases inventaire ---
+    // ── Use cases inventaire ──────────────────────────────────────────────────
 
     public AddInventoryItemUseCase MakeAddInventoryItem()
         => _addInventoryItem ??= new DefaultAddInventoryItemUseCase(MakeCharacterRepository());
@@ -214,6 +248,4 @@ public class MainDiContainer : IPluginFactory
 
     public SetItemIconUseCase MakeSetItemIcon()
         => _setItemIcon ??= new DefaultSetItemIconUseCase(MakeCharacterRepository());
-
-    
 }

@@ -1,35 +1,19 @@
+using Sts.Domain.Character;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
-using Sts.Domain;
-using Sts.Domain.Character;
+using System.Threading.Tasks;
 
 namespace STSPlugin.Repository;
 
 /// <summary>
-/// Contrat d'accès aux fiches personnages.
+/// Implémentation locale de <see cref="ICharacterRepository"/>.
+/// Stocke chaque personnage dans un fichier JSON séparé nommé <c>{id}.json</c>
+/// dans le dossier de configuration du plugin.
 /// </summary>
-public interface CharacterRepository
-{
-    /// <summary>Retourne tous les personnages sauvegardés.</summary>
-    IReadOnlyList<Character> GetAll();
-
-    /// <summary>Retourne un personnage par son identifiant, ou null s'il n'existe pas.</summary>
-    Character? GetById(Guid id);
-
-    /// <summary>Sauvegarde un personnage (création ou mise à jour).</summary>
-    void Save(Character character);
-
-    /// <summary>Supprime un personnage par son identifiant.</summary>
-    void Delete(Guid id);
-}
-
-/// <summary>
-/// Implémentation par défaut : un fichier JSON par personnage dans le dossier de config du plugin.
-/// Nom de fichier : {id}.json
-/// </summary>
-public class DefaultCharacterRepository : CharacterRepository
+public class LocalCharacterRepository : ICharacterRepository
 {
     private readonly string _directory;
 
@@ -44,63 +28,72 @@ public class DefaultCharacterRepository : CharacterRepository
     /// Le dossier est créé s'il n'existe pas.
     /// </summary>
     /// <param name="directory">Chemin absolu du dossier de stockage des fiches.</param>
-    public DefaultCharacterRepository(string directory)
+    public LocalCharacterRepository(string directory)
     {
         _directory = directory;
         Directory.CreateDirectory(_directory);
     }
 
     /// <inheritdoc/>
-    public IReadOnlyList<Character> GetAll()
+    public async Task<IReadOnlyList<Character>> GetAllAsync()
     {
         var characters = new List<Character>();
 
         foreach (var file in Directory.GetFiles(_directory, "*.json"))
         {
-            var character = LoadFile(file);
+            var character = await LoadFileAsync(file);
             if (character != null)
                 characters.Add(character);
         }
 
-        return characters;
+        return [.. characters.OrderBy(c => c.Name)];
     }
 
     /// <inheritdoc/>
-    public Character? GetById(Guid id)
+    public async Task<IReadOnlyList<Character>> GetByPlayerIdAsync(Guid playerId)
+    {
+        var all = await GetAllAsync();
+        return [.. all.Where(c => c.PlayerId == playerId)];
+    }
+
+    /// <inheritdoc/>
+    public async Task<Character?> GetByIdAsync(Guid id)
     {
         var path = FilePath(id);
-        return File.Exists(path) ? LoadFile(path) : null;
+        return File.Exists(path) ? await LoadFileAsync(path) : null;
     }
 
     /// <inheritdoc/>
-    public void Save(Character character)
+    public async Task SaveAsync(Character character)
     {
         var json = JsonSerializer.Serialize(character, JsonOptions);
-        File.WriteAllText(FilePath(character.Id), json);
+        await File.WriteAllTextAsync(FilePath(character.Id), json);
     }
 
     /// <inheritdoc/>
-    public void Delete(Guid id)
+    public Task DeleteAsync(Guid id)
     {
         var path = FilePath(id);
         if (File.Exists(path))
             File.Delete(path);
+
+        return Task.CompletedTask;
     }
 
-    // --- privé ---
+    // ── Privé ─────────────────────────────────────────────────────────────────
 
     private string FilePath(Guid id) => Path.Combine(_directory, $"{id}.json");
 
-    private static Character? LoadFile(string path)
+    private async Task<Character?> LoadFileAsync(string path)
     {
         try
         {
-            var json = File.ReadAllText(path);
+            var json = await File.ReadAllTextAsync(path);
             return JsonSerializer.Deserialize<Character>(json, JsonOptions);
         }
         catch
         {
-            // Fichier corrompu ou illisible — on l'ignore silencieusement
+            // Fichier corrompu ou illisible — ignoré silencieusement
             return null;
         }
     }
