@@ -3,7 +3,6 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Routing;
 using Sts.Domain;
 using Sts.Domain.Character;
 
@@ -16,20 +15,22 @@ public record CreateCharacterBody(string Name, RankKey Rank);
 /// Endpoints de gestion des fiches personnages.
 ///
 /// Règles d'accès :
-/// - GET  /characters         → admin : tous ; member : les siens uniquement
-/// - GET  /characters/{id}    → admin : tous ; member : les siens uniquement
-/// - POST /characters         → member uniquement (crée pour soi-même)
-/// - PUT  /characters/{id}    → member sur ses propres fiches uniquement
-/// - DELETE /characters/{id}  → admin, ou member sur ses propres fiches
+/// - GET  /api/characters         → admin : tous ; member : les siens uniquement
+/// - GET  /api/characters/{id}    → admin : tous ; member : les siens uniquement
+/// - POST /api/characters         → member uniquement (crée pour soi-même)
+/// - PUT  /api/characters/{id}    → member sur ses propres fiches uniquement
+/// - DELETE /api/characters/{id}  → admin, ou member sur ses propres fiches
 /// </summary>
 public static class CharacterEndpoints
 {
-    /// <summary>Enregistre les endpoints <c>/characters</c> sur le <paramref name="app"/> fourni.</summary>
-    public static IEndpointRouteBuilder MapCharacterEndpoints(this IEndpointRouteBuilder app)
+    /// <summary>Enregistre les endpoints <c>/api/characters</c>.</summary>
+    public static void MapCharacterEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup("/characters").RequireAuthorization();
+        var group = app.MapGroup("/api/characters")
+            .WithTags("Characters")
+            .RequireAuthorization();
 
-        // GET /characters
+        // GET /api/characters
         group.MapGet("/", async (
             IGetAllCharactersUseCase getAll,
             IGetCharactersByUserUseCase getByUser,
@@ -42,9 +43,10 @@ public static class CharacterEndpoints
             if (userId is null) return Results.Unauthorized();
             return Results.Ok(await getByUser.ExecuteAsync(userId.Value));
         })
-        .WithTags("Characters");
+        .WithName("GetCharacters")
+        .WithSummary("Retourne les personnages visibles par l'utilisateur connecté.");
 
-        // GET /characters/{id}
+        // GET /api/characters/{id}
         group.MapGet("/{id:guid}", async (
             Guid id,
             IGetCharacterByIdUseCase getById,
@@ -58,9 +60,10 @@ public static class CharacterEndpoints
 
             return Results.Ok(character);
         })
-        .WithTags("Characters");
+        .WithName("GetCharacter")
+        .WithSummary("Retourne un personnage par son identifiant.");
 
-        // POST /characters — member crée pour lui-même
+        // POST /api/characters — member crée pour lui-même
         group.MapPost("/", async (
             [FromBody] CreateCharacterBody body,
             ICreateCharacterUseCase create,
@@ -70,12 +73,12 @@ public static class CharacterEndpoints
             if (userId is null) return Results.Unauthorized();
 
             var character = await create.ExecuteAsync(body.Name, body.Rank, userId);
-            return Results.Created($"/characters/{character.Id}", character);
+            return Results.Created($"/api/characters/{character.Id}", character);
         })
-        .RequireAuthorization("member")
-        .WithTags("Characters");
+        .WithName("CreateCharacter")
+        .WithSummary("Crée un nouveau personnage pour l'utilisateur connecté.");
 
-        // PUT /characters/{id}
+        // PUT /api/characters/{id}
         group.MapPut("/{id:guid}", async (
             Guid id,
             [FromBody] Character character,
@@ -88,7 +91,6 @@ public static class CharacterEndpoints
             var existing = await getById.ExecuteAsync(id);
             if (existing is null) return Results.NotFound();
 
-            // UserId immuable
             if (existing.UserId != character.UserId)
                 return Results.BadRequest(new { error = "Le UserId ne peut pas être modifié." });
 
@@ -98,9 +100,10 @@ public static class CharacterEndpoints
             await update.ExecuteAsync(character);
             return Results.NoContent();
         })
-        .WithTags("Characters");
+        .WithName("UpdateCharacter")
+        .WithSummary("Met à jour un personnage existant.");
 
-        // DELETE /characters/{id}
+        // DELETE /api/characters/{id}
         group.MapDelete("/{id:guid}", async (
             Guid id,
             IDeleteCharacterUseCase delete,
@@ -116,9 +119,8 @@ public static class CharacterEndpoints
             await delete.ExecuteAsync(id);
             return Results.NoContent();
         })
-        .WithTags("Characters");
-
-        return app;
+        .WithName("DeleteCharacter")
+        .WithSummary("Supprime un personnage.");
     }
 
     private static Guid? GetUserId(ClaimsPrincipal user)

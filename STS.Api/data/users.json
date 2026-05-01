@@ -1,0 +1,16 @@
+[
+  {
+    "id": "bbc016e5-6582-4221-90fd-bee6e5315459",
+    "username": "admin",
+    "passwordHash": "$2a$12$3BE1OIIaFjhxZXqLWLbK.eTaohPTAASlSK.2yoTU7dZZCTTEm4j0C",
+    "role": 1,
+    "createdAt": "2026-05-01T20:49:22.8474437Z"
+  },
+  {
+    "id": "b1e4847e-9950-4340-9ec7-cf00b4ee8abd",
+    "username": "Eleanor",
+    "passwordHash": "$2a$12$CDqgCIZpUSGcDUyAADb1VeXB3nOc/bdgoAhyCpo526U4JC0bJXCnu",
+    "role": 0,
+    "createdAt": "2026-05-01T21:03:42.6503512Z"
+  }
+]

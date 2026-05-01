@@ -19,12 +19,10 @@ public record LoginRequest(string Username, string Password);
 /// </summary>
 public static class AuthEndpoints
 {
-    /// <summary>Enregistre <c>POST /auth/login</c> sur le <paramref name="app"/> fourni.</summary>
-    public static IEndpointRouteBuilder MapAuthEndpoints(
-        this IEndpointRouteBuilder app,
-        IConfiguration configuration)
+    /// <summary>Enregistre <c>POST /api/auth/login</c>.</summary>
+    public static void MapAuthEndpoints(this WebApplication app, IConfiguration configuration)
     {
-        app.MapPost("/auth/login", async (
+        app.MapPost("/api/auth/login", async (
             [FromBody] LoginRequest request,
             IAuthenticateUserUseCase authenticate) =>
         {
@@ -36,9 +34,9 @@ public static class AuthEndpoints
             return Results.Ok(new { token });
         })
         .AllowAnonymous()
-        .WithTags("Auth");
-
-        return app;
+        .WithTags("Auth")
+        .WithName("Login")
+        .WithSummary("Authentifie un utilisateur et retourne un JWT.");
     }
 
     // ── JWT ───────────────────────────────────────────────────────────────────

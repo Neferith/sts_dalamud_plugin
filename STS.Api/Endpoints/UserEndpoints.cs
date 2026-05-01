@@ -2,7 +2,6 @@ using System;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Routing;
 using Sts.Domain.User;
 
 namespace Sts.Api.Endpoints;
@@ -12,7 +11,7 @@ namespace Sts.Api.Endpoints;
 /// <summary>Corps de la requête de création d'un utilisateur.</summary>
 public record CreateUserRequest(string Username, string Password, UserRole Role = UserRole.Member);
 
-/// <summary>Corps de la requête de reset du code d'accès.</summary>
+/// <summary>Corps de la requête de reset du mot de passe.</summary>
 public record ResetUserPasswordRequest(string NewPassword);
 
 /// <summary>Vue publique d'un utilisateur (sans hash).</summary>
@@ -26,20 +25,23 @@ public record UserDto(Guid Id, string Username, UserRole Role, DateTime CreatedA
 /// </summary>
 public static class UserEndpoints
 {
-    /// <summary>Enregistre les endpoints <c>/users</c> sur le <paramref name="app"/> fourni.</summary>
-    public static IEndpointRouteBuilder MapUserEndpoints(this IEndpointRouteBuilder app)
+    /// <summary>Enregistre les endpoints <c>/api/users</c>.</summary>
+    public static void MapUserEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup("/users").RequireAuthorization("admin");
+        var group = app.MapGroup("/api/users")
+            .WithTags("Users")
+            .RequireAuthorization("admin");
 
-        // GET /users
+        // GET /api/users
         group.MapGet("/", async (IGetAllUsersUseCase getAll) =>
         {
             var users = await getAll.ExecuteAsync();
             return Results.Ok(users.Select(ToDto));
         })
-        .WithTags("Users");
+        .WithName("GetAllUsers")
+        .WithSummary("Retourne la liste de tous les utilisateurs.");
 
-        // POST /users
+        // POST /api/users
         group.MapPost("/", async (
             [FromBody] CreateUserRequest request,
             ICreateUserUseCase create) =>
@@ -47,11 +49,12 @@ public static class UserEndpoints
             var user = await create.ExecuteAsync(request.Username, request.Password, request.Role);
             return user is null
                 ? Results.Conflict(new { error = "Ce nom d'utilisateur est déjà pris." })
-                : Results.Created($"/users/{user.Id}", ToDto(user));
+                : Results.Created($"/api/users/{user.Id}", ToDto(user));
         })
-        .WithTags("Users");
+        .WithName("CreateUser")
+        .WithSummary("Crée un nouveau compte utilisateur.");
 
-        // PUT /users/{id}/password
+        // PUT /api/users/{id}/password
         group.MapPut("/{id:guid}/password", async (
             Guid id,
             [FromBody] ResetUserPasswordRequest request,
@@ -60,9 +63,10 @@ public static class UserEndpoints
             await updateCode.ExecuteAsync(id, request.NewPassword);
             return Results.NoContent();
         })
-        .WithTags("Users");
+        .WithName("ResetUserPassword")
+        .WithSummary("Réinitialise le mot de passe d'un utilisateur.");
 
-        // DELETE /users/{id}
+        // DELETE /api/users/{id}
         group.MapDelete("/{id:guid}", async (
             Guid id,
             IDeleteUserUseCase delete) =>
@@ -70,9 +74,8 @@ public static class UserEndpoints
             await delete.ExecuteAsync(id);
             return Results.NoContent();
         })
-        .WithTags("Users");
-
-        return app;
+        .WithName("DeleteUser")
+        .WithSummary("Supprime un compte utilisateur.");
     }
 
     private static UserDto ToDto(User u) => new(u.Id, u.Username, u.Role, u.CreatedAt);

@@ -185,8 +185,8 @@ public sealed class Plugin : IDalamudPlugin
 
     public void Dispose()
     {
-        ChatGui.ChatMessage -= OnChatMessage;
-        ChatGui.ChatMessageUnhandled -= OnChatMessageUnhandled;
+     //   ChatGui.ChatMessage -= OnChatMessage;
+      //  ChatGui.ChatMessageUnhandled -= OnChatMessageUnhandled;
 
         PluginInterface.UiBuilder.Draw -= DrawUi;
         PluginInterface.UiBuilder.OpenMainUi -= ToggleMainUi;
