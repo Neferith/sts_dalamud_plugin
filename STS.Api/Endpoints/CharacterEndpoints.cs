@@ -33,18 +33,12 @@ public static class CharacterEndpoints
         // GET /api/characters
         group.MapGet("/", async (
             IGetAllCharactersUseCase getAll,
-            IGetCharactersByUserUseCase getByUser,
             ClaimsPrincipal user) =>
         {
-            if (user.IsInRole("admin"))
-                return Results.Ok(await getAll.ExecuteAsync());
-
-            var userId = GetUserId(user);
-            if (userId is null) return Results.Unauthorized();
-            return Results.Ok(await getByUser.ExecuteAsync(userId.Value));
+            return Results.Ok(await getAll.ExecuteAsync());
         })
         .WithName("GetCharacters")
-        .WithSummary("Retourne les personnages visibles par l'utilisateur connecté.");
+        .WithSummary("Retourne tous les personnages visibles par les utilisateurs connectés.");
 
         // GET /api/characters/{id}
         group.MapGet("/{id:guid}", async (

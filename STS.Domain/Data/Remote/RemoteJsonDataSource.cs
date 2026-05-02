@@ -2,7 +2,7 @@ using System;
 using System.Net.Http;
 using System.Text.Json;
 
-namespace STSPlugin.DataSource;
+namespace Sts.Domain.DataSource;
 
 /// <summary>
 /// Source de données distante : récupère le data.json depuis le back STS via HTTP.

@@ -1,9 +1,9 @@
+using STS.Domain;
 using System;
 using System.IO;
 using System.Text.Json;
-using Dalamud.Plugin.Services;
 
-namespace STSPlugin.DataSource;
+namespace Sts.Domain.DataSource;
 
 /// <summary>
 /// Decorator de source de données avec stratégie de cache mémoire + disque.
@@ -23,7 +23,7 @@ public class CachedDataSource : IDataSource
     private readonly RemoteJsonDataSource _remote;
     private readonly LocalJsonDataSource _fallback;
     private readonly string _cacheFilePath;
-    private readonly IPluginLog _log;
+    private readonly IStsLogger _log;
 
     /// <summary>Cache mémoire — null tant que <see cref="Load"/> n'a pas été appelé (ou après <see cref="Invalidate"/>).</summary>
     private DataModel? _memoryCache;
@@ -42,7 +42,7 @@ public class CachedDataSource : IDataSource
         RemoteJsonDataSource remote,
         LocalJsonDataSource fallback,
         string cacheFilePath,
-        IPluginLog log)
+        IStsLogger log)
     {
         _remote = remote;
         _fallback = fallback;

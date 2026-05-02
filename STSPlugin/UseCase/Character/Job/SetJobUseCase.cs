@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
 using Sts.Domain.Character;
-using STSPlugin.Repository;
+using Sts.Domain.Repository;
 
 namespace STSPlugin.CharacterUseCases;
 

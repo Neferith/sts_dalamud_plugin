@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
-namespace STSPlugin.DataSource;
+namespace Sts.Domain.DataSource;
 
 /// <summary>Modèle racine du fichier data.json.</summary>
 public class DataModel

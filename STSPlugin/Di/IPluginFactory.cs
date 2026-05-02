@@ -1,8 +1,8 @@
 using Sts.Domain;
 using Sts.Domain.Character;
 using STSPlugin.CharacterUseCases;
-using STSPlugin.DataSource;
-using STSPlugin.Repository;
+using Sts.Domain.DataSource;
+using Sts.Domain.Repository;
 
 using Sts.Domain.Character;
 using STSPlugin.CharacterUseCases;

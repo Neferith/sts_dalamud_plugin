@@ -5,7 +5,8 @@ using Sts.Domain;
 using Sts.Domain.Character;
 using Sts.Domain.UseCases;
 using STSPlugin.CharacterUseCases;
-using STSPlugin.DataSource;
+using Sts.Domain.DataSource;
+using Sts.Domain.Repository;
 using STSPlugin.Repository;
 
 namespace STSPlugin;
@@ -98,7 +99,7 @@ public class MainDiContainer : IPluginFactory
         var local = new LocalJsonDataSource(Path.Combine(_assemblyDir, "data.json"));
         var cachePath = Path.Combine(_configDir, "data_cache.json");
 
-        _dataSource = new CachedDataSource(remote, local, cachePath, _log);
+        _dataSource = new CachedDataSource(remote, local, cachePath, new DalamudStsLogger(_log));
         return _dataSource;
     }
 

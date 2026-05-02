@@ -3,32 +3,197 @@
     "id": "8e3e3df9-8609-4f93-8d10-25adc71660a4",
     "name": "Eleanor Dubrie",
     "rankKey": 1,
-    "jobId": null,
+    "jobId": "machiniste",
     "race": 0,
-    "histoire": "",
+    "histoire": " Les v\u00E9ritables origines d\u2019Eleanor sont inconnues. Elle avouera facilement \u00EAtre amn\u00E9sique et avoir un passif avec l\u2019empire.\nPendant plusieurs ann\u00E9es, elle a travaill\u00E9 pour un groupe de chasseurs de cr\u00E9ature du n\u00E9ant. Elle-m\u00EAme pr\u00E9cisera n\u2019\u00EAtre que peu instruite sur le sujet, ses connaissances en la mati\u00E8re se r\u00E9sument \u00E0 l\u2019exp\u00E9rience acquise au cours de ses missions et le savoir partag\u00E9 par ses co\u00E9quipiers. Son travail consistait principalement \u00E0 jouer son r\u00F4le d\u2019\u00E9claireuse et de tireuse d\u2019\u00E9lite pour le groupe. Le groupe s\u2019est s\u00E9par\u00E9, il y a plus de trois ans \u00E0 pr\u00E9sent, mais elle demeure tr\u00E8s li\u00E9e \u00E0 la leadeuse de son ancien groupe, Elisa Odeclaire.\nDepuis lors, elle a surtout vivot\u00E9, poursuivi son entra\u00EEnement toujours dans l\u2019objectif de chercher la perfection dans ses domaines de comp\u00E9tences.  Avec le temps, elle a aussi acquis une solide connaissance dans tout ce qui est les m\u00E9canismes de pr\u00E9cision.  Sa passion pour la fabrication d\u2019horloges, de bo\u00EEtes \u00E0 musique ou de tout un tas d\u2019inventions, frise parfois \u00E0 l\u2019obsessionnel. Quand elle a une id\u00E9e en t\u00EAte, elle serait du genre \u00E0 ne plus regarder le temps passer.\nElle a une fille aussi. Une jeune rousse aux yeux verts de dix ans environ. Les gens sont parfois surpris d\u2019apprendre qu\u2019elle a le m\u00EAme pr\u00E9nom que sa fille.",
     "reputationLevel": 0,
     "userId": "b1e4847e-9950-4340-9ec7-cf00b4ee8abd",
     "originTraitId": null,
-    "equippedTraitIds": [],
+    "equippedTraitIds": [
+      "connaissance_technologie",
+      "specialiste_distance",
+      "coup_critique"
+    ],
     "customActions": [],
-    "quickbarActionIds": [],
-    "skillPoints": 0,
-    "equippedAbilities": [],
-    "certifications": [],
-    "inventory": [],
-    "mainHandItemId": null,
-    "offHandItemId": null,
-    "equippedWeapons": [],
+    "quickbarActionIds": [
+      "attaque_melee",
+      "attaque_distance",
+      "connaissance_technologie"
+    ],
+    "skillPoints": 7,
+    "equippedAbilities": [
+      {
+        "abilityId": "arme_a_feu",
+        "level": 2
+      },
+      {
+        "abilityId": "pistolame",
+        "level": 1
+      },
+      {
+        "abilityId": "arc",
+        "level": 2
+      },
+      {
+        "abilityId": "tir_net",
+        "level": 1
+      },
+      {
+        "abilityId": "fusil_a_pompe",
+        "level": 1
+      },
+      {
+        "abilityId": "repli",
+        "level": 1
+      },
+      {
+        "abilityId": "second_souffle",
+        "level": 1
+      },
+      {
+        "abilityId": "lance_flamme",
+        "level": 1
+      }
+    ],
+    "certifications": [
+      {
+        "id": "f95db623-b1ee-4eb1-abed-263e2007e348",
+        "name": "Machiniste",
+        "linkedOriginTraitId": null,
+        "linkedAbilityId": "arme_a_feu",
+        "freePoints": 2
+      },
+      {
+        "id": "f2933bd8-7ab9-44a8-bd12-d1e59ab6ab75",
+        "name": "Entrainement au pistolame",
+        "linkedOriginTraitId": null,
+        "linkedAbilityId": "pistolame",
+        "freePoints": 1
+      },
+      {
+        "id": "1e525ed8-1c77-4eb1-816b-2bdf53d5e967",
+        "name": "Fabrication d\u0027un lance-flamme",
+        "linkedOriginTraitId": null,
+        "linkedAbilityId": "lance_flamme",
+        "freePoints": 1
+      }
+    ],
+    "inventory": [
+      {
+        "id": "77d2b2f2-d9a1-4563-a72a-4a60d5e7a1a2",
+        "name": "Armure d\u0027Eleanor",
+        "description": "L\u2019armure d\u2019Eleanor a \u00E9t\u00E9 modifi\u00E9e au fil des ann\u00E9es. Con\u00E7ue d\u2019abord de mani\u00E8re tr\u00E8s basique, elle a \u00E9volu\u00E9 avec l\u2019exp\u00E9rience acquise au cours des combats. Aujourd\u2019hui, elle est compos\u00E9e de plusieurs couches, pens\u00E9e pour offrir une protection maximale, tant contre les armes \u00E0 feu ou explosives que contre les lames, tout en restant l\u00E9g\u00E8re.\nLe plastron est fa\u00E7onn\u00E9 \u00E0 partir de sombracier et de cobalt, reli\u00E9s par des rivets renforc\u00E9s \u00E0 un r\u00E9seau de cuir de peiste et de tissu de chanvre renforc\u00E9. Les \u00E9pauli\u00E8res sont dessin\u00E9es de mani\u00E8re \u00E0 courber les impacts pour les d\u00E9vier et diminuer leurs violences.\nLes lignes sont affin\u00E9es pour correspondre \u00E0 la silhouette \u00E9lanc\u00E9e de la tireuse. Les plaques sont compactes et segment\u00E9es pour couvrir l\u2019essentiel sans g\u00EAner les mouvements. \nChaque pi\u00E8ce peut \u00EAtre mont\u00E9e et d\u00E9mont\u00E9e pour \u00EAtre facilement remplac\u00E9e. Eleanor applique souvent des teintures, suivant qu\u2019elle cherche la discr\u00E9tion ou non. N\u00E9anmoins, elle arbore en g\u00E9n\u00E9ral une couleur rouge sombre assez voyante.\nEn plus de son armure, la femme porte g\u00E9n\u00E9ralement un masque plus simple, pens\u00E9 pour prot\u00E9ger son visage, mais n\u2019assurant pas une protection compl\u00E8te \u00E0 l\u2019ensemble de son cr\u00E2ne.",
+        "category": 1,
+        "linkedAbilityId": null,
+        "isEquipped": false,
+        "iconId": 21001,
+        "sortIndex": 0
+      },
+      {
+        "id": "a13b8a70-6350-4841-8807-2cc1c5df544b",
+        "name": "Dague",
+        "description": "Une dague simple et efficace, de bonne qualit\u00E9e.",
+        "category": 0,
+        "linkedAbilityId": "dague",
+        "isEquipped": false,
+        "iconId": 21001,
+        "sortIndex": 1
+      },
+      {
+        "id": "e3537f67-b4cd-43a8-95a8-24e1c5928bd7",
+        "name": "Fusil \u00AB Casse-noisette \u00BB",
+        "description": "Fusil \u00E0 pompe. Le fameux.",
+        "category": 0,
+        "linkedAbilityId": "arme_a_feu",
+        "isEquipped": false,
+        "iconId": 21001,
+        "sortIndex": 2
+      },
+      {
+        "id": "bb419ecd-c218-4d6c-8039-f7e6ea0ddf8c",
+        "name": "Fusil \u00ABBolero \u00BB",
+        "description": "Fusil d\u0027assaut. Le classique.",
+        "category": 0,
+        "linkedAbilityId": "arme_a_feu",
+        "isEquipped": true,
+        "iconId": 21001,
+        "sortIndex": 3
+      },
+      {
+        "id": "5e0ba618-4c24-4fda-a28f-10a0ffb644f3",
+        "name": "Fusil \u00AB Pianissimo \u00BB",
+        "description": "Arme \u00E0 longue distance. Le pr\u00E9cis.",
+        "category": 0,
+        "linkedAbilityId": "arme_a_feu",
+        "isEquipped": true,
+        "iconId": 21001,
+        "sortIndex": 4
+      },
+      {
+        "id": "3208a5b7-c021-470f-b1b5-282ef680b7e8",
+        "name": "Munitions infus\u00E9es \u00E0 l\u0027ether",
+        "description": "Eleanor utilise diff\u00E9rent type de munitions. Comme elle ne parvient pas \u00E0 insufler son ether dans ses attaques, elle utilise parfois des munitions infus\u00E9s \u00E0 l\u0027ether tr\u00E8s couteuse. Elle n\u0027en emporte rarement plus de quatre ou cinq avec elle.",
+        "category": 1,
+        "linkedAbilityId": null,
+        "isEquipped": false,
+        "iconId": 21001,
+        "sortIndex": 5
+      },
+      {
+        "id": "f9a6f9dd-0144-4ee1-bbae-31c6a6acafc4",
+        "name": "Arc",
+        "description": "Pour certaine exp\u00E9dition, elle peut parfois pr\u00E9f\u00E9rer un arc. Elle dispose de nombreux mod\u00E8les",
+        "category": 0,
+        "linkedAbilityId": "arc",
+        "isEquipped": false,
+        "iconId": 21001,
+        "sortIndex": 6
+      },
+      {
+        "id": "aa32a693-8a48-416a-a4f1-779eaddaf767",
+        "name": "Igni Terra",
+        "description": "Parait-il que la rousse cache un mod\u00E8le personnalis\u00E9 de l\u0027Igni-Terra. Enfin, bien entendu, ce ne sont que des ragots, elle n\u0027oserait pas.",
+        "category": 1,
+        "linkedAbilityId": null,
+        "isEquipped": false,
+        "iconId": 21001,
+        "sortIndex": 7
+      }
+    ],
+    "mainHandItemId": "bb419ecd-c218-4d6c-8039-f7e6ea0ddf8c",
+    "offHandItemId": "5e0ba618-4c24-4fda-a28f-10a0ffb644f3",
+    "equippedWeapons": [
+      {
+        "id": "bb419ecd-c218-4d6c-8039-f7e6ea0ddf8c",
+        "name": "Fusil \u00ABBolero \u00BB",
+        "description": "Fusil d\u0027assaut. Le classique.",
+        "category": 0,
+        "linkedAbilityId": "arme_a_feu",
+        "isEquipped": true,
+        "iconId": 21001,
+        "sortIndex": 3
+      },
+      {
+        "id": "5e0ba618-4c24-4fda-a28f-10a0ffb644f3",
+        "name": "Fusil \u00AB Pianissimo \u00BB",
+        "description": "Arme \u00E0 longue distance. Le pr\u00E9cis.",
+        "category": 0,
+        "linkedAbilityId": "arme_a_feu",
+        "isEquipped": true,
+        "iconId": 21001,
+        "sortIndex": 4
+      }
+    ],
     "traitSlots": 3,
-    "freeTraitSlots": 3,
-    "spentSkillPoints": 0,
-    "remainingSkillPoints": 0
+    "freeTraitSlots": 0,
+    "spentSkillPoints": 6,
+    "remainingSkillPoints": 1
   },
   {
     "id": "e7333c28-66fd-47be-ba08-f0edeef13ff5",
     "name": "Adrila Messor",
     "rankKey": 2,
-    "jobId": null,
+    "jobId": "faucheur",
     "race": 0,
     "histoire": "",
     "reputationLevel": 0,
@@ -37,8 +202,17 @@
     "equippedTraitIds": [],
     "customActions": [],
     "quickbarActionIds": [],
-    "skillPoints": 0,
-    "equippedAbilities": [],
+    "skillPoints": 7,
+    "equippedAbilities": [
+      {
+        "abilityId": "faux",
+        "level": 3
+      },
+      {
+        "abilityId": "invocation_avatar",
+        "level": 2
+      }
+    ],
     "certifications": [],
     "inventory": [],
     "mainHandItemId": null,
@@ -46,7 +220,7 @@
     "equippedWeapons": [],
     "traitSlots": 4,
     "freeTraitSlots": 4,
-    "spentSkillPoints": 0,
-    "remainingSkillPoints": 0
+    "spentSkillPoints": 5,
+    "remainingSkillPoints": 2
   }
 ]

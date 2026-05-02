@@ -23,6 +23,7 @@
     <ItemGroup>
         <Folder Include="Pages\CharacterCreate\" />
         <Folder Include="Pages\CharacterDetail\" />
+        <Folder Include="Pages\CharacterEdit\" />
         <Folder Include="Shared\" />
     </ItemGroup>
 

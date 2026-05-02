@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
-using STSPlugin.DataSource;
+using Sts.Domain.DataSource;
 using Sts.Domain;
 
-namespace STSPlugin.Repository;
+namespace Sts.Domain.Repository;
 
 /// <summary>
 /// Contrat d'accès aux actions de jet prédéfinies.
