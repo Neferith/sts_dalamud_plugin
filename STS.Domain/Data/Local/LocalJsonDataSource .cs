@@ -1,7 +1,7 @@
 using System.IO;
 using System.Text.Json;
 
-namespace STSPlugin.DataSource;
+namespace Sts.Domain.DataSource;
 
 /// <summary>
 /// Contrat d'accès à la source de données brute.

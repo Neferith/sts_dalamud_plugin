@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Sts.Admin;
 using Sts.Admin.Services;
+using Sts.Admin.ViewModels;
 using Sts.Domain.Content.Models;
 using Sts.Domain.Content.Repositories;
 using Sts.Domain.Content.UseCases;
@@ -33,6 +34,7 @@ builder.Services.AddScoped<IUpdateSiteSettingsUseCase, UpdateSiteSettingsUseCase
 // ViewModels
 builder.Services.AddScoped<QuickLinksViewModel>();
 builder.Services.AddScoped<SiteSettingsViewModel>();
+builder.Services.AddScoped<UsersViewModel>();
 
 // En prod, STS.Api sert l'app donc même origine — BaseAddress est correct.
 // En dev, lancer STS.Api (qui sert aussi le WASM) plutôt que le DevServer standalone.

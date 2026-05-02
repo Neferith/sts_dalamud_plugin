@@ -1,7 +1,8 @@
 using Sts.Domain;
 using STSPlugin.Repository;
+using Sts.Domain.Character;
 
-namespace STSPlugin.CharacterUseCases;
+namespace STSPlugin.legacy.CharacterUseCases;
 
 /// <summary>
 /// Cas d'usage : créer un nouveau personnage et le sauvegarder.

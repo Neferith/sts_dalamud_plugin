@@ -1,6 +1,8 @@
-using Sts.Domain;
-using STSPlugin.Repository;
+using System;
 using System.Linq;
+using System.Threading.Tasks;
+using Sts.Domain;
+using Sts.Domain.Character;
 
 namespace STSPlugin.CharacterUseCases;
 
@@ -19,7 +21,7 @@ public interface AddCertificationUseCase
     /// <param name="linkedAbilityId">Compétence concernée (null si aucune).</param>
     /// <param name="freePoints">Points gratuits accordés sur la compétence liée.</param>
     /// <returns>La certification créée.</returns>
-    Certification Execute(
+    Task<Certification> ExecuteAsync(
         Character character,
         string name,
         string? linkedOriginTraitId = null,
@@ -27,14 +29,16 @@ public interface AddCertificationUseCase
         int freePoints = 0);
 }
 
+/// <summary>Implémentation par défaut de <see cref="AddCertificationUseCase"/>.</summary>
 public class DefaultAddCertificationUseCase : AddCertificationUseCase
 {
-    private readonly CharacterRepository _characterRepository;
+    private readonly ICharacterRepository _characterRepository;
 
-    public DefaultAddCertificationUseCase(CharacterRepository characterRepository)
+    public DefaultAddCertificationUseCase(ICharacterRepository characterRepository)
         => _characterRepository = characterRepository;
 
-    public Certification Execute(
+    /// <inheritdoc/>
+    public async Task<Certification> ExecuteAsync(
         Character character,
         string name,
         string? linkedOriginTraitId = null,
@@ -43,43 +47,43 @@ public class DefaultAddCertificationUseCase : AddCertificationUseCase
     {
         var certification = new Certification
         {
-            Name = name.Trim(),
+            Name                = name.Trim(),
             LinkedOriginTraitId = linkedOriginTraitId,
-            LinkedAbilityId = linkedAbilityId,
-            FreePoints = System.Math.Max(0, freePoints),
+            LinkedAbilityId     = linkedAbilityId,
+            FreePoints          = Math.Max(0, freePoints),
         };
 
         character.Certifications.Add(certification);
-        _characterRepository.Save(character);
+        await _characterRepository.SaveAsync(character);
         return certification;
     }
 }
 
-/// <summary>
-/// Cas d'usage : retirer une certification d'un personnage.
-/// </summary>
+/// <summary>Cas d'usage : retirer une certification d'un personnage.</summary>
 public interface RemoveCertificationUseCase
 {
     /// <summary>
     /// Retire la certification du personnage et persiste la modification.
     /// Si l'id est introuvable, l'opération est ignorée.
     /// </summary>
-    void Execute(Character character, string certificationId);
+    Task ExecuteAsync(Character character, string certificationId);
 }
 
+/// <summary>Implémentation par défaut de <see cref="RemoveCertificationUseCase"/>.</summary>
 public class DefaultRemoveCertificationUseCase : RemoveCertificationUseCase
 {
-    private readonly CharacterRepository _characterRepository;
+    private readonly ICharacterRepository _characterRepository;
 
-    public DefaultRemoveCertificationUseCase(CharacterRepository characterRepository)
+    public DefaultRemoveCertificationUseCase(ICharacterRepository characterRepository)
         => _characterRepository = characterRepository;
 
-    public void Execute(Character character, string certificationId)
+    /// <inheritdoc/>
+    public async Task ExecuteAsync(Character character, string certificationId)
     {
         var cert = character.Certifications.FirstOrDefault(c => c.Id == certificationId);
         if (cert is null) return;
 
         character.Certifications.Remove(cert);
-        _characterRepository.Save(character);
+        await _characterRepository.SaveAsync(character);
     }
 }

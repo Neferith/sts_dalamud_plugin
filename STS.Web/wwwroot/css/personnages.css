@@ -1,0 +1,100 @@
+/* ── Pages personnages ───────────────────────────────────────────────────── */
+
+.sts-back-link {
+    font-size: 13px;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.15s;
+}
+
+.sts-back-link:hover { color: var(--teal); }
+
+.sts-section-title {
+    font-size: 13px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin: 1.5rem 0 0.5rem;
+}
+
+.sts-char-header {
+    margin-bottom: 0.5rem;
+}
+
+.sts-loading {
+    display: flex;
+    justify-content: center;
+    padding: 4rem 0;
+}
+
+.sts-spinner-lg {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--border);
+    border-top-color: var(--teal);
+    border-radius: 50%;
+    animation: sts-spin 0.7s linear infinite;
+}
+
+.sts-empty {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 3rem 0;
+    font-size: 14px;
+}
+
+/* Carte personnage cliquable */
+.sts-character-card {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.sts-character-card:hover {
+    border-color: var(--border-strong);
+    background: var(--bg-card-hover);
+    color: inherit;
+    text-decoration: none;
+}
+
+/* Boutons rang */
+.sts-rank-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.sts-rank-btn {
+    font-size: 12px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background 0.1s, color 0.1s, border-color 0.1s;
+}
+
+.sts-rank-btn:hover:not(:disabled) {
+    border-color: var(--border-strong);
+    color: var(--text-secondary);
+}
+
+.sts-rank-btn.active {
+    background: var(--teal-dim);
+    border-color: var(--border-strong);
+    color: var(--teal);
+}
+
+.sts-rank-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Card body padding */
+.sts-card-body {
+    padding: 0.25rem 0;
+}

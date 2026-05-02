@@ -1,6 +1,4 @@
-using System;
-
-namespace Sts.Domain;
+namespace Sts.Domain.Character;
 
 /// <summary>Catégorie d'un objet d'inventaire.</summary>
 public enum ItemCategory
@@ -48,8 +46,6 @@ public class CharacterItem
     /// </summary>
     public uint IconId { get; set; } = 21001;
 
-    /// <summary>
-    /// Ordre d'affichage dans la grille. Modifiable par drag &amp; drop.
-    /// </summary>
+    /// <summary>Ordre d'affichage dans la grille. Modifiable par drag &amp; drop.</summary>
     public int SortIndex { get; set; } = 0;
 }

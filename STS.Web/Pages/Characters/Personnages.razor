@@ -1,0 +1,94 @@
+@page "/personnages"
+@using STS.Web.ViewModels
+@using Sts.Domain.Character
+@using Sts.Domain
+@inject AuthService Auth
+@inject NavigationManager Nav
+@inject CharactersViewModel VM
+
+<PageTitle>Personnages — STS</PageTitle>
+
+<div class="sts-page-header">
+    <h1 class="sts-page-title">Personnages</h1>
+    <span class="sts-page-sub">@VM.Characters.Count fiche(s)</span>
+</div>
+
+@if (VM.IsLoading)
+{
+    <div class="sts-loading">
+        <div class="sts-spinner-lg"></div>
+    </div>
+}
+else if (VM.Error is not null)
+{
+    <div class="sts-alert sts-alert-error">@VM.Error</div>
+}
+else
+{
+    <!-- Bouton créer -->
+    <div class="sts-filter-bar">
+        @if (VM.CanCreate)
+        {
+            <a href="/personnages/creer" class="sts-btn sts-btn-primary">+ Nouvelle fiche</a>
+        }
+        else if (VM.CreateBlockedReason is not null)
+        {
+            <span class="sts-dim" title="@VM.CreateBlockedReason">+ Nouvelle fiche</span>
+        }
+    </div>
+
+    @if (VM.Characters.Count == 0)
+    {
+        <div class="sts-empty">
+            <p>Aucune fiche personnage pour le moment.</p>
+        </div>
+    }
+    else
+    {
+        <div class="sts-cards">
+            @foreach (var character in VM.Characters)
+            {
+                var rank = Rank.Get(character.RankKey);
+                var isOwner = Auth.UserId == character.UserId;
+
+                <a href="/personnages/@character.Id" class="sts-card sts-card-accent sts-character-card">
+                    <div class="sts-card-header">
+                        <span class="sts-card-title">@character.Name</span>
+                        @if (isOwner)
+                        {
+                            <span class="sts-badge sts-badge-active">Ma fiche</span>
+                        }
+                        <span class="sts-badge-rank">@rank.Label</span>
+                    </div>
+                    <div class="sts-card-meta">
+                        @if (character.JobId is not null)
+                        {
+                            <span>@character.JobId</span>
+                            <span class="sts-card-meta-dot"></span>
+                        }
+                        <span>@character.Race.Label()</span>
+                        <span class="sts-card-meta-dot"></span>
+                        <span>@character.EquippedAbilities.Count compétence(s)</span>
+                        <span class="sts-card-meta-dot"></span>
+                        <span>@character.EquippedTraitIds.Count trait(s)</span>
+                    </div>
+                </a>
+            }
+        </div>
+    }
+}
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Auth.IsAuthenticated)
+        {
+            Auth.RequestLogin();
+            Nav.NavigateTo("/");
+            return;
+        }
+
+        VM.OnStateChanged = StateHasChanged;
+        await VM.LoadAsync();
+    }
+}

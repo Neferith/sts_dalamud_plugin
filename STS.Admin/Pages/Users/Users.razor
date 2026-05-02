@@ -1,0 +1,200 @@
+@page "/users"
+@using Sts.Admin.Models
+@using Sts.Admin.ViewModels
+@using Sts.Domain.User
+@inject UsersViewModel VM
+@inject AuthService Auth
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<PageTitle>Utilisateurs — STS Admin</PageTitle>
+
+<div class="p-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2 class="mb-0">Utilisateurs</h2>
+            <small class="text-muted">@VM.Filtered.Count / @VM.Users.Count utilisateur(s)</small>
+        </div>
+        <button class="btn btn-primary" @onclick="VM.OpenCreate">+ Nouvel utilisateur</button>
+    </div>
+
+    <!-- Filtres -->
+    <div class="row g-2 mb-3">
+        <div class="col-md-4">
+            <input class="form-control" placeholder="🔍 Nom d'utilisateur…"
+                   @bind="VM.Search" @bind:event="oninput" @bind:after="Refresh" />
+        </div>
+        <div class="col-md-3">
+            <select class="form-select" @bind="VM.FilterRole" @bind:after="Refresh">
+                <option value="">Tous les rôles</option>
+                <option value="Member">Membre</option>
+                <option value="Admin">Admin</option>
+            </select>
+        </div>
+        @if (VM.Search.Length > 0 || VM.FilterRole.Length > 0)
+        {
+            <div class="col-auto">
+                <button class="btn btn-outline-secondary" @onclick="() => { VM.ResetFilters(); }">✕ Réinitialiser</button>
+            </div>
+        }
+    </div>
+
+    <Alert Message="@VM.Error"   IsError="true"  OnDismiss="() => {}" />
+    <Alert Message="@VM.Success" IsError="false" OnDismiss="() => {}" />
+
+    @if (VM.IsLoading)
+    {
+        <div class="text-center py-5"><div class="spinner-border text-secondary"></div></div>
+    }
+    else if (VM.Filtered.Count == 0)
+    {
+        <div class="text-center text-muted py-5">
+            @(VM.Users.Count == 0 ? "Aucun utilisateur." : "Aucun résultat pour ces filtres.")
+        </div>
+    }
+    else
+    {
+        <div class="card">
+            <table class="table table-hover mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th @onclick='() => VM.SetSort("username")' style="cursor:pointer; user-select:none">
+                            Nom d'utilisateur @VM.SortIcon("username")
+                        </th>
+                        <th @onclick='() => VM.SetSort("role")' style="cursor:pointer; user-select:none">
+                            Rôle @VM.SortIcon("role")
+                        </th>
+                        <th @onclick='() => VM.SetSort("createdAt")' style="cursor:pointer; user-select:none">
+                            Créé le @VM.SortIcon("createdAt")
+                        </th>
+                        <th style="width:130px"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in VM.Filtered)
+                    {
+                        <tr>
+                            <td class="fw-medium">@user.Username</td>
+                            <td>
+                                @if (user.Role == UserRole.Admin)
+                                {
+                                    <span class="badge bg-danger">Admin</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Membre</span>
+                                }
+                            </td>
+                            <td class="text-muted small">@user.CreatedAt.ToString("dd/MM/yyyy")</td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-outline-secondary me-1"
+                                        @onclick="() => VM.OpenReset(user)"
+                                        title="Réinitialiser le mot de passe">🔑</button>
+                                <button class="btn btn-sm btn-outline-danger"
+                                        @onclick="() => Delete(user)"
+                                        title="Supprimer">✕</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<!-- Modal création -->
+@if (VM.ShowCreateModal)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nouvel utilisateur</h5>
+                    <button type="button" class="btn-close" @onclick="VM.CloseCreate"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nom d'utilisateur</label>
+                        <input class="form-control" @bind="VM.FormUsername"
+                               placeholder="ex: Adrila" autofocus />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Mot de passe</label>
+                        <input type="password" class="form-control" @bind="VM.FormPassword"
+                               placeholder="Code d'accès à transmettre au joueur" />
+                        <div class="form-text">Ce code sera hashé — transmettez-le au joueur par Discord.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Rôle</label>
+                        <select class="form-select" @bind="VM.FormRole">
+                            <option value="@UserRole.Member">Membre</option>
+                            <option value="@UserRole.Admin">Admin</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="VM.CloseCreate">Annuler</button>
+                    <button class="btn btn-primary" @onclick="VM.SaveCreateAsync"
+                            disabled="@VM.IsSaving">
+                        @(VM.IsSaving ? "Création…" : "Créer")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Modal reset mot de passe -->
+@if (VM.ShowResetModal && VM.ResetTarget is not null)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Réinitialiser le mot de passe</h5>
+                    <button type="button" class="btn-close" @onclick="VM.CloseReset"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted">
+                        Nouveau mot de passe pour <strong>@VM.ResetTarget.Username</strong>.
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label">Nouveau mot de passe</label>
+                        <input type="password" class="form-control" @bind="VM.FormNewPassword"
+                               placeholder="Nouveau code d'accès" autofocus />
+                        <div class="form-text">Transmettez ce code au joueur par Discord.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="VM.CloseReset">Annuler</button>
+                    <button class="btn btn-warning" @onclick="VM.SaveResetAsync"
+                            disabled="@VM.IsResetting">
+                        @(VM.IsResetting ? "Réinitialisation…" : "Réinitialiser")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Auth.IsAuthenticated) { Nav.NavigateTo("/login"); return; }
+        VM.OnStateChanged = StateHasChanged;
+        await VM.LoadAsync();
+    }
+
+    private void Refresh() => StateHasChanged();
+
+    private async Task Delete(UserDto user)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm",
+            $"Supprimer l'utilisateur « {user.Username} » ? Cette action est irréversible."))
+            return;
+
+        await VM.DeleteAsync(user);
+    }
+}

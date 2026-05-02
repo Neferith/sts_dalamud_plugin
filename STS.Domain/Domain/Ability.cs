@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace Sts.Domain;
 
 /// <summary>Catégorie d'une compétence.</summary>
@@ -39,7 +37,6 @@ public record Ability(
     /// <summary>
     /// Identifiants des jobs requis pour cette compétence.
     /// Null ou vide = accessible sans job.
-    /// Plusieurs jobs = accessible à tous les jobs listés.
     /// </summary>
     IReadOnlyList<string>? RequiredJobIds = null,
 
@@ -47,12 +44,6 @@ public record Ability(
     int StartLevel = 1
 )
 {
+    /// <summary>Niveau maximum de cette compétence.</summary>
     public int MaxLevel => Levels.Count > 0 ? Levels[^1].Level : 1;
-}
-
-/// <summary>Compétence équipée sur un personnage.</summary>
-public class EquippedAbility
-{
-    public string AbilityId { get; set; } = string.Empty;
-    public int Level { get; set; } = 1;
 }

@@ -15,11 +15,20 @@
 
     <ItemGroup>
         <ProjectReference Include="..\STS.Domain\STS.Domain.csproj" />
+        <ProjectReference Include="..\STS.Domain.User\STS.Domain.User.csproj" />
+        <ProjectReference Include="..\STS.Domain.Character\STS.Domain.Character.csproj" />
         <ProjectReference Include="..\STS.Domain.Content\STS.Domain.Content.csproj" />
     </ItemGroup>
 
     <ItemGroup>
+        <Folder Include="Pages\CharacterCreate\" />
+        <Folder Include="Pages\CharacterDetail\" />
+        <Folder Include="Pages\CharacterEdit\" />
         <Folder Include="Shared\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Include="wwwroot\css\login-modal.css" />
     </ItemGroup>
 
 </Project>

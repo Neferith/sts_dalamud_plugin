@@ -1,7 +1,11 @@
 using Sts.Domain;
+using Sts.Domain.Character;
 using STSPlugin.CharacterUseCases;
-using STSPlugin.DataSource;
-using STSPlugin.Repository;
+using Sts.Domain.DataSource;
+using Sts.Domain.Repository;
+
+using Sts.Domain.Character;
+using STSPlugin.CharacterUseCases;
 
 namespace STSPlugin;
 
@@ -19,18 +23,18 @@ public interface IPluginFactory
     IDataSource MakeDataSource();
 
     // --- Repositories ---
-    CharacterRepository MakeCharacterRepository();
+    ICharacterRepository MakeCharacterRepository();
     TraitRepository MakeTraitRepository();
     JobRepository MakeJobRepository();
     ActionRepository MakeActionRepository();
     AbilityRepository MakeAbilityRepository();
 
     // --- Use cases personnages ---
-    GetAllCharactersUseCase MakeGetAllCharacters();
+    IGetAllCharactersUseCase MakeGetAllCharacters();
     GetActiveCharacterUseCase MakeGetActiveCharacter();
-    CreateCharacterUseCase MakeCreateCharacter();
-    UpdateCharacterUseCase MakeUpdateCharacter();
-    DeleteCharacterUseCase MakeDeleteCharacter();
+    ICreateCharacterUseCase MakeCreateCharacter();
+    IUpdateCharacterUseCase MakeUpdateCharacter();
+    IDeleteCharacterUseCase MakeDeleteCharacter();
     SetActiveCharacterUseCase MakeSetActiveCharacter();
 
     // --- Use cases traits / job ---
