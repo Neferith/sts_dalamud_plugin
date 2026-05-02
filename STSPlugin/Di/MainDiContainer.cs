@@ -74,7 +74,7 @@ public class MainDiContainer : IPluginFactory
     // --- Moteur ---
 
     public StsEngine MakeEngine()
-        => _engine ??= StsEngine.CreateDefault();
+        => _engine ??= StsEngine.CreateDefault(new DalamudStsLogger(_log));
 
     // --- DataSource ---
 

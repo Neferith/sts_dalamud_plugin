@@ -1,3 +1,4 @@
+using Dalamud.Game.Chat;
 using Dalamud.Game.Command;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
@@ -7,20 +8,16 @@ using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.System.String;
 using FFXIVClientStructs.FFXIV.Client.UI;
-using STSPlugin.DataSource;
 using Sts.Domain;
-using STSPlugin.Repository;
 using STSPlugin.CharacterUseCases;
-using Sts.Domain.UseCases;
+using STSPlugin.ConfigDomain;
+using STSPlugin.Repository;
 using STSPlugin.Windows;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using STSPlugin.ConfigDomain;
-using System.Threading.Tasks;
 
 namespace STSPlugin;
 
@@ -30,12 +27,16 @@ public sealed class Plugin : IDalamudPlugin
 
     private static readonly Regex RandomRegex = new(@"(\d+)[^\d]*$", RegexOptions.Compiled);
 
+    [PluginService] public static IFramework Framework { get; private set; }
+
     [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
     [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
     [PluginService] internal static IChatGui ChatGui { get; private set; } = null!;
     [PluginService] internal static IClientState ClientState { get; private set; } = null!;
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
     [PluginService] internal static ITextureProvider TextureProvider { get; private set; } = null!;
+
+    [PluginService] internal static IObjectTable ObjectTable { get; private set; } = null!;
 
     public Configuration Configuration { get; init; }
     public StsEngine Engine { get; init; }
@@ -171,7 +172,7 @@ public sealed class Plugin : IDalamudPlugin
         {
             HelpMessage = "Ouvre/ferme l'interface STS. \"/sts roll\" lance les dés. \"/sts roll <id>\" lance une action. \"/sts quickbar\" ouvre la barre."
         });
-
+        
         ChatGui.ChatMessage += OnChatMessage;
         ChatGui.ChatMessageUnhandled += OnChatMessageUnhandled;
 
@@ -203,7 +204,7 @@ public sealed class Plugin : IDalamudPlugin
     /// </summary>
     public void ReloadDataSources()
     {
-        Task.Run(() =>
+        System.Threading.Tasks.Task.Run(() =>
         {
             try
             {
@@ -378,29 +379,54 @@ public sealed class Plugin : IDalamudPlugin
 
     // ------------------------------------------------------------------ Interception /random
 
-    private void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
+    private void OnChatMessage(IHandleableChatMessage message)
     {
-        Log.Debug($"[STS] Chat reçu — type: {(int)type} ({type}), sender: '{sender.TextValue}', message: '{message.TextValue}'");
-    }
+        Log.Debug($"[STS] ChatMessage — logKind: {(int)message.LogKind}, sender: '{message.Sender.TextValue}', message: '{message.Message.TextValue}'");
 
-    private void OnChatMessageUnhandled(XivChatType type, int timestamp, SeString sender, SeString message)
-    {
-        if (Configuration.RollSource != RollSource.GameRandom) return;
-        if (Engine.State != EngineState.WaitingDice) return;
-        if ((int)type != 2122) return;
+        if (Configuration.RollSource != RollSource.GameRandom)
+        {
+            Log.Debug($"[STS] Skip — RollSource={Configuration.RollSource}");
+            return;
+        }
+        if (Engine.State != EngineState.WaitingDice)
+        {
+            Log.Debug($"[STS] Skip — EngineState={Engine.State}");
+            return;
+        }
+        if ((int)message.LogKind != 74)
+        {
+            Log.Debug($"[STS] Skip — LogKind={message.LogKind} != 74");
+            return;
+        }
 
-        var text = message.TextValue;
+        var text = message.Message.TextValue;
         var match = RandomRegex.Match(text);
-
-        Log.Debug($"[STS] Unhandled 2122 : '{text}' | match : {match.Success}");
+        Log.Debug($"[STS] Regex sur '{text}' — match: {match.Success}");
 
         if (!match.Success) return;
-        if (!int.TryParse(match.Groups[1].Value, out var value)) return;
-        if (value < 0 || value > 999) return;
+        if (!int.TryParse(match.Groups[1].Value, out var value))
+        {
+            Log.Debug($"[STS] Parse échoué sur '{match.Groups[1].Value}'");
+            return;
+        }
+        Log.Debug($"[STS] Valeur parsée: {value}");
+        if (value < 0 || value > 999)
+        {
+            Log.Debug($"[STS] Skip — valeur hors range: {value}");
+            return;
+        }
 
         Log.Debug($"[STS] /random reçu : {value:D3}");
+       
+       // message. = false; // ← laisser le message s'afficher normalement
         if (Engine.ReceiveRandom(value))
-            OnRollComplete();
+            Plugin.Framework.RunOnTick(OnRollComplete);
+    }
+
+    private void OnChatMessageUnhandled(IChatMessage message)
+    {
+        Log.Debug($"[STS] Unhandled reçu — logKind: {(int)message.LogKind}");
+        
     }
 
     // ------------------------------------------------------------------ Résultat
@@ -419,7 +445,8 @@ public sealed class Plugin : IDalamudPlugin
         if (Engine.LastResult is not { } result) return;
 
         var rank = Engine.CurrentRank;
-        var player = ClientState.LocalPlayer?.Name.ToString() ?? "???";
+        var localPlayer = Plugin.ObjectTable.LocalPlayer;
+        var player = localPlayer?.Name.TextValue ?? "???";
 
         const ushort ColGreen = 43;
         const ushort ColGrey = 4;
@@ -457,9 +484,9 @@ public sealed class Plugin : IDalamudPlugin
             sb.AddUiForeground(ColGrey);
             sb.AddText($"({result.RawSuccesses} dés");
             if (result.TraitEffects.BonusSuccesses > 0)
-                sb.AddText($" +{result.TraitEffects.BonusSuccesses} traits");
+                sb.AddText($" +{result.TraitEffects.BonusSuccesses} traits ({string.Join(", ", result.TraitEffects.BonusTraitNames)})");
             if (result.TraitEffects.MalusSuccesses > 0)
-                sb.AddText($" -{result.TraitEffects.MalusSuccesses} malus");
+                sb.AddText($" -{result.TraitEffects.MalusSuccesses} malus ({string.Join(", ", result.TraitEffects.MalusTraitNames)})");
             sb.AddText(")  →  ");
             sb.AddUiForegroundOff();
         }
@@ -548,7 +575,8 @@ public sealed class Plugin : IDalamudPlugin
         var uiModule = UIModule.Instance();
         if (uiModule == null) { Log.Warning("[STS] UIModule introuvable."); return; }
 
-        var bytes = Encoding.UTF8.GetBytes($"/{channel} {message}");
+        var fullMessage = string.IsNullOrEmpty(channel) ? message : $"/{channel} {message}";
+        var bytes = Encoding.UTF8.GetBytes(fullMessage);
         var utf8String = new Utf8String();
         fixed (byte* ptr = bytes) utf8String.SetString(ptr);
         uiModule->ProcessChatBoxEntry(&utf8String);
