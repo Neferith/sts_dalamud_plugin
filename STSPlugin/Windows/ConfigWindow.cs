@@ -1,11 +1,11 @@
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Windowing;
-
+using STSPlugin.ConfigDomain;
+using STSPlugin.UseCases.Auth;
 using System;
 using System.Numerics;
 using System.Text;
-
-using STSPlugin.ConfigDomain;
+using System.Threading.Tasks;
 
 namespace STSPlugin.Windows;
 
@@ -13,8 +13,15 @@ public class ConfigWindow : Window, IDisposable
 {
     private readonly Plugin plugin;
 
-    // Buffer ImGui pour le champ URL (max 256 chars)
+    // Buffers ImGui
     private readonly byte[] _urlBuffer = new byte[256];
+    private readonly byte[] _usernameBuffer = new byte[128];
+    private readonly byte[] _passwordBuffer = new byte[128];
+
+    private static readonly Vector4 ColMuted = new(0.6f, 0.6f, 0.58f, 1f);
+    private static readonly Vector4 ColSuccess = new(0.06f, 0.43f, 0.34f, 1f);
+    private static readonly Vector4 ColDanger = new(0.64f, 0.17f, 0.17f, 1f);
+    private static readonly Vector4 ColInfo = new(0.09f, 0.37f, 0.65f, 1f);
 
     private static readonly (string Label, string Command)[] Channels =
     [
@@ -41,10 +48,8 @@ public class ConfigWindow : Window, IDisposable
                ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoScrollbar)
     {
         this.plugin = plugin;
-        Size = new Vector2(440, 400);
-
-        // Pré-remplir le buffer URL avec la valeur persistée
-        SyncUrlBufferFromConfig();
+        Size = new Vector2(440, 520);
+        SyncBuffersFromConfig();
     }
 
     public void Dispose() { }
@@ -54,7 +59,7 @@ public class ConfigWindow : Window, IDisposable
         // ================================================================
         // SOURCE DES DONNÉES
         // ================================================================
-        ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.58f, 1f), "SOURCE DES DONNÉES");
+        ImGui.TextColored(ColMuted, "SOURCE DES DONNÉES");
         ImGui.Separator();
         ImGui.Spacing();
 
@@ -75,22 +80,22 @@ public class ConfigWindow : Window, IDisposable
 
         ImGui.Spacing();
 
-        // Champ URL — grisé en mode Local
         if (isLocal) ImGui.BeginDisabled();
 
-        ImGui.TextUnformatted("URL :");
+        ImGui.TextUnformatted("URL de base :");
         ImGui.SameLine();
-        ImGui.SetNextItemWidth(280);
-        if (ImGui.InputText("##backendUrl", _urlBuffer, ImGuiInputTextFlags.None))
+        ImGui.SetNextItemWidth(240);
+        if (ImGui.InputText("##apiBaseUrl", _urlBuffer, ImGuiInputTextFlags.None))
         {
-            plugin.Configuration.BackendUrl = ReadUrlBuffer();
+            plugin.Configuration.ApiBaseUrl = ReadBuffer(_urlBuffer);
             plugin.Configuration.Save();
         }
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip($"Données : {plugin.Configuration.DataUrl}");
 
         ImGui.Spacing();
 
-        // Bouton Rafraîchir
-        var refreshLabel = isLocal ? "Rafraîchir les données##refresh" : "Rafraîchir depuis l'API##refresh";
+        var refreshLabel = isLocal ? "Rafraîchir##refresh" : "Rafraîchir depuis l'API##refresh";
         if (ImGui.Button(refreshLabel))
             plugin.ReloadDataSources();
 
@@ -100,9 +105,103 @@ public class ConfigWindow : Window, IDisposable
         ImGui.Spacing();
 
         // ================================================================
+        // COMPTE JOUEUR
+        // ================================================================
+        ImGui.TextColored(ColMuted, "COMPTE JOUEUR");
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        var authState = plugin.AuthState;
+        var isConnected = authState.IsAuthenticated;
+
+        // Statut
+        if (isConnected)
+        {
+            ImGui.PushStyleColor(ImGuiCol.Text, ColSuccess);
+            ImGui.Text("●");
+            ImGui.PopStyleColor();
+            ImGui.SameLine();
+            ImGui.Text($"Connecté en tant que {authState.Username}");
+        }
+        else
+        {
+            ImGui.PushStyleColor(ImGuiCol.Text, ColDanger);
+            ImGui.Text("●");
+            ImGui.PopStyleColor();
+            ImGui.SameLine();
+            ImGui.TextColored(ColMuted, "Non connecté");
+        }
+
+        ImGui.Spacing();
+
+        ImGui.TextUnformatted("Nom d'utilisateur :");
+        ImGui.SetNextItemWidth(200);
+        if (ImGui.InputText("##playerUsername", _usernameBuffer, ImGuiInputTextFlags.None))
+        {
+            plugin.Configuration.PlayerUsername = ReadBuffer(_usernameBuffer);
+            plugin.Configuration.Save();
+        }
+
+        ImGui.TextUnformatted("Mot de passe :");
+        ImGui.SetNextItemWidth(200);
+        if (ImGui.InputText("##playerPassword", _passwordBuffer, ImGuiInputTextFlags.Password))
+        {
+            plugin.Configuration.PlayerPassword = ReadBuffer(_passwordBuffer);
+            plugin.Configuration.Save();
+        }
+
+        ImGui.Spacing();
+
+        if (authState.LastError is { } error)
+        {
+            ImGui.TextColored(ColDanger, error);
+            ImGui.Spacing();
+        }
+
+        var canConnect = !string.IsNullOrWhiteSpace(plugin.Configuration.PlayerUsername)
+                      && !string.IsNullOrWhiteSpace(plugin.Configuration.PlayerPassword)
+                      && plugin.Configuration.DataSourceMode == DataSourceMode.Remote;
+
+        if (isConnected)
+        {
+            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.3f, 0.3f, 0.3f, 0.25f));
+            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.3f, 0.3f, 0.3f, 0.40f));
+            if (ImGui.Button("Se déconnecter##logout"))
+                plugin.Logout.Execute();
+            ImGui.PopStyleColor(2);
+        }
+        else
+        {
+            if (!canConnect)
+            {
+                ImGui.BeginDisabled();
+                ImGui.TextDisabled(plugin.Configuration.DataSourceMode == DataSourceMode.Local
+                    ? "(mode local — connexion désactivée)"
+                    : "(remplir les champs ci-dessus)");
+                ImGui.Spacing();
+            }
+
+            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.09f, 0.37f, 0.65f, 0.25f));
+            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.09f, 0.37f, 0.65f, 0.40f));
+            ImGui.PushStyleColor(ImGuiCol.Text, ColInfo);
+            if (ImGui.Button("Se connecter##login") && canConnect)
+            {
+                var username = plugin.Configuration.PlayerUsername;
+                var password = plugin.Configuration.PlayerPassword;
+                _ = Task.Run(() => plugin.Login.ExecuteAsync(username, password));
+            }
+            ImGui.PopStyleColor(3);
+
+            if (!canConnect) ImGui.EndDisabled();
+        }
+
+        ImGui.Spacing();
+        ImGui.Spacing();
+
+        // ================================================================
         // SOURCE DES DÉS
         // ================================================================
-        ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.58f, 1f), "SOURCE DES DÉS");
+        ImGui.TextColored(ColMuted, "SOURCE DES DÉS");
         ImGui.Separator();
         ImGui.Spacing();
 
@@ -131,7 +230,7 @@ public class ConfigWindow : Window, IDisposable
         // ================================================================
         // CHAT
         // ================================================================
-        ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.58f, 1f), "CHAT");
+        ImGui.TextColored(ColMuted, "CHAT");
         ImGui.Separator();
         ImGui.Spacing();
 
@@ -166,7 +265,6 @@ public class ConfigWindow : Window, IDisposable
             }
             ImGui.EndCombo();
         }
-
         ImGui.SameLine();
         ImGui.TextDisabled($"(/{Channels[currentIdx].Command})");
 
@@ -178,19 +276,25 @@ public class ConfigWindow : Window, IDisposable
         ImGui.TextDisabled("Le résultat est toujours visible dans la fenêtre STS.");
     }
 
-    // ------------------------------------------------------------------ Helpers URL buffer
+    // ── Helpers ───────────────────────────────────────────────────────────────
 
-    /// <summary>Copie la valeur persistée dans le buffer ImGui.</summary>
-    private void SyncUrlBufferFromConfig()
+    private void SyncBuffersFromConfig()
     {
-        Array.Clear(_urlBuffer, 0, _urlBuffer.Length);
-        var bytes = Encoding.UTF8.GetBytes(plugin.Configuration.BackendUrl);
-        Buffer.BlockCopy(bytes, 0, _urlBuffer, 0, Math.Min(bytes.Length, _urlBuffer.Length - 1));
+        WriteBuffer(_urlBuffer, plugin.Configuration.ApiBaseUrl);
+        WriteBuffer(_usernameBuffer, plugin.Configuration.PlayerUsername);
+        WriteBuffer(_passwordBuffer, plugin.Configuration.PlayerPassword);
     }
 
-    private string ReadUrlBuffer()
+    private static void WriteBuffer(byte[] buffer, string value)
     {
-        var len = Array.IndexOf(_urlBuffer, (byte)0);
-        return Encoding.UTF8.GetString(_urlBuffer, 0, len < 0 ? _urlBuffer.Length : len);
+        Array.Clear(buffer, 0, buffer.Length);
+        var bytes = Encoding.UTF8.GetBytes(value);
+        Buffer.BlockCopy(bytes, 0, buffer, 0, Math.Min(bytes.Length, buffer.Length - 1));
+    }
+
+    private static string ReadBuffer(byte[] buffer)
+    {
+        var len = Array.IndexOf(buffer, (byte)0);
+        return Encoding.UTF8.GetString(buffer, 0, len < 0 ? buffer.Length : len);
     }
 }

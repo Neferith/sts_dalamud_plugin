@@ -1,11 +1,12 @@
 using Sts.Domain;
 using Sts.Domain.Character;
-using STSPlugin.CharacterUseCases;
+using Sts.Domain.Character;
 using Sts.Domain.DataSource;
 using Sts.Domain.Repository;
-
-using Sts.Domain.Character;
+using STSPlugin.Auth;
 using STSPlugin.CharacterUseCases;
+using STSPlugin.CharacterUseCases;
+using STSPlugin.UseCases.Auth;
 
 namespace STSPlugin;
 
@@ -63,4 +64,10 @@ public interface IPluginFactory
     SetItemSlotUseCase MakeSetItemSlot();
     ReorderInventoryUseCase MakeReorderInventory();
     SetItemIconUseCase MakeSetItemIcon();
+
+
+    AuthState MakeAuthState();
+    ILoginUseCase MakeLogin();
+    ILogoutUseCase MakeLogout();
+    IGetTokenUseCase MakeGetToken();
 }

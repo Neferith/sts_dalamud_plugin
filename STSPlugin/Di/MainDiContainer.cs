@@ -8,6 +8,8 @@ using STSPlugin.CharacterUseCases;
 using Sts.Domain.DataSource;
 using Sts.Domain.Repository;
 using STSPlugin.Repository;
+using STSPlugin.Auth;
+using STSPlugin.UseCases.Auth;
 
 namespace STSPlugin;
 
@@ -26,6 +28,11 @@ public class MainDiContainer : IPluginFactory
     private readonly string _assemblyDir;
     private readonly string _configDir;
     private readonly IPluginLog _log;
+
+    private AuthState? _authState;
+    private ILoginUseCase? _login;
+    private ILogoutUseCase? _logout;
+    private IGetTokenUseCase? _getToken;
 
     // --- Infrastructure ---
     private StsEngine? _engine;
@@ -95,7 +102,7 @@ public class MainDiContainer : IPluginFactory
     {
         if (_dataSource != null) return _dataSource;
 
-        var remote = new RemoteJsonDataSource(_config.BackendUrl);
+        var remote = new RemoteJsonDataSource(_config.DataUrl);
         var local = new LocalJsonDataSource(Path.Combine(_assemblyDir, "data.json"));
         var cachePath = Path.Combine(_configDir, "data_cache.json");
 
@@ -249,4 +256,21 @@ public class MainDiContainer : IPluginFactory
 
     public SetItemIconUseCase MakeSetItemIcon()
         => _setItemIcon ??= new DefaultSetItemIconUseCase(MakeCharacterRepository());
+
+
+    /// <summary>État d'authentification partagé — singleton.</summary>
+    public AuthState MakeAuthState()
+        => _authState ??= new AuthState();
+
+    /// <summary>Cas d'usage : connexion joueur.</summary>
+    public ILoginUseCase MakeLogin()
+        => _login ??= new LoginUseCase(MakeAuthState(), _config);
+
+    /// <summary>Cas d'usage : déconnexion joueur.</summary>
+    public ILogoutUseCase MakeLogout()
+        => _logout ??= new LogoutUseCase(MakeAuthState());
+
+    /// <summary>Cas d'usage : obtenir un token valide (renouvelle si expiré).</summary>
+    public IGetTokenUseCase MakeGetToken()
+        => _getToken ??= new GetTokenUseCase(MakeAuthState(), _config, MakeLogin());
 }

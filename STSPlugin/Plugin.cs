@@ -11,15 +11,18 @@ using FFXIVClientStructs.FFXIV.Client.UI;
 using Sts.Domain;
 using Sts.Domain.Character;
 using Sts.Domain.Repository;
+using STSPlugin.Auth;
 using STSPlugin.CharacterUseCases;
 using STSPlugin.ConfigDomain;
 using STSPlugin.Repository;
+using STSPlugin.UseCases.Auth;
 using STSPlugin.Windows;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace STSPlugin;
 
@@ -50,6 +53,12 @@ public sealed class Plugin : IDalamudPlugin
     public JobRepository JobRepository { get; private set; }
     public ActionRepository ActionRepository { get; private set; }
     public AbilityRepository AbilityRepository { get; private set; }
+
+    // --- use cases auth ---
+    public AuthState AuthState { get; init; }
+    public ILoginUseCase Login { get; init; }
+    public ILogoutUseCase Logout { get; init; }
+    public IGetTokenUseCase GetToken { get; init; }
 
     // --- use cases personnages ---
     public IGetAllCharactersUseCase GetAllCharacters { get; init; }
@@ -116,6 +125,12 @@ public sealed class Plugin : IDalamudPlugin
         ActionRepository = factory.MakeActionRepository();//new DefaultActionRepository(dataSource);
         AbilityRepository = factory.MakeAbilityRepository();//new DefaultAbilityRepository(dataSource);
 
+        // --- Use cases auth ---
+        AuthState = _factory.MakeAuthState();
+        Login = _factory.MakeLogin();
+        Logout = _factory.MakeLogout();
+        GetToken = _factory.MakeGetToken();
+
         // --- Use cases personnages ---
         GetAllCharacters = factory.MakeGetAllCharacters();
         GetActiveCharacter = factory.MakeGetActiveCharacter();
@@ -163,6 +178,15 @@ public sealed class Plugin : IDalamudPlugin
             Engine.ChangeRank(rankKey);
         }
 
+        // --- Login automatique si credentials présents ---
+        if (!string.IsNullOrWhiteSpace(Configuration.PlayerUsername) &&
+            !string.IsNullOrWhiteSpace(Configuration.PlayerPassword))
+        {
+            _ = Task.Run(() => Login.ExecuteAsync(
+                Configuration.PlayerUsername,
+                Configuration.PlayerPassword));
+        }
+
         // --- Windows ---
         mainWindow = new MainWindow(this);
         configWindow = new ConfigWindow(this);
@@ -174,7 +198,7 @@ public sealed class Plugin : IDalamudPlugin
         {
             HelpMessage = "Ouvre/ferme l'interface STS. \"/sts roll\" lance les dés. \"/sts roll <id>\" lance une action. \"/sts quickbar\" ouvre la barre."
         });
-        
+
         ChatGui.ChatMessage += OnChatMessage;
         ChatGui.ChatMessageUnhandled += OnChatMessageUnhandled;
 
@@ -185,8 +209,8 @@ public sealed class Plugin : IDalamudPlugin
 
     public void Dispose()
     {
-     //   ChatGui.ChatMessage -= OnChatMessage;
-      //  ChatGui.ChatMessageUnhandled -= OnChatMessageUnhandled;
+        //   ChatGui.ChatMessage -= OnChatMessage;
+        //  ChatGui.ChatMessageUnhandled -= OnChatMessageUnhandled;
 
         PluginInterface.UiBuilder.Draw -= DrawUi;
         PluginInterface.UiBuilder.OpenMainUi -= ToggleMainUi;
@@ -224,7 +248,7 @@ public sealed class Plugin : IDalamudPlugin
                 RefreshEquippedTraits();
 
                 Log.Information("[STS] Données rechargées — mode : {0}, url : {1}",
-                    Configuration.DataSourceMode, Configuration.BackendUrl);
+                    Configuration.DataSourceMode, Configuration.ApiBaseUrl);
             }
             catch (Exception ex)
             {
@@ -419,8 +443,8 @@ public sealed class Plugin : IDalamudPlugin
         }
 
         Log.Debug($"[STS] /random reçu : {value:D3}");
-       
-       // message. = false; // ← laisser le message s'afficher normalement
+
+        // message. = false; // ← laisser le message s'afficher normalement
         if (Engine.ReceiveRandom(value))
             Plugin.Framework.RunOnTick(OnRollComplete);
     }
@@ -428,7 +452,7 @@ public sealed class Plugin : IDalamudPlugin
     private void OnChatMessageUnhandled(IChatMessage message)
     {
         Log.Debug($"[STS] Unhandled reçu — logKind: {(int)message.LogKind}");
-        
+
     }
 
     // ------------------------------------------------------------------ Résultat
