@@ -18,6 +18,7 @@ public class ConfigWindow : Window, IDisposable
 
     private static readonly (string Label, string Command)[] Channels =
     [
+        ("Canal en cours",              ""),
         ("Dire",                    "say"),
         ("Équipe",                  "party"),
         ("Alliance",                "alliance"),

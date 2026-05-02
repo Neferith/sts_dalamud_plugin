@@ -1,8 +1,5 @@
 using Sts.Domain.UseCases;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using static System.Collections.Specialized.BitVector32;
+using STS.Domain;
 
 namespace Sts.Domain;
 
@@ -70,24 +67,29 @@ public class StsEngine
 
     public List<RollEntry> History { get; } = [];
 
+    private readonly IStsLogger _logger;
+
     public StsEngine(
         IComputePalierUseCase computePalier,
         IResolveDiceSetUseCase resolveDiceSet,
         IPickDiceSetUseCase pickDiceSet,
-        ICheckRerollUseCase checkReroll)
+        ICheckRerollUseCase checkReroll,
+        IStsLogger? logger = null)
     {
         _computePalier = computePalier;
         _resolveDiceSet = resolveDiceSet;
         _pickDiceSet = pickDiceSet;
         _checkReroll = checkReroll;
+        _logger = logger ?? NullStsLogger.Instance;
     }
 
     /// <summary>Factory method pratique avec les implémentations par défaut.</summary>
-    public static StsEngine CreateDefault() => new(
-        new DefaultComputePalierUseCase(),
-        new DefaultResolveDiceSetUseCase(),
-        new DefaultPickDiceSetUseCase(),
-        new DefaultCheckRerollUseCase());
+    public static StsEngine CreateDefault(IStsLogger? logger = null) => new(
+    new DefaultComputePalierUseCase(),
+    new DefaultResolveDiceSetUseCase(),
+    new DefaultPickDiceSetUseCase(),
+    new DefaultCheckRerollUseCase(),
+    logger);
 
     // --- configuration ---
 
@@ -229,9 +231,14 @@ public class StsEngine
     private AppliedTraitEffects ComputeTraitEffects(RollAction? action, bool isReroll = false)
     {
         if (_equippedTraits.Count == 0)
+        {
+            _logger.Debug("[STS] ComputeTraitEffects — aucun trait équipé");
             return AppliedTraitEffects.None;
+        }
 
         var contexts = action?.Contexts ?? [];
+        _logger.Debug($"[STS] ComputeTraitEffects — {_equippedTraits.Count} traits, action={action?.Name ?? "null"}, contexts=[{string.Join(",", contexts)}], isReroll={isReroll}");
+
         var bonusRerolls = 0;
         var bonusSuccess = 0;
         var malusSuccess = 0;
@@ -239,39 +246,52 @@ public class StsEngine
         var bonusTraitNames = new List<string>();
         var malusTraitNames = new List<string>();
 
+
         foreach (var trait in _equippedTraits)
         {
-            if (trait.Effects is null) continue;
+            if (trait.Effects is null)
+            {
+                _logger.Debug($"[STS] Trait '{trait.Name}' — aucun effet");
+                continue;
+            }
 
             foreach (var effect in trait.Effects)
             {
                 var matches = effect.Context == null || contexts.Contains(effect.Context);
+                _logger.Debug($"[STS] Trait '{trait.Name}' — type={effect.Type}, context={effect.Context ?? "null"}, matches={matches}");
                 if (!matches) continue;
 
                 switch (effect.Type)
                 {
                     case TraitEffectType.BonusRerolls:
                         bonusRerolls += effect.Value;
+                        _logger.Debug($"[STS] → BonusRerolls +{effect.Value}, total={bonusRerolls}");
                         break;
                     case TraitEffectType.ForceRollMode:
                         forcedMode = effect.ForcedMode;
+                        _logger.Debug($"[STS] → ForceRollMode={forcedMode}");
                         break;
                     case TraitEffectType.BonusSuccess:
                         bonusSuccess += effect.Value;
                         bonusTraitNames.Add(trait.Name);
+                        _logger.Debug($"[STS] → BonusSuccess +{effect.Value}, total={bonusSuccess}");
                         break;
                     case TraitEffectType.MalusSuccess:
                         malusSuccess += effect.Value;
                         malusTraitNames.Add(trait.Name);
+                        _logger.Debug($"[STS] → MalusSuccess +{effect.Value}, total={malusSuccess}");
                         break;
                     case TraitEffectType.BonusPalier when isReroll:
                     case TraitEffectType.BonusSuccessOnZero:
                     case TraitEffectType.BonusSuccessOnReroll:
                     case TraitEffectType.Manual:
+                        _logger.Debug($"[STS] → {effect.Type} ignoré (géré ailleurs ou non applicable)");
                         break;
                 }
             }
         }
+        _logger.Debug($"[STS] ComputeTraitEffects résultat — bonusSuccess={bonusSuccess}, malusSuccess={malusSuccess}, bonusRerolls={bonusRerolls}, forcedMode={forcedMode}");
+
 
         return new AppliedTraitEffects
             (
