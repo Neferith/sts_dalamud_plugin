@@ -21,6 +21,9 @@ public class AuthService
     /// <summary>Token JWT courant, ou null si non authentifié.</summary>
     public string? Token => _token;
 
+    public string? Role { get; private set; }
+    public bool IsAdmin => Role == "admin";
+
     public bool IsInitialized { get; private set; }
 
     /// <summary>
@@ -32,6 +35,7 @@ public class AuthService
         try
         {
             _token = await _js.InvokeAsync<string?>("localStorage.getItem", StorageKey);
+            if (_token is not null) ParseToken(_token);
         }
         catch { }
         finally { IsInitialized = true; }
@@ -41,6 +45,7 @@ public class AuthService
     public async Task SetTokenAsync(string token)
     {
         _token = token;
+        ParseToken(token);
         await _js.InvokeVoidAsync("localStorage.setItem", StorageKey, token);
     }
 
@@ -48,6 +53,34 @@ public class AuthService
     public async Task LogoutAsync()
     {
         _token = null;
+        Role = null;
         await _js.InvokeVoidAsync("localStorage.removeItem", StorageKey);
+    }
+
+    private void ParseToken(string token)
+    {
+        try
+        {
+            var parts = token.Split('.');
+            if (parts.Length != 3) return;
+
+            var payload = parts[1].Replace('-', '+').Replace('_', '/');
+            switch (payload.Length % 4)
+            {
+                case 2: payload += "=="; break;
+                case 3: payload += "="; break;
+            }
+
+            var json = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(payload));
+            var claims = System.Text.Json.JsonSerializer
+                .Deserialize<Dictionary<string, System.Text.Json.JsonElement>>(json);
+            if (claims is null) return;
+
+            if (claims.TryGetValue("http://schemas.microsoft.com/ws/2008/06/identity/claims/role", out var role))
+                Role = role.GetString();
+            else if (claims.TryGetValue("role", out var r))
+                Role = r.GetString();
+        }
+        catch { }
     }
 }

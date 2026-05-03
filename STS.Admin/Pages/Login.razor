@@ -83,7 +83,15 @@
             var response = await Api.LoginAsync(_username, _password);
             if (response?.Token is { Length: > 0 } token)
             {
-                await Auth.SetTokenAsync(token);
+                await Auth.SetTokenAsync(token);  // ParseToken appelé à l'intérieur
+
+                if (!Auth.IsAdmin)
+                {
+                    await Auth.LogoutAsync();
+                    _error = "Accès réservé aux administrateurs.";
+                    return;
+                }
+
                 Nav.NavigateTo("/jobs");
             }
             else
