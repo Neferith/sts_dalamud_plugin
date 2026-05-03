@@ -17,10 +17,11 @@ namespace STSPlugin;
 /// Implémentation principale de <see cref="IPluginFactory"/>.
 /// Tous les services sont des singletons — créés à la première demande et réutilisés ensuite.
 ///
-/// Deux modes de stockage des personnages :
-/// - Local (défaut) : <see cref="LocalCharacterRepository"/> — fichiers JSON dans le dossier config
-/// - Remote (à venir) : RemoteCharacterRepository — appels vers STS.Api
-/// Le mode est sélectionnable depuis les Settings du plugin.
+/// Stratégie du repository personnages :
+/// - Mode Remote + authentifié → <see cref="RemoteCharacterRepository"/> (fiches API)
+/// - Mode Remote + non authentifié → <see cref="LocalCharacterRepository"/> (fiches locales)
+/// - Mode Local → <see cref="LocalCharacterRepository"/> (fiches locales)
+/// Les deux sets de fiches sont indépendants — pas de fusion.
 /// </summary>
 public class MainDiContainer : IPluginFactory
 {
@@ -126,27 +127,35 @@ public class MainDiContainer : IPluginFactory
     // ── Repository personnages ────────────────────────────────────────────────
 
     /// <summary>
-    /// Retourne le repository de personnages actif selon le mode configuré.
-    /// Mode local (défaut) : <see cref="LocalCharacterRepository"/>.
-    /// Mode remote (à venir) : RemoteCharacterRepository.
+    /// Retourne le repository de personnages actif selon le mode et l'état d'authentification.
+    /// - Remote + authentifié → <see cref="RemoteCharacterRepository"/>
+    /// - Sinon → <see cref="LocalCharacterRepository"/>
     /// </summary>
     public ICharacterRepository MakeCharacterRepository()
     {
         if (_characterRepository != null) return _characterRepository;
 
-        // TODO : quand le mode remote sera implémenté, brancher ici selon _config.CharacterMode
-        // if (_config.CharacterMode == CharacterMode.Remote)
-        //     _characterRepository = new RemoteCharacterRepository(_config.BackendUrl, _log);
-        // else
-        _characterRepository = new LocalCharacterRepository(
-            Path.Combine(_configDir, "characters"));
+        var useRemote = _config.DataSourceMode == ConfigDomain.DataSourceMode.Remote
+                     && MakeAuthState().IsAuthenticated;
+
+        if (useRemote)
+        {
+            _characterRepository = new RemoteCharacterRepository(
+                _config.ApiBaseUrl, MakeGetToken(), MakeAuthState());
+        }
+        else
+        {
+            _characterRepository = new LocalCharacterRepository(
+                Path.Combine(_configDir, "characters"));
+        }
 
         return _characterRepository;
     }
 
     /// <summary>
-    /// Invalide le repository de personnages et les use cases qui en dépendent.
-    /// À appeler depuis les Settings lors du changement de mode Local ↔ Remote.
+    /// Invalide le repository de personnages et tous les use cases qui en dépendent.
+    /// À appeler quand l'état de connexion change (login/logout) ou lors d'un changement
+    /// de mode Local ↔ Remote depuis les Settings.
     /// </summary>
     public void ReloadCharacterRepository()
     {
@@ -157,6 +166,23 @@ public class MainDiContainer : IPluginFactory
         _deleteCharacter = null;
         _getActiveCharacter = null;
         _setActiveCharacter = null;
+        // Use cases dépendants du character repository
+        _setJob = null;
+        _setOriginTrait = null;
+        _equipTrait = null;
+        _unequipTrait = null;
+        _createCustomAction = null;
+        _deleteCustomAction = null;
+        _equipAbility = null;
+        _unequipAbility = null;
+        _setSkillPoints = null;
+        _addCertification = null;
+        _removeCertification = null;
+        _addInventoryItem = null;
+        _removeInventoryItem = null;
+        _setItemSlot = null;
+        _reorderInventory = null;
+        _setItemIcon = null;
     }
 
     // ── Repositories données de référence ─────────────────────────────────────
@@ -257,6 +283,7 @@ public class MainDiContainer : IPluginFactory
     public SetItemIconUseCase MakeSetItemIcon()
         => _setItemIcon ??= new DefaultSetItemIconUseCase(MakeCharacterRepository());
 
+    // ── Auth ──────────────────────────────────────────────────────────────────
 
     /// <summary>État d'authentification partagé — singleton.</summary>
     public AuthState MakeAuthState()

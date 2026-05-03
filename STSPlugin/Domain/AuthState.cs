@@ -17,6 +17,9 @@ public class AuthState
     /// <summary>Nom d'utilisateur authentifié. Null si non connecté.</summary>
     public string? Username { get; set; }
 
+    /// <summary>Identifiant de l'utilisateur connecté. Null si non connecté.</summary>
+    public Guid? UserId { get; set; }
+
     /// <summary>Dernière erreur de connexion. Null si aucune.</summary>
     public string? LastError { get; set; }
 

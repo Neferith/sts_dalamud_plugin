@@ -16,7 +16,7 @@ namespace STSPlugin.Windows;
 public class CharacterWindow : Window, IDisposable
 {
     private readonly Plugin _plugin;
-    private readonly Character _character;
+    private Character _character;  
 
     private int _activeTab = 0;
     private bool _editMode = false;
@@ -79,6 +79,34 @@ public class CharacterWindow : Window, IDisposable
 
         if (_activeTab == 0) { if (_editMode) DrawEditMode(); else DrawReadMode(); }
         else DrawInventoryTab();
+    }
+
+    /// <summary>
+    /// Met à jour l'objet character avec les données fraîches de l'API.
+    /// Appelé par Plugin.RefreshCharacterWindows après un sync.
+    /// Si l'édition est en cours, la mise à jour est ignorée.
+    /// </summary>
+    public void UpdateCharacter(Character fresh)
+    {
+        if (_editMode) return;
+
+        _character.Name = fresh.Name;
+        _character.RankKey = fresh.RankKey;
+        _character.Race = fresh.Race;
+        _character.JobId = fresh.JobId;
+        _character.Histoire = fresh.Histoire;
+        _character.ReputationLevel = fresh.ReputationLevel;
+        _character.SkillPoints = fresh.SkillPoints;
+        _character.OriginTraitId = fresh.OriginTraitId;
+        _character.EquippedTraitIds = fresh.EquippedTraitIds;
+        _character.EquippedAbilities = fresh.EquippedAbilities;
+        _character.Certifications = fresh.Certifications;
+        _character.Inventory = fresh.Inventory;
+        _character.MainHandItemId = fresh.MainHandItemId;
+        _character.OffHandItemId = fresh.OffHandItemId;
+        _character.QuickbarActionIds = fresh.QuickbarActionIds;
+
+        WindowName = $"{_character.Name} — Fiche STS##{_character.Id}";
     }
 
     // ------------------------------------------------------------------ En-tête
@@ -887,4 +915,6 @@ public class CharacterWindow : Window, IDisposable
         UsageLimit.ThreeTimesPerEvent => "⏱ 3× par event",
         _ => "",
     };
+
+
 }
