@@ -129,3 +129,185 @@
             height: 96px !important;
         }
 }
+
+/* ── Fiche détail — layout 2 colonnes ───────────────────────────────────── */
+
+.sts-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+    margin-top: 0.5rem;
+}
+
+@media (max-width: 700px) {
+    .sts-detail-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ── Histoire avec fondu ─────────────────────────────────────────────────── */
+
+.sts-histoire {
+    background: var(--bg-card);
+    border-left: 2px solid var(--teal-dim);
+    border-radius: 0 6px 6px 0;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.7;
+    max-height: 80px;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to bottom, #000 50%, transparent);
+    mask-image: linear-gradient(to bottom, #000 50%, transparent);
+    transition: max-height 0.3s ease, -webkit-mask-image 0.3s, mask-image 0.3s;
+    cursor: pointer;
+}
+
+    .sts-histoire.expanded {
+        max-height: 600px;
+        -webkit-mask-image: none;
+        mask-image: none;
+    }
+
+/* ── Certifications compactes ────────────────────────────────────────────── */
+
+.sts-cert-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+
+.sts-cert-item {
+    background: var(--bg-card);
+    border: 0.5px solid rgba(var(--amber-rgb, 200, 150, 50), 0.2);
+    border-radius: 6px;
+    padding: 7px 10px;
+}
+
+.sts-cert-name {
+    font-size: 12px;
+    color: var(--amber);
+    font-weight: 500;
+    margin-bottom: 2px;
+}
+
+.sts-cert-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+/* ── Traits compacts ─────────────────────────────────────────────────────── */
+
+.sts-trait-item {
+    background: var(--bg-card);
+    border: 0.5px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    margin-bottom: 5px;
+}
+
+.sts-trait-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--teal);
+    margin-top: 5px;
+    flex-shrink: 0;
+}
+
+.sts-trait-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+}
+
+.sts-trait-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+/* ── Compétences avec accent ─────────────────────────────────────────────── */
+
+.sts-rang-label {
+    font-size: 10px;
+    color: var(--teal);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin: 10px 0 5px;
+}
+
+.sts-ability-card {
+    background: var(--bg-card);
+    border: 0.5px solid var(--border);
+    border-left: 2px solid var(--teal);
+    border-radius: 0 6px 6px 0;
+    padding: 9px 12px;
+    margin-bottom: 5px;
+}
+
+.sts-ability-card-r2 {
+    border-left-color: var(--purple, #a78bfa);
+}
+
+.sts-ability-card-r3 {
+    border-left-color: var(--amber);
+}
+
+/* ── Mobile — modale actions ─────────────────────────────────────────────── */
+
+.sts-mobile-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.sts-mobile-btn {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: center;
+    border: none;
+}
+
+.sts-mobile-btn-primary {
+    background: var(--teal);
+    color: var(--bg-deep);
+}
+
+.sts-mobile-btn-ghost {
+    background: rgba(255, 255, 255, 0.07);
+    color: var(--text-secondary);
+    border: 0.5px solid var(--border);
+}
+
+.sts-mobile-btn-danger {
+    background: rgba(220, 50, 50, 0.1);
+    color: #e07070;
+    border: 0.5px solid rgba(220, 50, 50, 0.2);
+}
+
+/* ── Mobile — header centré ──────────────────────────────────────────────── */
+
+@media (max-width: 600px) {
+    .sts-char-header {
+        flex-direction: column !important;
+        align-items: center !important;
+        text-align: center;
+    }
+
+    .sts-char-meta-center {
+        justify-content: center;
+    }
+
+    .sts-stats-row {
+        justify-content: center;
+    }
+}
