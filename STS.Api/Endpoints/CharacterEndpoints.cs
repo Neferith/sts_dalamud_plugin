@@ -5,6 +5,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Sts.Domain;
 using Sts.Domain.Character;
+using System.IO.Compression;
+using System.Text;
+using STS.Export;
 
 namespace Sts.Api.Endpoints;
 
@@ -48,9 +51,6 @@ public static class CharacterEndpoints
         {
             var character = await getById.ExecuteAsync(id);
             if (character is null) return Results.NotFound();
-
-            if (!user.IsInRole("admin") && character.UserId != GetUserId(user))
-                return Results.Forbid();
 
             return Results.Ok(character);
         })
@@ -115,6 +115,127 @@ public static class CharacterEndpoints
         })
         .WithName("DeleteCharacter")
         .WithSummary("Supprime un personnage.");
+
+        var uploadDir = app.Configuration["Data:CharacterImagesPath"] ?? "/data/uploads/characters";
+
+        // POST /api/characters/{id}/image
+        group.MapPost("/{id:guid}/image", async (
+            Guid id,
+            IFormFile file,
+            IUploadCharacterImageUseCase uploadImage,
+            IGetCharacterByIdUseCase getById,
+            ClaimsPrincipal user) =>
+        {
+            if (file.Length > 5 * 1024 * 1024)
+                return Results.BadRequest(new { error = "Le fichier ne doit pas dépasser 5 Mo." });
+
+            var existing = await getById.ExecuteAsync(id);
+            if (existing is null) return Results.NotFound();
+
+            if (!user.IsInRole("admin") && existing.UserId != GetUserId(user))
+                return Results.Forbid();
+
+            await using var stream = file.OpenReadStream();
+            var (imageUrl, error) = await uploadImage.ExecuteAsync(id, stream, file.FileName);
+
+            return error is not null
+                ? Results.BadRequest(new { error })
+                : Results.Ok(new { imageUrl });
+        })
+        .WithName("UploadCharacterImage")
+        .WithSummary("Uploade l'image d'un personnage.")
+        .DisableAntiforgery();
+
+        // GET /api/characters/{id}/image — pas d'auth (img src ne peut pas envoyer de JWT)
+        group.MapGet("/{id:guid}/image", async (
+            Guid id,
+            IGetCharacterByIdUseCase getById) =>
+        {
+            var character = await getById.ExecuteAsync(id);
+            if (character?.ImageUrl is null) return Results.NotFound();
+
+            var files = Directory.GetFiles(uploadDir, $"{id}.*");
+            if (files.Length == 0) return Results.NotFound();
+
+            var filePath = files[0];
+            var contentType = Path.GetExtension(filePath).ToLowerInvariant() switch
+            {
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                ".webp" => "image/webp",
+                _ => "application/octet-stream",
+            };
+
+            return Results.File(filePath, contentType);
+        })
+        .AllowAnonymous()
+        .WithName("GetCharacterImage")
+        .WithSummary("Retourne l'image d'un personnage.");
+
+        // GET /api/characters/{id}/export/discord
+        group.MapGet("/{id:guid}/export/discord", async (
+            Guid id,
+            IGetCharacterByIdUseCase getById,
+            IExportCharacterDiscordUseCase exportDiscord,
+            ClaimsPrincipal user) =>
+        {
+            var character = await getById.ExecuteAsync(id);
+            if (character is null) return Results.NotFound();
+
+            if (!user.IsInRole("admin") && character.UserId != GetUserId(user))
+                return Results.Forbid();
+
+            var markdown = exportDiscord.Execute(character);
+            var mdBytes = Encoding.UTF8.GetBytes(markdown);
+            var safeName = character.Name.Replace(" ", "_");
+
+            using var zipStream = new MemoryStream();
+            using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, leaveOpen: true))
+            {
+                // ── Markdown ──
+                var mdEntry = archive.CreateEntry($"{safeName}.md");
+                using (var mdWriter = mdEntry.Open())
+                {
+                    await mdWriter.WriteAsync(mdBytes);
+                } // stream fermé ici avant de créer la prochaine entrée
+
+                // ── Image ──
+                var imageFile = Directory.GetFiles(uploadDir, $"{id}.*").FirstOrDefault();
+                if (imageFile is not null)
+                {
+                    var imgEntry = archive.CreateEntry($"portrait{Path.GetExtension(imageFile)}");
+                    using (var imgWriter = imgEntry.Open())
+                    await using (var imgReader = File.OpenRead(imageFile))
+                    {
+                        await imgReader.CopyToAsync(imgWriter);
+                    }
+                }
+            }
+
+            return Results.File(zipStream.ToArray(), "application/zip", $"{safeName}_discord.zip");
+        })
+        .WithName("ExportCharacterDiscord")
+        .WithSummary("Exporte la fiche en Markdown Discord + portrait dans un ZIP.");
+
+        // GET /api/characters/{id}/export/pdf
+        group.MapGet("/{id:guid}/export/pdf", async (
+            Guid id,
+            IGetCharacterByIdUseCase getById,
+            IExportCharacterPdfUseCase exportPdf,
+            ClaimsPrincipal user) =>
+        {
+            var character = await getById.ExecuteAsync(id);
+            if (character is null) return Results.NotFound();
+
+            if (!user.IsInRole("admin") && character.UserId != GetUserId(user))
+                return Results.Forbid();
+
+            var pdfBytes = await exportPdf.ExecuteAsync(character);
+            var safeName = character.Name.Replace(" ", "_");
+            return Results.File(pdfBytes, "application/pdf", $"{safeName}.pdf");
+        })
+        .WithName("ExportCharacterPdf")
+        .WithSummary("Exporte la fiche au format PDF.");
     }
 
     private static Guid? GetUserId(ClaimsPrincipal user)

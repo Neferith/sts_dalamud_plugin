@@ -11,6 +11,9 @@ public class Character
     /// <summary>Identifiant unique du personnage.</summary>
     public Guid Id { get; init; } = Guid.NewGuid();
 
+    /// <summary>URL relative de l'image du personnage. Null si aucune image uploadée.</summary>
+    public string? ImageUrl { get; set; } = null;
+
     /// <summary>Nom du personnage.</summary>
     public string Name { get; set; } = string.Empty;
 

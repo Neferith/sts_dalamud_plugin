@@ -98,3 +98,34 @@
 .sts-card-body {
     padding: 0.25rem 0;
 }
+
+/* ── Actions mobile ──────────────────────────────────────────────────── */
+.sts-actions-desktop {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.sts-actions-mobile {
+    display: none;
+}
+
+@media (max-width: 600px) {
+    .sts-actions-desktop {
+        display: none;
+    }
+
+    .sts-actions-mobile {
+        display: block;
+    }
+
+    /* Portrait au-dessus sur mobile */
+    .sts-char-header {
+        flex-direction: column !important;
+        align-items: center !important;
+    }
+
+        .sts-char-header img {
+            width: 96px !important;
+            height: 96px !important;
+        }
+}

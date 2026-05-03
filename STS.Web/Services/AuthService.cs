@@ -1,3 +1,4 @@
+using Microsoft.JSInterop;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Claims;
@@ -17,6 +18,7 @@ public class AuthService
     };
 
     private readonly HttpClient _http;
+    private readonly IJSRuntime _js;
 
     public string? Token { get; private set; }
     public string? Username { get; private set; }
@@ -32,7 +34,11 @@ public class AuthService
     /// <summary>Déclenché quand un composant demande l'ouverture de la modale de connexion.</summary>
     public event Action? OnLoginRequested;
 
-    public AuthService(HttpClient http) => _http = http;
+    public AuthService(HttpClient http, IJSRuntime js)
+    {
+        _http = http;
+        _js = js;
+    }
 
     /// <summary>
     /// Tente de se connecter avec les identifiants fournis.
@@ -61,6 +67,7 @@ public class AuthService
                 new AuthenticationHeaderValue("Bearer", Token);
 
             OnAuthChanged?.Invoke();
+            await _js.InvokeVoidAsync("localStorage.setItem", "sts_token", Token);
             return null;
         }
         catch
@@ -77,6 +84,7 @@ public class AuthService
         Role = null;
         UserId = null;
         _http.DefaultRequestHeaders.Authorization = null;
+        _ = _js.InvokeVoidAsync("localStorage.removeItem", "sts_token");
         OnAuthChanged?.Invoke();
     }
 
@@ -129,4 +137,22 @@ public class AuthService
     }
 
     private sealed record LoginResponse(string Token);
+
+    /// <summary>Tente de restaurer la session depuis le localStorage.</summary>
+    public async Task TryRestoreSessionAsync()
+    {
+        try
+        {
+            var token = await _js.InvokeAsync<string?>("localStorage.getItem", "sts_token");
+            if (string.IsNullOrWhiteSpace(token)) return;
+
+            Token = token;
+            ParseToken(token);
+            _http.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", Token);
+
+            OnAuthChanged?.Invoke();
+        }
+        catch { /* JS non disponible ou token invalide */ }
+    }
 }

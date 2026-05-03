@@ -67,4 +67,7 @@ await host.Services
     .GetRequiredService<HttpDataSource>()
     .LoadAsync();
 
+var auth = host.Services.GetRequiredService<AuthService>();
+await auth.TryRestoreSessionAsync();
+
 await host.RunAsync();
