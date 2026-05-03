@@ -45,6 +45,40 @@ else if (VM.Character is { } c)
     <div class="sts-edit-section">
         <h2 class="sts-section-title">Informations générales</h2>
         <div class="sts-card">
+            <!-- Image -->
+            <div class="sts-field" style="margin-bottom:1.25rem;">
+                <label class="sts-label">Image du personnage</label>
+                <div style="display:flex;align-items:flex-start;gap:1rem;">
+                    @if (VM.ImageUrl is not null)
+                    {
+                        <img src="@VM.ImageUrl" alt="Portrait de @c.Name"
+                             style="width:96px;height:96px;object-fit:cover;border-radius:8px;border:1px solid var(--border);" />
+                    }
+                    else
+                    {
+                        <div style="width:96px;height:96px;border-radius:8px;border:1px dashed var(--border);
+                                    display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:11px;">
+                            Aucune
+                        </div>
+                    }
+                    <div>
+                        @if (VM.IsUploadingImage)
+                        {
+                            <span class="sts-dim" style="font-size:13px;">
+                                <span class="sts-spinner" style="display:inline-block;width:12px;height:12px;margin-right:4px;"></span>
+                                Upload…
+                            </span>
+                        }
+                        else
+                        {
+                            <InputFile OnChange="@(async e => await VM.OnImageSelectedAsync(e.File))"
+                                       accept=".jpg,.jpeg,.png,.webp"
+                                       style="font-size:13px;" />
+                            <p class="sts-dim" style="font-size:11px;margin-top:4px;">JPG, PNG ou WebP · 5 Mo max</p>
+                        }
+                    </div>
+                </div>
+            </div>
             <div class="sts-field" style="margin-bottom:1rem;">
                 <label class="sts-label">Nom</label>
                 <input class="sts-input" @bind="VM.FormName" @bind:event="oninput" maxlength="64" />

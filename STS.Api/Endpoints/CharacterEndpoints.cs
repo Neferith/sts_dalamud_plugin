@@ -115,6 +115,62 @@ public static class CharacterEndpoints
         })
         .WithName("DeleteCharacter")
         .WithSummary("Supprime un personnage.");
+
+        var uploadDir = app.Configuration["Data:CharacterImagesPath"] ?? "/data/uploads/characters";
+
+        // POST /api/characters/{id}/image
+        group.MapPost("/{id:guid}/image", async (
+            Guid id,
+            IFormFile file,
+            IUploadCharacterImageUseCase uploadImage,
+            IGetCharacterByIdUseCase getById,
+            ClaimsPrincipal user) =>
+        {
+            if (file.Length > 5 * 1024 * 1024)
+                return Results.BadRequest(new { error = "Le fichier ne doit pas dépasser 5 Mo." });
+
+            var existing = await getById.ExecuteAsync(id);
+            if (existing is null) return Results.NotFound();
+
+            if (!user.IsInRole("admin") && existing.UserId != GetUserId(user))
+                return Results.Forbid();
+
+            await using var stream = file.OpenReadStream();
+            var (imageUrl, error) = await uploadImage.ExecuteAsync(id, stream, file.FileName);
+
+            return error is not null
+                ? Results.BadRequest(new { error })
+                : Results.Ok(new { imageUrl });
+        })
+        .WithName("UploadCharacterImage")
+        .WithSummary("Uploade l'image d'un personnage.")
+        .DisableAntiforgery();
+
+        // GET /api/characters/{id}/image — pas d'auth (img src ne peut pas envoyer de JWT)
+        group.MapGet("/{id:guid}/image", async (
+            Guid id,
+            IGetCharacterByIdUseCase getById) =>
+        {
+            var character = await getById.ExecuteAsync(id);
+            if (character?.ImageUrl is null) return Results.NotFound();
+
+            var files = Directory.GetFiles(uploadDir, $"{id}.*");
+            if (files.Length == 0) return Results.NotFound();
+
+            var filePath = files[0];
+            var contentType = Path.GetExtension(filePath).ToLowerInvariant() switch
+            {
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                ".webp" => "image/webp",
+                _ => "application/octet-stream",
+            };
+
+            return Results.File(filePath, contentType);
+        })
+        .AllowAnonymous()
+        .WithName("GetCharacterImage")
+        .WithSummary("Retourne l'image d'un personnage.");
     }
 
     private static Guid? GetUserId(ClaimsPrincipal user)

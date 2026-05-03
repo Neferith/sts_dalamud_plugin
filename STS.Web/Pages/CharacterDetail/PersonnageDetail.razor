@@ -33,7 +33,13 @@ else if (VM.Character is { } c)
     var rank = Rank.Get(c.RankKey);
 
     <!-- En-tête -->
-    <div class="sts-char-header">
+    <div class="sts-char-header" style="display:flex;gap:1.25rem;align-items:flex-start;">
+        @if (VM.ImageUrl is not null)
+        {
+            <img src="@VM.ImageUrl" alt="Portrait de @c.Name"
+                 style="width:112px;height:112px;object-fit:cover;border-radius:10px;
+                        border:1px solid var(--border);flex-shrink:0;" />
+        }
         <div>
             <h1 class="sts-page-title">@c.Name</h1>
             <div class="sts-card-meta">

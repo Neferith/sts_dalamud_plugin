@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Components.Forms;
 using Sts.Domain;
 using Sts.Domain.Character;
 using Sts.Domain.Repository;
@@ -24,6 +25,9 @@ public sealed class CharacterEditViewModel(
     public string?     Error     { get; private set; }
     public string?     Success   { get; private set; }
 
+    /// <summary>Indique qu'un upload d'image est en cours.</summary>
+    public bool IsUploadingImage { get; private set; }
+
     public bool IsOwner =>
         auth.IsAuthenticated &&
         Character is not null &&
@@ -36,6 +40,10 @@ public sealed class CharacterEditViewModel(
     public string  FormName        { get; set; } = string.Empty;
     public string  FormHistoire    { get; set; } = string.Empty;
     public int     FormSkillPoints { get; set; }
+
+    /// <summary>URL absolue de l'image du personnage, ou null si aucune image.</summary>
+    public string? ImageUrl => Character?.ImageUrl is null ? null
+        : api.AbsoluteImageUrl(Character.ImageUrl);
 
     // ── Formulaire certification ──────────────────────────────────────────────
 
@@ -197,6 +205,45 @@ public sealed class CharacterEditViewModel(
         if (Character is null) return;
         Character.JobId = jobId;
         await PersistAsync();
+    }
+
+    // ── Image ─────────────────────────────────────────────────────────────────────
+
+    /// <summary>Déclenché quand l'utilisateur sélectionne un fichier image.</summary>
+    public async Task OnImageSelectedAsync(IBrowserFile file)
+    {
+        if (Character is null) return;
+
+        const long maxSize = 5 * 1024 * 1024;
+        if (file.Size > maxSize) { SetError("Le fichier ne doit pas dépasser 5 Mo."); return; }
+
+        // Bufferiser les bytes AVANT tout Notify() — le re-render détruirait
+        // la référence JS du InputFile et rendrait OpenReadStream inutilisable.
+        byte[] bytes;
+        try
+        {
+            await using var readStream = file.OpenReadStream(maxSize);
+            using var ms = new MemoryStream();
+            await readStream.CopyToAsync(ms);
+            bytes = ms.ToArray();
+        }
+        catch (Exception ex)
+        {
+            SetError($"Impossible de lire le fichier : {ex.Message}");
+            return;
+        }
+
+        IsUploadingImage = true; ClearMessages(); Notify();
+        try
+        {
+            using var uploadStream = new MemoryStream(bytes);
+            var error = await api.UploadImageAsync(Character.Id, uploadStream, file.Name, file.ContentType);
+            if (error is not null) { SetError(error); return; }
+
+            var updated = await api.GetByIdAsync(Character.Id);
+            if (updated is not null) Character.ImageUrl = updated.ImageUrl;
+        }
+        finally { IsUploadingImage = false; Notify(); }
     }
 
     // ── Trait d'origine ───────────────────────────────────────────────────────

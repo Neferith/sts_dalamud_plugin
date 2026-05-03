@@ -1,6 +1,7 @@
 [
   {
     "id": "8e3e3df9-8609-4f93-8d10-25adc71660a4",
+    "imageUrl": "/api/characters/8e3e3df9-8609-4f93-8d10-25adc71660a4/image",
     "name": "Eleanor Dubrie",
     "rankKey": 1,
     "jobId": "machiniste",
@@ -202,6 +203,7 @@
   },
   {
     "id": "e7333c28-66fd-47be-ba08-f0edeef13ff5",
+    "imageUrl": null,
     "name": "Adrila Messor",
     "rankKey": 2,
     "jobId": "faucheur",

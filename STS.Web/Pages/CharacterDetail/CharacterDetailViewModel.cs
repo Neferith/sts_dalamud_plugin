@@ -25,6 +25,10 @@ public sealed class CharacterDetailViewModel(
 
     public Action? OnStateChanged { get; set; }
 
+    /// <summary>URL absolue de l'image du personnage, ou null si aucune image.</summary>
+    public string? ImageUrl => Character?.ImageUrl is null ? null
+        : api.AbsoluteImageUrl(Character.ImageUrl);
+
     // ── Résolution des données de référence ───────────────────────────────────
 
     public string JobName(string? jobId)

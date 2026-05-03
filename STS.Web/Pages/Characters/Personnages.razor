@@ -52,25 +52,40 @@ else
                 var isOwner = Auth.UserId == character.UserId;
 
                 <a href="/personnages/@character.Id" class="sts-card sts-card-accent sts-character-card">
-                    <div class="sts-card-header">
-                        <span class="sts-card-title">@character.Name</span>
-                        @if (isOwner)
+                    <div style="display:flex;gap:0.75rem;align-items:center;">
+                        @if (VM.ImageUrl(character) is { } imgUrl)
                         {
-                            <span class="sts-badge sts-badge-active">Ma fiche</span>
+                            <img src="@imgUrl" alt="@character.Name"
+                                 style="width:56px;height:56px;object-fit:cover;border-radius:6px;
+                                        border:1px solid var(--border);flex-shrink:0;" />
                         }
-                        <span class="sts-badge-rank">@rank.Label</span>
-                    </div>
-                    <div class="sts-card-meta">
-                        @if (character.JobId is not null)
+                        else
                         {
-                            <span>@character.JobId</span>
-                            <span class="sts-card-meta-dot"></span>
+                            <div style="width:56px;height:56px;border-radius:6px;flex-shrink:0;
+                                        background:var(--bg-card);border:1px solid var(--border);"></div>
                         }
-                        <span>@character.Race.Label()</span>
-                        <span class="sts-card-meta-dot"></span>
-                        <span>@character.EquippedAbilities.Count compétence(s)</span>
-                        <span class="sts-card-meta-dot"></span>
-                        <span>@character.EquippedTraitIds.Count trait(s)</span>
+                        <div style="min-width:0;">
+                            <div class="sts-card-header">
+                                <span class="sts-card-title">@character.Name</span>
+                                @if (isOwner)
+                                {
+                                    <span class="sts-badge sts-badge-active">Ma fiche</span>
+                                }
+                                <span class="sts-badge-rank">@rank.Label</span>
+                            </div>
+                            <div class="sts-card-meta">
+                                @if (character.JobId is not null)
+                                {
+                                    <span>@character.JobId</span>
+                                    <span class="sts-card-meta-dot"></span>
+                                }
+                                <span>@character.Race.Label()</span>
+                                <span class="sts-card-meta-dot"></span>
+                                <span>@character.EquippedAbilities.Count compétence(s)</span>
+                                <span class="sts-card-meta-dot"></span>
+                                <span>@character.EquippedTraitIds.Count trait(s)</span>
+                            </div>
+                        </div>
                     </div>
                 </a>
             }

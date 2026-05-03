@@ -110,6 +110,12 @@ builder.Services.AddScoped<ICreateCharacterUseCase, CreateCharacterUseCase>();
 builder.Services.AddScoped<IUpdateCharacterUseCase, UpdateCharacterUseCase>();
 builder.Services.AddScoped<IDeleteCharacterUseCase, DeleteCharacterUseCase>();
 
+var uploadDir = builder.Configuration["Data:CharacterImagesPath"] ?? "/data/uploads/characters";
+builder.Services.AddScoped<IUploadCharacterImageUseCase>(
+    sp => new UploadCharacterImageUseCase(
+        sp.GetRequiredService<ICharacterRepository>(),
+        uploadDir));
+
 // Chemins fichiers
 var quickLinksPath = builder.Configuration["Data:QuickLinksFilePath"]
     ?? throw new InvalidOperationException("La clé Data:QuickLinksFilePath est manquante dans la configuration.");
