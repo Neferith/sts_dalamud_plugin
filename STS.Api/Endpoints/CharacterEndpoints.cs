@@ -49,9 +49,6 @@ public static class CharacterEndpoints
             var character = await getById.ExecuteAsync(id);
             if (character is null) return Results.NotFound();
 
-            if (!user.IsInRole("admin") && character.UserId != GetUserId(user))
-                return Results.Forbid();
-
             return Results.Ok(character);
         })
         .WithName("GetCharacter")
