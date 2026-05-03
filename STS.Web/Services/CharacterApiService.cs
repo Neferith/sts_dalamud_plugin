@@ -105,6 +105,24 @@ public class CharacterApiService(HttpClient http)
             : body.Trim('"');
     }
 
+    /// <summary>Télécharge l'export Discord (ZIP) d'un personnage.</summary>
+    public async Task<(byte[]? Data, string? Error)> DownloadDiscordExportAsync(Guid id)
+    {
+        var response = await http.GetAsync($"/api/characters/{id}/export/discord");
+        if (!response.IsSuccessStatusCode)
+            return (null, $"Erreur {(int)response.StatusCode}");
+        return (await response.Content.ReadAsByteArrayAsync(), null);
+    }
+
+    /// <summary>Télécharge l'export PDF d'un personnage.</summary>
+    public async Task<(byte[]? Data, string? Error)> DownloadPdfAsync(Guid id)
+    {
+        var response = await http.GetAsync($"/api/characters/{id}/export/pdf");
+        if (!response.IsSuccessStatusCode)
+            return (null, $"Erreur {(int)response.StatusCode}");
+        return (await response.Content.ReadAsByteArrayAsync(), null);
+    }
+
     /// <summary>Construit l'URL absolue d'une URL relative renvoyée par l'API.</summary>
     public string AbsoluteImageUrl(string relativeUrl)
         => new Uri(http.BaseAddress!, relativeUrl).ToString();

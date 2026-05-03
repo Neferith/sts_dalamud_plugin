@@ -6,6 +6,7 @@
 @inject NavigationManager Nav
 @inject CharacterDetailViewModel VM
 @inject IJSRuntime JS
+@inject CharacterApiService Api
 
 <PageTitle>@(VM.Character?.Name ?? "Personnage") — STS</PageTitle>
 
@@ -15,6 +16,10 @@
         @if (VM.IsOwner)
         {
             <a href="/personnages/@Id/editer" class="sts-btn sts-btn-primary sts-btn-sm">✎ Éditer</a>
+            <button class="sts-btn sts-btn-ghost sts-btn-sm" @onclick="ExportDiscord"
+                    disabled="@_exporting">⬇ Discord</button>
+            <button class="sts-btn sts-btn-ghost sts-btn-sm" @onclick="ExportPdf"
+                    disabled="@_exporting">⬇ PDF</button>
             <button class="sts-btn sts-btn-ghost sts-btn-sm" @onclick="Delete">Supprimer</button>
         }
     </div>
@@ -275,5 +280,35 @@ else if (VM.Character is { } c)
 
         var error = await VM.DeleteAsync();
         if (error is null) Nav.NavigateTo("/personnages");
+    }
+
+    private bool _exporting;
+
+    private async Task ExportDiscord()
+    {
+        _exporting = true; StateHasChanged();
+        try
+        {
+            var (data, _) = await Api.DownloadDiscordExportAsync(Id);
+            if (data is not null)
+                await JS.InvokeVoidAsync("downloadFile",
+                    $"{VM.Character!.Name.Replace(" ", "_")}_discord.zip",
+                    "application/zip", data);
+        }
+        finally { _exporting = false; StateHasChanged(); }
+    }
+
+    private async Task ExportPdf()
+    {
+        _exporting = true; StateHasChanged();
+        try
+        {
+            var (data, _) = await Api.DownloadPdfAsync(Id);
+            if (data is not null)
+                await JS.InvokeVoidAsync("downloadFile",
+                    $"{VM.Character!.Name.Replace(" ", "_")}.pdf",
+                    "application/pdf", data);
+        }
+        finally { _exporting = false; StateHasChanged(); }
     }
 }

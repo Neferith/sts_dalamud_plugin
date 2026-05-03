@@ -5,6 +5,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Sts.Domain;
 using Sts.Domain.Character;
+using System.IO.Compression;
+using System.Text;
+using STS.Export;
 
 namespace Sts.Api.Endpoints;
 
@@ -168,6 +171,71 @@ public static class CharacterEndpoints
         .AllowAnonymous()
         .WithName("GetCharacterImage")
         .WithSummary("Retourne l'image d'un personnage.");
+
+        // GET /api/characters/{id}/export/discord
+        group.MapGet("/{id:guid}/export/discord", async (
+            Guid id,
+            IGetCharacterByIdUseCase getById,
+            IExportCharacterDiscordUseCase exportDiscord,
+            ClaimsPrincipal user) =>
+        {
+            var character = await getById.ExecuteAsync(id);
+            if (character is null) return Results.NotFound();
+
+            if (!user.IsInRole("admin") && character.UserId != GetUserId(user))
+                return Results.Forbid();
+
+            var markdown = exportDiscord.Execute(character);
+            var mdBytes = Encoding.UTF8.GetBytes(markdown);
+            var safeName = character.Name.Replace(" ", "_");
+
+            using var zipStream = new MemoryStream();
+            using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, leaveOpen: true))
+            {
+                // ── Markdown ──
+                var mdEntry = archive.CreateEntry($"{safeName}.md");
+                using (var mdWriter = mdEntry.Open())
+                {
+                    await mdWriter.WriteAsync(mdBytes);
+                } // stream fermé ici avant de créer la prochaine entrée
+
+                // ── Image ──
+                var imageFile = Directory.GetFiles(uploadDir, $"{id}.*").FirstOrDefault();
+                if (imageFile is not null)
+                {
+                    var imgEntry = archive.CreateEntry($"portrait{Path.GetExtension(imageFile)}");
+                    using (var imgWriter = imgEntry.Open())
+                    await using (var imgReader = File.OpenRead(imageFile))
+                    {
+                        await imgReader.CopyToAsync(imgWriter);
+                    }
+                }
+            }
+
+            return Results.File(zipStream.ToArray(), "application/zip", $"{safeName}_discord.zip");
+        })
+        .WithName("ExportCharacterDiscord")
+        .WithSummary("Exporte la fiche en Markdown Discord + portrait dans un ZIP.");
+
+        // GET /api/characters/{id}/export/pdf
+        group.MapGet("/{id:guid}/export/pdf", async (
+            Guid id,
+            IGetCharacterByIdUseCase getById,
+            IExportCharacterPdfUseCase exportPdf,
+            ClaimsPrincipal user) =>
+        {
+            var character = await getById.ExecuteAsync(id);
+            if (character is null) return Results.NotFound();
+
+            if (!user.IsInRole("admin") && character.UserId != GetUserId(user))
+                return Results.Forbid();
+
+            var pdfBytes = await exportPdf.ExecuteAsync(character);
+            var safeName = character.Name.Replace(" ", "_");
+            return Results.File(pdfBytes, "application/pdf", $"{safeName}.pdf");
+        })
+        .WithName("ExportCharacterPdf")
+        .WithSummary("Exporte la fiche au format PDF.");
     }
 
     private static Guid? GetUserId(ClaimsPrincipal user)

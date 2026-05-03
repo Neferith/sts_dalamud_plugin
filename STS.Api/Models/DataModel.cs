@@ -1,7 +1,7 @@
 using System.Text.Json.Serialization;
 
 namespace Sts.Api.Models;
-
+/*
 /// <summary>Modèle racine du fichier data.json.</summary>
 public class DataModel
 {
@@ -122,4 +122,4 @@ public class ActionData
 
     [JsonPropertyName("requirements")]
     public List<string> Requirements { get; set; } = [];
-}
+}*/

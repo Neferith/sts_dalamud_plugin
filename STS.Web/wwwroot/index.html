@@ -33,6 +33,17 @@
         <span class="dismiss">🗙</span>
     </div>
     <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
+    <script>
+        window.downloadFile = (fileName, contentType, data) => {
+            const blob = new Blob([new Uint8Array(data)], { type: contentType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            a.click();
+            URL.revokeObjectURL(url);
+        };
+    </script>
 </body>
 
 </html>
