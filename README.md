@@ -59,6 +59,8 @@ UI (STSPlugin / STS.Admin / STS.Web)
 - Historique des jets
 - Gestion des fiches personnages (création, édition complète, inventaire)
 - Mode local (JSON) ou remote (API) configurable depuis les settings
+- Auth joueur — login unique depuis les settings, JWT renouvelé automatiquement
+- Sync des fiches depuis l'API avec filtre sur l'utilisateur connecté
 - Cache disque pour le mode remote (fallback offline)
 
 ### Commandes
@@ -183,7 +185,7 @@ dotnet ef migrations add NomExplicatif --context StsDbContext
 - **STS.Api** — auth JWT unifiée (admin/member), CRUD personnages, CRUD utilisateurs, seed admin au démarrage, `UserRepository` + `CharacterRepository` JSON thread-safe
 - **STS.Admin** — auth JWT, pages CRUD (jobs, traits, capacités, actions, règles, images, Discord, **utilisateurs**)
 - **STS.Web** — auth membre (login modal, `AuthService` avec parsing JWT), fiches personnages (liste, détail, création, édition complète), `HttpDataSource` avec pre-load, repositories partagés
-- **STSPlugin** — fiches personnages async (`LocalCharacterRepository`), use cases async, pattern cache UI pour le render thread ImGui, mode local/remote configurable
+- **STSPlugin** — fiches personnages async (`LocalCharacterRepository` + `RemoteCharacterRepository`), auth joueur (`ILoginUseCase`, `ILogoutUseCase`, `IGetTokenUseCase`, `AuthState`), use cases async, pattern cache UI pour le render thread ImGui, mode local/remote configurable, sync depuis l'API
 - **STS.Discord** — pattern décorateur sur les use cases post
 - **Docker + CI/CD** — pipeline GitHub Actions, déploiement OVH VPS, Caddy HTTPS
 
@@ -191,7 +193,7 @@ dotnet ef migrations add NomExplicatif --context StsDbContext
 
 - **Cookie/localStorage** — persister la session après refresh dans STS.Web
 - **Modération officier** — certains champs de fiche verrouillés (certifications)
-- **RemoteCharacterRepository** dans le plugin — synchronisation fiche locale ↔ API
+- ~~**RemoteCharacterRepository** dans le plugin — synchronisation fiche locale ↔ API~~ ✅ Livré
 - **Migration SQLite** — QuickLinks, SiteSettings, users et characters
 - **Widget "Dernières mises à jour"** sur la home STS.Web
 - **Portrait capture** dans le plugin (GPOSE via `ICondition`)
