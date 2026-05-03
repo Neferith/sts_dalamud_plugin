@@ -3,23 +3,26 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using QuestPDF.Infrastructure;
+using Sts.Api.Auth;
 using Sts.Api.DataSources;
 using Sts.Api.Endpoints;
 using Sts.Api.Repositories;
 using Sts.Api.Services;
 using Sts.Discord;
+using Sts.Domain.Character;
 using Sts.Domain.Content.DataSources;
 using Sts.Domain.Content.Repositories;
 using Sts.Domain.Content.UseCases;
+using Sts.Domain.Repository;
+using Sts.Domain.User;
 using Sts.Infrastructure.Data;
 using Sts.Infrastructure.DataSources;
 using STS.Api.Repositories;
 using STS.Api.UseCases;
+using STS.Export;
 using System.Reflection;
 using System.Text;
-using Sts.Api.Auth;
-using Sts.Domain.User;
-using Sts.Domain.Character;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -109,6 +112,37 @@ builder.Services.AddScoped<IGetCharacterByIdUseCase, GetCharacterByIdUseCase>();
 builder.Services.AddScoped<ICreateCharacterUseCase, CreateCharacterUseCase>();
 builder.Services.AddScoped<IUpdateCharacterUseCase, UpdateCharacterUseCase>();
 builder.Services.AddScoped<IDeleteCharacterUseCase, DeleteCharacterUseCase>();
+
+var uploadDir = builder.Configuration["Data:CharacterImagesPath"] ?? "/data/uploads/characters";
+builder.Services.AddScoped<IUploadCharacterImageUseCase>(
+    sp => new UploadCharacterImageUseCase(
+        sp.GetRequiredService<ICharacterRepository>(),
+        uploadDir));
+
+// ─── Export ───────────────────────────────────────────────────────────────────
+
+QuestPDF.Settings.License = LicenseType.Community;
+
+builder.Services.AddSingleton<DataServiceDataSource>();
+
+builder.Services.AddScoped<IExportCharacterDiscordUseCase>(sp =>
+{
+    var ds = sp.GetRequiredService<DataServiceDataSource>();
+    return new ExportCharacterDiscordUseCase(
+        new DefaultTraitRepository(ds),
+        new DefaultJobRepository(ds),
+        new DefaultAbilityRepository(ds));
+});
+
+builder.Services.AddScoped<IExportCharacterPdfUseCase>(sp =>
+{
+    var ds = sp.GetRequiredService<DataServiceDataSource>();
+    return new ExportCharacterPdfUseCase(
+        new DefaultTraitRepository(ds),
+        new DefaultJobRepository(ds),
+        new DefaultAbilityRepository(ds),
+        uploadDir);
+});
 
 // Chemins fichiers
 var quickLinksPath = builder.Configuration["Data:QuickLinksFilePath"]

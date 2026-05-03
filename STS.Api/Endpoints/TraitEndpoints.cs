@@ -1,4 +1,4 @@
-using Sts.Api.Models;
+using Sts.Domain.DataSource;
 using Sts.Api.Services;
 
 namespace Sts.Api.Endpoints;

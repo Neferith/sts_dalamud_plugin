@@ -6,6 +6,7 @@
 @inject NavigationManager Nav
 @inject CharacterDetailViewModel VM
 @inject IJSRuntime JS
+@inject CharacterApiService Api
 
 <PageTitle>@(VM.Character?.Name ?? "Personnage") — STS</PageTitle>
 
@@ -14,8 +15,20 @@
     <div style="display:flex;gap:0.5rem;margin-left:auto;">
         @if (VM.IsOwner)
         {
-            <a href="/personnages/@Id/editer" class="sts-btn sts-btn-primary sts-btn-sm">✎ Éditer</a>
-            <button class="sts-btn sts-btn-ghost sts-btn-sm" @onclick="Delete">Supprimer</button>
+            <!-- Desktop -->
+            <div class="sts-actions-desktop">
+                <a href="/personnages/@Id/editer" class="sts-btn sts-btn-primary sts-btn-sm">✎ Éditer</a>
+                <button class="sts-btn sts-btn-ghost sts-btn-sm" @onclick="ExportDiscord"
+                        disabled="@_exporting">⬇ Discord</button>
+                <button class="sts-btn sts-btn-ghost sts-btn-sm" @onclick="ExportPdf"
+                        disabled="@_exporting">⬇ PDF</button>
+                <button class="sts-btn sts-btn-ghost sts-btn-sm" @onclick="Delete">Supprimer</button>
+            </div>
+
+            <!-- Mobile -->
+            <div class="sts-actions-mobile">
+                <button class="sts-btn sts-btn-ghost sts-btn-sm" @onclick="() => _showActionsModal = true">⋯</button>
+            </div>
         }
     </div>
 </div>
@@ -33,7 +46,13 @@ else if (VM.Character is { } c)
     var rank = Rank.Get(c.RankKey);
 
     <!-- En-tête -->
-    <div class="sts-char-header">
+    <div class="sts-char-header" style="display:flex;gap:1.25rem;align-items:flex-start;">
+        @if (VM.ImageUrl is not null)
+        {
+            <img src="@VM.ImageUrl" alt="Portrait de @c.Name"
+                 style="width:112px;height:112px;object-fit:cover;border-radius:10px;
+                        border:1px solid var(--border);flex-shrink:0;" />
+        }
         <div>
             <h1 class="sts-page-title">@c.Name</h1>
             <div class="sts-card-meta">
@@ -154,45 +173,57 @@ else if (VM.Character is { } c)
     @if (c.EquippedAbilities.Count > 0)
     {
         <h2 class="sts-section-title">Compétences (@c.SpentSkillPoints / @c.SkillPoints pts)</h2>
-        <div class="sts-cards">
-            @foreach (var eq in c.EquippedAbilities)
-            {
-                var ability = VM.GetAbility(eq.AbilityId);
-                var fp      = c.GetFreePointsForAbility(eq.AbilityId);
-                var levelDesc = ability?.Levels
-                    .Where(l => l.Level <= eq.Level)
-                    .OrderBy(l => l.Level)
-                    .ToList() ?? [];
 
-                <div class="sts-card">
-                    <div class="sts-card-header">
-                        <span class="sts-card-title">@(ability?.Name ?? eq.AbilityId)</span>
-                        <span class="sts-badge sts-badge-active">Lv@(eq.Level)</span>
-                        @if (fp > 0)
+        @foreach (var rang in new[] { 1, 2, 3 })
+        {
+            var groupe = c.EquippedAbilities
+                .Where(eq => eq.Level == rang)
+                .ToList();
+
+            if (groupe.Count == 0) continue;
+
+            <p class="sts-dim" style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin:0.75rem 0 0.25rem;">
+                Rang @rang
+            </p>
+            <div class="sts-cards">
+                @foreach (var eq in groupe)
+                {
+                    var ability   = VM.GetAbility(eq.AbilityId);
+                    var fp        = c.GetFreePointsForAbility(eq.AbilityId);
+                    var levelDesc = ability?.Levels
+                        .Where(l => l.Level <= eq.Level)
+                        .OrderBy(l => l.Level)
+                        .ToList() ?? [];
+
+                    <div class="sts-card">
+                        <div class="sts-card-header">
+                            <span class="sts-card-title">@(ability?.Name ?? eq.AbilityId)</span>
+                            @if (fp > 0)
+                            {
+                                <span class="sts-badge sts-badge-passive">@fp pt(s) certif.</span>
+                            }
+                            @if (ability?.UsageLimit is UsageLimit ul && ul != UsageLimit.None)
+                            {
+                                <span class="sts-badge sts-badge-job">@VM.UsageLimitLabel(ul)</span>
+                            }
+                        </div>
+                        @foreach (var ld in levelDesc)
                         {
-                            <span class="sts-badge sts-badge-passive">@fp pt(s) certif.</span>
-                        }
-                        @if (ability?.UsageLimit is UsageLimit ul && ul != UsageLimit.None)
-                        {
-                            <span class="sts-badge sts-badge-job">@VM.UsageLimitLabel(ul)</span>
+                            @if (!string.IsNullOrWhiteSpace(ld.Description))
+                            {
+                                <div class="sts-card-desc" style="margin-top:4px;">
+                                    @if (eq.Level > 1)
+                                    {
+                                        <span style="color:var(--teal); font-size:11px;">Lv@(ld.Level) — </span>
+                                    }
+                                    @ld.Description
+                                </div>
+                            }
                         }
                     </div>
-                    @foreach (var ld in levelDesc)
-                    {
-                        @if (!string.IsNullOrWhiteSpace(ld.Description))
-                        {
-                            <div class="sts-card-desc" style="margin-top:4px;">
-                                @if (eq.Level > 1)
-                                {
-                                    <span style="color:var(--teal); font-size:11px;">Lv@(ld.Level) — </span>
-                                }
-                                @ld.Description
-                            </div>
-                        }
-                    }
-                </div>
-            }
-        </div>
+                }
+            </div>
+        }
     }
 
     <!-- Inventaire -->
@@ -233,8 +264,29 @@ else if (VM.Character is { } c)
     }
 }
 
+@if (_showActionsModal)
+{
+    <div class="sts-modal-backdrop" @onclick="() => _showActionsModal = false"></div>
+    <div class="sts-modal">
+        <div class="sts-modal-header">
+            <h2 class="sts-modal-title">Actions</h2>
+            <button class="sts-modal-close" @onclick="() => _showActionsModal = false">✕</button>
+        </div>
+        <div class="sts-modal-body" style="display:flex;flex-direction:column;gap:0.75rem;">
+            <a href="/personnages/@Id/editer" class="sts-btn sts-btn-primary">✎ Éditer</a>
+            <button class="sts-btn sts-btn-ghost" @onclick="() => { _showActionsModal = false; _ = ExportDiscord(); }"
+                    disabled="@_exporting">⬇ Export Discord</button>
+            <button class="sts-btn sts-btn-ghost" @onclick="() => { _showActionsModal = false; _ = ExportPdf(); }"
+                    disabled="@_exporting">⬇ Export PDF</button>
+            <button class="sts-btn sts-btn-ghost" style="color:var(--error, #e05)"
+                    @onclick="() => { _showActionsModal = false; _ = Delete(); }">Supprimer</button>
+        </div>
+    </div>
+}
+
 @code {
     [Parameter] public Guid Id { get; set; }
+    private bool _showActionsModal;
 
     protected override async Task OnInitializedAsync()
     {
@@ -257,5 +309,35 @@ else if (VM.Character is { } c)
 
         var error = await VM.DeleteAsync();
         if (error is null) Nav.NavigateTo("/personnages");
+    }
+
+    private bool _exporting;
+
+    private async Task ExportDiscord()
+    {
+        _exporting = true; StateHasChanged();
+        try
+        {
+            var (data, _) = await Api.DownloadDiscordExportAsync(Id);
+            if (data is not null)
+                await JS.InvokeVoidAsync("downloadFile",
+                    $"{VM.Character!.Name.Replace(" ", "_")}_discord.zip",
+                    "application/zip", data);
+        }
+        finally { _exporting = false; StateHasChanged(); }
+    }
+
+    private async Task ExportPdf()
+    {
+        _exporting = true; StateHasChanged();
+        try
+        {
+            var (data, _) = await Api.DownloadPdfAsync(Id);
+            if (data is not null)
+                await JS.InvokeVoidAsync("downloadFile",
+                    $"{VM.Character!.Name.Replace(" ", "_")}.pdf",
+                    "application/pdf", data);
+        }
+        finally { _exporting = false; StateHasChanged(); }
     }
 }

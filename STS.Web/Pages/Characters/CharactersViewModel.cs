@@ -7,6 +7,11 @@ namespace STS.Web.ViewModels;
 public sealed class CharactersViewModel(CharacterApiService api, AuthService auth)
 {
     public IReadOnlyList<Character> Characters { get; private set; } = [];
+
+    /// <summary>URL absolue de l'image d'un personnage, ou null si aucune image.</summary>
+    public string? ImageUrl(Character character) =>
+        character.ImageUrl is null ? null : api.AbsoluteImageUrl(character.ImageUrl);
+
     public bool IsLoading { get; private set; }
     public string? Error { get; private set; }
 

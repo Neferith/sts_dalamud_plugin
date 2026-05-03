@@ -9,6 +9,7 @@ COPY STS.Domain.Character/STS.Domain.Character.csproj     STS.Domain.Character/
 COPY STS.Domain.User/STS.Domain.User.csproj               STS.Domain.User/
 COPY STS.Infrastructure/STS.Infrastructure.csproj         STS.Infrastructure/
 COPY STS.Discord/STS.Discord.csproj                       STS.Discord/
+COPY STS.Export/STS.Export.csproj                         STS.Export/
 COPY STS.Api/STS.Api.csproj                               STS.Api/
 COPY STS.Admin/STS.Admin.csproj                           STS.Admin/
 
@@ -22,6 +23,7 @@ COPY STS.Domain.Character/ STS.Domain.Character/
 COPY STS.Domain.User/      STS.Domain.User/
 COPY STS.Infrastructure/   STS.Infrastructure/
 COPY STS.Discord/          STS.Discord/
+COPY STS.Export/           STS.Export/
 COPY STS.Api/              STS.Api/
 COPY STS.Admin/            STS.Admin/
 

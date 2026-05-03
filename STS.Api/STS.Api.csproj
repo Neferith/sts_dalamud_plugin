@@ -17,6 +17,7 @@
         <ProjectReference Include="..\STS.Domain.User\STS.Domain.User.csproj" />
         <ProjectReference Include="..\STS.Domain.Character\STS.Domain.Character.csproj" />
         <ProjectReference Include="..\STS.Domain.Content\STS.Domain.Content.csproj" />
+        <ProjectReference Include="..\STS.Export\STS.Export.csproj" />
         <ProjectReference Include="..\STS.Admin\STS.Admin.csproj" />
         <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.0" />
     </ItemGroup>
