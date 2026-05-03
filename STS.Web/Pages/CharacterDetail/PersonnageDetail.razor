@@ -15,7 +15,6 @@
     <div style="display:flex;gap:0.5rem;margin-left:auto;">
         @if (VM.IsOwner)
         {
-            <!-- Desktop -->
             <div class="sts-actions-desktop">
                 <a href="/personnages/@Id/editer" class="sts-btn sts-btn-primary sts-btn-sm">✎ Éditer</a>
                 <button class="sts-btn sts-btn-ghost sts-btn-sm" @onclick="ExportDiscord"
@@ -24,8 +23,6 @@
                         disabled="@_exporting">⬇ PDF</button>
                 <button class="sts-btn sts-btn-ghost sts-btn-sm" @onclick="Delete">Supprimer</button>
             </div>
-
-            <!-- Mobile -->
             <div class="sts-actions-mobile">
                 <button class="sts-btn sts-btn-ghost sts-btn-sm" @onclick="() => _showActionsModal = true">⋯</button>
             </div>
@@ -50,12 +47,12 @@ else if (VM.Character is { } c)
         @if (VM.ImageUrl is not null)
         {
             <img src="@VM.ImageUrl" alt="Portrait de @c.Name"
-                 style="width:112px;height:112px;object-fit:cover;border-radius:10px;
-                        border:1px solid var(--border);flex-shrink:0;" />
+                 style="width:120px;height:120px;object-fit:cover;border-radius:10px;
+                        border:1.5px solid var(--teal-dim);flex-shrink:0;" />
         }
-        <div>
+        <div style="flex:1;min-width:0;">
             <h1 class="sts-page-title">@c.Name</h1>
-            <div class="sts-card-meta">
+            <div class="sts-card-meta sts-char-meta-center">
                 <span>@c.Race.Label()</span>
                 <span class="sts-card-meta-dot"></span>
                 <span>@rank.Label</span>
@@ -69,20 +66,19 @@ else if (VM.Character is { } c)
                     <span>@VM.JobName(c.JobId)</span>
                 }
             </div>
-        </div>
-
-        <div class="sts-stat-grid" style="margin-top: 0.75rem;">
-            <div class="sts-stat-box">
-                <div class="sts-stat-label">Points de compétence</div>
-                <div class="sts-stat-value">@c.SpentSkillPoints / @c.SkillPoints</div>
-            </div>
-            <div class="sts-stat-box">
-                <div class="sts-stat-label">Réputation</div>
-                <div class="sts-stat-value" style="font-size:16px;">
-                    @Reputation.GetLabel(c.ReputationLevel)
-                    <small style="font-size:11px; color:var(--text-muted);">
-                        (@(c.ReputationLevel >= 0 ? "+" : "")@c.ReputationLevel)
-                    </small>
+            <div class="sts-stat-grid sts-stats-row" style="margin-top:0.75rem;">
+                <div class="sts-stat-box">
+                    <div class="sts-stat-label">Points de compétence</div>
+                    <div class="sts-stat-value">@c.SpentSkillPoints <span style="font-size:12px;color:var(--text-muted);">/ @c.SkillPoints pts</span></div>
+                </div>
+                <div class="sts-stat-box">
+                    <div class="sts-stat-label">Réputation</div>
+                    <div class="sts-stat-value" style="font-size:14px;">
+                        @Reputation.GetLabel(c.ReputationLevel)
+                        <small style="font-size:11px;color:var(--text-muted);">
+                            (@(c.ReputationLevel >= 0 ? "+" : "")@c.ReputationLevel)
+                        </small>
+                    </div>
                 </div>
             </div>
         </div>
@@ -91,179 +87,183 @@ else if (VM.Character is { } c)
     <!-- Histoire -->
     @if (!string.IsNullOrWhiteSpace(c.Histoire))
     {
-        <div class="sts-card" style="margin-top: 1rem;">
-            <div class="sts-card-desc" style="white-space: pre-wrap;">@c.Histoire</div>
+        <div class="sts-histoire @(_histoireExpanded ? "expanded" : "")"
+             style="margin-top:1rem;"
+             @onclick="() => _histoireExpanded = !_histoireExpanded">
+            @c.Histoire
         </div>
     }
 
-    <!-- Certifications -->
-    @if (c.Certifications.Count > 0)
-    {
-        <h2 class="sts-section-title">Certifications (@c.Certifications.Count)</h2>
-        <div class="sts-cards">
-            @foreach (var cert in c.Certifications)
-            {
-                <div class="sts-card">
-                    <div class="sts-card-header">
-                        <span style="color:var(--amber)">★</span>
-                        <span class="sts-card-title">@cert.Name</span>
-                    </div>
-                    <div class="sts-card-meta">
-                        @if (cert.LinkedOriginTraitId is not null)
-                        {
-                            <span>Trait d'origine : @VM.TraitName(cert.LinkedOriginTraitId)</span>
-                        }
-                        @if (cert.LinkedAbilityId is not null && cert.FreePoints > 0)
-                        {
-                            <span>@cert.FreePoints pt(s) gratuit(s) sur @VM.AbilityName(cert.LinkedAbilityId)</span>
-                        }
-                    </div>
-                </div>
-            }
-        </div>
-    }
+    <!-- Grille 2 colonnes : gauche = certifs + traits, droite = compétences -->
+    <div class="sts-detail-grid">
 
-    <!-- Trait d'origine -->
-    @if (c.OriginTraitId is not null)
-    {
-        var originTrait = VM.GetTrait(c.OriginTraitId);
-        var hasCert     = c.HasCertificationForOriginTrait(c.OriginTraitId);
-        <h2 class="sts-section-title">Trait d'origine</h2>
-        <div class="sts-card sts-card-accent-amber">
-            <div class="sts-card-header">
-                <span class="sts-card-title">@(originTrait?.Name ?? c.OriginTraitId)</span>
-                @if (hasCert)
-                {
-                    <span class="sts-badge sts-badge-passive">Certifié — gratuit</span>
-                }
-            </div>
-            @if (!string.IsNullOrWhiteSpace(originTrait?.Description))
+        <!-- Colonne gauche -->
+        <div>
+            <!-- Certifications -->
+            @if (c.Certifications.Count > 0)
             {
-                <div class="sts-card-desc">@originTrait.Description</div>
-            }
-        </div>
-    }
-
-    <!-- Traits -->
-    @if (c.EquippedTraitIds.Count > 0)
-    {
-        <h2 class="sts-section-title">Traits (@c.EquippedTraitIds.Count / @rank.Traits)</h2>
-        <div class="sts-cards">
-            @foreach (var tid in c.EquippedTraitIds)
-            {
-                var trait = VM.GetTrait(tid);
-                <div class="sts-card">
-                    <div class="sts-card-header">
-                        <span class="sts-card-title">@(trait?.Name ?? tid)</span>
-                        @if (trait?.Category is TraitCategory cat)
-                        {
-                            <span class="sts-badge sts-badge-weapon">@cat</span>
-                        }
-                    </div>
-                    @if (!string.IsNullOrWhiteSpace(trait?.Description))
+                <h2 class="sts-section-title">Certifications (@c.Certifications.Count)</h2>
+                <div class="sts-cert-grid">
+                    @foreach (var cert in c.Certifications)
                     {
-                        <div class="sts-card-desc">@trait.Description</div>
+                        <div class="sts-cert-item">
+                            <div class="sts-cert-name">★ @cert.Name</div>
+                            <div class="sts-cert-sub">
+                                @if (cert.LinkedOriginTraitId is not null)
+                                {
+                                    <span>Trait : @VM.TraitName(cert.LinkedOriginTraitId)</span>
+                                }
+                                @if (cert.LinkedAbilityId is not null && cert.FreePoints > 0)
+                                {
+                                    <span>@cert.FreePoints pt(s) — @VM.AbilityName(cert.LinkedAbilityId)</span>
+                                }
+                            </div>
+                        </div>
                     }
                 </div>
             }
-        </div>
-    }
 
-    <!-- Compétences -->
-    @if (c.EquippedAbilities.Count > 0)
-    {
-        <h2 class="sts-section-title">Compétences (@c.SpentSkillPoints / @c.SkillPoints pts)</h2>
+            <!-- Trait d'origine -->
+            @if (c.OriginTraitId is not null)
+            {
+                var originTrait = VM.GetTrait(c.OriginTraitId);
+                var hasCert     = c.HasCertificationForOriginTrait(c.OriginTraitId);
+                <h2 class="sts-section-title">Trait d'origine</h2>
+                <div class="sts-trait-item" style="border-color:var(--amber);border-left:2px solid var(--amber);border-radius:0 6px 6px 0;">
+                    <div class="sts-trait-dot" style="background:var(--amber);"></div>
+                    <div>
+                        <div class="sts-trait-name">
+                            @(originTrait?.Name ?? c.OriginTraitId)
+                            @if (hasCert)
+                            {
+                                <span class="sts-badge sts-badge-passive" style="margin-left:6px;">Certifié — gratuit</span>
+                            }
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(originTrait?.Description))
+                        {
+                            <div class="sts-trait-desc">@originTrait.Description</div>
+                        }
+                    </div>
+                </div>
+            }
 
-        @foreach (var rang in new[] { 1, 2, 3 })
-        {
-            var groupe = c.EquippedAbilities
-                .Where(eq => eq.Level == rang)
-                .ToList();
-
-            if (groupe.Count == 0) continue;
-
-            <p class="sts-dim" style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin:0.75rem 0 0.25rem;">
-                Rang @rang
-            </p>
-            <div class="sts-cards">
-                @foreach (var eq in groupe)
+            <!-- Traits -->
+            @if (c.EquippedTraitIds.Count > 0)
+            {
+                <h2 class="sts-section-title">Traits (@c.EquippedTraitIds.Count / @rank.Traits)</h2>
+                @foreach (var tid in c.EquippedTraitIds)
                 {
-                    var ability   = VM.GetAbility(eq.AbilityId);
-                    var fp        = c.GetFreePointsForAbility(eq.AbilityId);
-                    var levelDesc = ability?.Levels
-                        .Where(l => l.Level <= eq.Level)
-                        .OrderBy(l => l.Level)
-                        .ToList() ?? [];
+                    var trait = VM.GetTrait(tid);
+                    <div class="sts-trait-item">
+                        <div class="sts-trait-dot"></div>
+                        <div>
+                            <div class="sts-trait-name">
+                                @(trait?.Name ?? tid)
+                                @if (trait?.Category is TraitCategory cat)
+                                {
+                                    <span class="sts-badge sts-badge-weapon" style="margin-left:6px;">@cat</span>
+                                }
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(trait?.Description))
+                            {
+                                <div class="sts-trait-desc">@trait.Description</div>
+                            }
+                        </div>
+                    </div>
+                }
+            }
+        </div>
 
-                    <div class="sts-card">
+        <!-- Colonne droite : compétences -->
+        <div>
+            @if (c.EquippedAbilities.Count > 0)
+            {
+                <h2 class="sts-section-title">Compétences (@c.SpentSkillPoints / @c.SkillPoints pts)</h2>
+
+                @foreach (var rang in new[] { 1, 2, 3 })
+                {
+                    var groupe = c.EquippedAbilities.Where(eq => eq.Level == rang).ToList();
+                    if (groupe.Count == 0) continue;
+
+                    <p class="sts-rang-label">Rang @rang</p>
+                    @foreach (var eq in groupe)
+                    {
+                        var ability   = VM.GetAbility(eq.AbilityId);
+                        var fp        = c.GetFreePointsForAbility(eq.AbilityId);
+                        var levelDesc = ability?.Levels
+                            .Where(l => l.Level <= eq.Level)
+                            .OrderBy(l => l.Level)
+                            .ToList() ?? [];
+
+                        var accentClass = rang switch { 2 => "sts-ability-card-r2", 3 => "sts-ability-card-r3", _ => "" };
+
+                        <div class="sts-ability-card @accentClass">
+                            <div class="sts-card-header">
+                                <span class="sts-card-title">@(ability?.Name ?? eq.AbilityId)</span>
+                                @if (fp > 0)
+                                {
+                                    <span class="sts-badge sts-badge-passive">@fp pt(s) certif.</span>
+                                }
+                                @if (ability?.UsageLimit is UsageLimit ul && ul != UsageLimit.None)
+                                {
+                                    <span class="sts-badge sts-badge-job">@VM.UsageLimitLabel(ul)</span>
+                                }
+                            </div>
+                            @foreach (var ld in levelDesc)
+                            {
+                                @if (!string.IsNullOrWhiteSpace(ld.Description))
+                                {
+                                    <div class="sts-card-desc" style="margin-top:4px;">
+                                        @if (eq.Level > 1)
+                                        {
+                                            <span style="color:var(--teal);font-size:11px;">Lv@(ld.Level) — </span>
+                                        }
+                                        @ld.Description
+                                    </div>
+                                }
+                            }
+                        </div>
+                    }
+                }
+            }
+
+            <!-- Inventaire -->
+            @if (c.Inventory.Count > 0)
+            {
+                <h2 class="sts-section-title">Inventaire (@c.Inventory.Count objet(s))</h2>
+                @foreach (var item in c.Inventory.OrderBy(i => i.SortIndex))
+                {
+                    var isMain    = c.MainHandItemId == item.Id;
+                    var isOff     = c.OffHandItemId  == item.Id;
+                    var unmastered = c.IsWeaponUnmastered(item);
+
+                    <div class="sts-ability-card" style="border-left-color:var(--text-muted);">
                         <div class="sts-card-header">
-                            <span class="sts-card-title">@(ability?.Name ?? eq.AbilityId)</span>
-                            @if (fp > 0)
+                            <span class="sts-card-title">@item.Name</span>
+                            @if (item.Category == ItemCategory.Weapon)
                             {
-                                <span class="sts-badge sts-badge-passive">@fp pt(s) certif.</span>
+                                <span class="sts-badge sts-badge-weapon">Arme</span>
                             }
-                            @if (ability?.UsageLimit is UsageLimit ul && ul != UsageLimit.None)
-                            {
-                                <span class="sts-badge sts-badge-job">@VM.UsageLimitLabel(ul)</span>
-                            }
+                            @if (isMain)     { <span class="sts-badge sts-badge-active">Main principale</span> }
+                            @if (isOff)      { <span class="sts-badge sts-badge-active">Main secondaire</span> }
+                            @if (unmastered) { <span class="sts-badge sts-badge-job">⚠ Palier 8</span> }
                         </div>
-                        @foreach (var ld in levelDesc)
+                        @if (item.LinkedAbilityId is not null)
                         {
-                            @if (!string.IsNullOrWhiteSpace(ld.Description))
-                            {
-                                <div class="sts-card-desc" style="margin-top:4px;">
-                                    @if (eq.Level > 1)
-                                    {
-                                        <span style="color:var(--teal); font-size:11px;">Lv@(ld.Level) — </span>
-                                    }
-                                    @ld.Description
-                                </div>
-                            }
+                            <div class="sts-card-meta"><span>Compétence : @VM.AbilityName(item.LinkedAbilityId)</span></div>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(item.Description))
+                        {
+                            <div class="sts-card-desc">@item.Description</div>
                         }
                     </div>
                 }
-            </div>
-        }
-    }
-
-    <!-- Inventaire -->
-    @if (c.Inventory.Count > 0)
-    {
-        <h2 class="sts-section-title">Inventaire (@c.Inventory.Count objet(s))</h2>
-        <div class="sts-cards">
-            @foreach (var item in c.Inventory.OrderBy(i => i.SortIndex))
-            {
-                var isMain = c.MainHandItemId == item.Id;
-                var isOff  = c.OffHandItemId  == item.Id;
-                var unmastered = c.IsWeaponUnmastered(item);
-
-                <div class="sts-card">
-                    <div class="sts-card-header">
-                        <span class="sts-card-title">@item.Name</span>
-                        @if (item.Category == ItemCategory.Weapon)
-                        {
-                            <span class="sts-badge sts-badge-weapon">Arme</span>
-                        }
-                        @if (isMain) { <span class="sts-badge sts-badge-active">Main principale</span> }
-                        @if (isOff)  { <span class="sts-badge sts-badge-active">Main secondaire</span> }
-                        @if (unmastered) { <span class="sts-badge sts-badge-job">⚠ Palier 8</span> }
-                    </div>
-                    @if (item.LinkedAbilityId is not null)
-                    {
-                        <div class="sts-card-meta">
-                            <span>Compétence : @VM.AbilityName(item.LinkedAbilityId)</span>
-                        </div>
-                    }
-                    @if (!string.IsNullOrWhiteSpace(item.Description))
-                    {
-                        <div class="sts-card-desc">@item.Description</div>
-                    }
-                </div>
             }
         </div>
-    }
+    </div>
 }
 
+<!-- Modale actions mobile -->
 @if (_showActionsModal)
 {
     <div class="sts-modal-backdrop" @onclick="() => _showActionsModal = false"></div>
@@ -272,14 +272,18 @@ else if (VM.Character is { } c)
             <h2 class="sts-modal-title">Actions</h2>
             <button class="sts-modal-close" @onclick="() => _showActionsModal = false">✕</button>
         </div>
-        <div class="sts-modal-body" style="display:flex;flex-direction:column;gap:0.75rem;">
-            <a href="/personnages/@Id/editer" class="sts-btn sts-btn-primary">✎ Éditer</a>
-            <button class="sts-btn sts-btn-ghost" @onclick="() => { _showActionsModal = false; _ = ExportDiscord(); }"
-                    disabled="@_exporting">⬇ Export Discord</button>
-            <button class="sts-btn sts-btn-ghost" @onclick="() => { _showActionsModal = false; _ = ExportPdf(); }"
-                    disabled="@_exporting">⬇ Export PDF</button>
-            <button class="sts-btn sts-btn-ghost" style="color:var(--error, #e05)"
-                    @onclick="() => { _showActionsModal = false; _ = Delete(); }">Supprimer</button>
+        <div class="sts-modal-body">
+            <div class="sts-mobile-actions">
+                <a href="/personnages/@Id/editer" class="sts-mobile-btn sts-mobile-btn-primary">✎ Éditer</a>
+                <button class="sts-mobile-btn sts-mobile-btn-ghost"
+                        @onclick="() => { _showActionsModal = false; _ = ExportDiscord(); }"
+                        disabled="@_exporting">⬇ Export Discord</button>
+                <button class="sts-mobile-btn sts-mobile-btn-ghost"
+                        @onclick="() => { _showActionsModal = false; _ = ExportPdf(); }"
+                        disabled="@_exporting">⬇ Export PDF</button>
+                <button class="sts-mobile-btn sts-mobile-btn-danger"
+                        @onclick="() => { _showActionsModal = false; _ = Delete(); }">Supprimer</button>
+            </div>
         </div>
     </div>
 }
@@ -287,6 +291,8 @@ else if (VM.Character is { } c)
 @code {
     [Parameter] public Guid Id { get; set; }
     private bool _showActionsModal;
+    private bool _histoireExpanded;
+    private bool _exporting;
 
     protected override async Task OnInitializedAsync()
     {
@@ -310,8 +316,6 @@ else if (VM.Character is { } c)
         var error = await VM.DeleteAsync();
         if (error is null) Nav.NavigateTo("/personnages");
     }
-
-    private bool _exporting;
 
     private async Task ExportDiscord()
     {

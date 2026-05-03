@@ -1,0 +1,239 @@
+@page "/characters"
+@using Sts.Admin.ViewModels
+@using Sts.Domain
+@using Sts.Domain.Character
+@inject CharactersViewModel VM
+@inject AuthService Auth
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<PageTitle>Fiches personnages — STS Admin</PageTitle>
+
+<div class="p-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2 class="mb-0">Fiches personnages</h2>
+            <small class="text-muted">@VM.Filtered.Count / @VM.Characters.Count fiche(s)</small>
+        </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="row g-2 mb-3">
+        <div class="col-md-4">
+            <input class="form-control" placeholder="🔍 Nom ou joueur…"
+                   @bind="VM.Search" @bind:event="oninput" @bind:after="Refresh" />
+        </div>
+        <div class="col-md-3">
+            <select class="form-select" @bind="VM.FilterRank" @bind:after="Refresh">
+                <option value="">Tous les rangs</option>
+                @foreach (var rank in Enum.GetValues<RankKey>())
+                {
+                    <option value="@rank">@Rank.Get(rank).Label</option>
+                }
+            </select>
+        </div>
+        @if (VM.Search.Length > 0 || VM.FilterRank.Length > 0)
+        {
+            <div class="col-auto">
+                <button class="btn btn-outline-secondary" @onclick="VM.ResetFilters">✕ Réinitialiser</button>
+            </div>
+        }
+    </div>
+
+    <Alert Message="@VM.Error"   IsError="true"  OnDismiss="() => {}" />
+    <Alert Message="@VM.Success" IsError="false" OnDismiss="() => {}" />
+
+    @if (VM.IsLoading)
+    {
+        <div class="text-center py-5"><div class="spinner-border text-secondary"></div></div>
+    }
+    else if (VM.Filtered.Count == 0)
+    {
+        <div class="text-center text-muted py-5">
+            @(VM.Characters.Count == 0 ? "Aucune fiche." : "Aucun résultat pour ces filtres.")
+        </div>
+    }
+    else
+    {
+        <div class="card">
+            <table class="table table-hover mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th @onclick='() => VM.SetSort("name")' style="cursor:pointer;user-select:none">
+                            Personnage @VM.SortIcon("name")
+                        </th>
+                        <th @onclick='() => VM.SetSort("player")' style="cursor:pointer;user-select:none">
+                            Joueur @VM.SortIcon("player")
+                        </th>
+                        <th @onclick='() => VM.SetSort("rank")' style="cursor:pointer;user-select:none">
+                            Rang @VM.SortIcon("rank")
+                        </th>
+                        <th>Race / Job</th>
+                        <th>Traits / Compétences</th>
+                        <th style="width:100px"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var c in VM.Filtered)
+                    {
+                        var rank = Rank.Get(c.RankKey);
+                        <tr>
+                            <td class="fw-medium">@c.Name</td>
+                            <td class="text-muted small">@VM.PlayerName(c)</td>
+                            <td><span class="badge bg-secondary">@rank.Label</span></td>
+                            <td class="text-muted small">
+                                @c.Race.Label()
+                                @if (c.JobId is not null)
+                                {
+                                    <span class="text-muted"> · @c.JobId</span>
+                                }
+                            </td>
+                            <td class="text-muted small">
+                                @c.EquippedTraitIds.Count traits ·
+                                @c.EquippedAbilities.Count compétences
+                            </td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-outline-secondary me-1"
+                                        @onclick="() => VM.OpenEdit(c)"
+                                        title="Modérer">⚙</button>
+                                <button class="btn btn-sm btn-outline-danger"
+                                        @onclick="() => Delete(c)"
+                                        title="Supprimer">✕</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<!-- Modale modération -->
+@if (VM.ShowEditModal && VM.EditTarget is { } target)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Modérer — @target.Name</h5>
+                    <button type="button" class="btn-close" @onclick="VM.CloseEdit"></button>
+                </div>
+                <div class="modal-body">
+
+                    <!-- Rang -->
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Rang</label>
+                        <select class="form-select" @bind="VM.FormRank">
+                            @foreach (var rk in Enum.GetValues<RankKey>())
+                            {
+                                <option value="@rk">@Rank.Get(rk).Label</option>
+                            }
+                        </select>
+                    </div>
+
+                    <!-- Points de compétence -->
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Points de compétence</label>
+                        <input type="number" class="form-control" min="0"
+                               @bind="VM.FormSkillPoints" />
+                        <div class="form-text">Actuellement dépensés : @target.SpentSkillPoints</div>
+                    </div>
+
+                    <!-- Certifications existantes -->
+                    <div class="mb-2">
+                        <label class="form-label fw-medium">Certifications</label>
+                        @if (VM.FormCertifications.Count == 0)
+                        {
+                            <p class="text-muted small">Aucune certification.</p>
+                        }
+                        else
+                        {
+                            <table class="table table-sm mb-2">
+                                <thead>
+                                    <tr>
+                                        <th>Nom</th>
+                                        <th>Trait origine</th>
+                                        <th>Compétence</th>
+                                        <th>Pts gratuits</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var cert in VM.FormCertifications)
+                                    {
+                                        <tr>
+                                            <td>@cert.Name</td>
+                                            <td class="text-muted small">@(cert.LinkedOriginTraitId ?? "—")</td>
+                                            <td class="text-muted small">@(cert.LinkedAbilityId ?? "—")</td>
+                                            <td class="text-muted small">@cert.FreePoints</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-danger"
+                                                        @onclick="() => VM.RemoveCertification(cert)">✕</button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                    </div>
+
+                    <!-- Ajouter une certification -->
+                    <div class="border rounded p-3 bg-light">
+                        <div class="small fw-medium mb-2 text-muted">Ajouter une certification</div>
+                        <div class="row g-2">
+                            <div class="col-md-4">
+                                <input class="form-control form-control-sm" placeholder="Nom *"
+                                       @bind="VM.FormCertName" />
+                            </div>
+                            <div class="col-md-3">
+                                <input class="form-control form-control-sm" placeholder="ID trait origine"
+                                       @bind="VM.FormCertLinkedOriginTraitId" />
+                            </div>
+                            <div class="col-md-3">
+                                <input class="form-control form-control-sm" placeholder="ID compétence"
+                                       @bind="VM.FormCertLinkedAbilityId" />
+                            </div>
+                            <div class="col-md-2">
+                                <input type="number" class="form-control form-control-sm" placeholder="Pts"
+                                       min="0" @bind="VM.FormCertFreePoints" />
+                            </div>
+                        </div>
+                        <button class="btn btn-sm btn-outline-primary mt-2"
+                                @onclick="VM.AddCertification"
+                                disabled="@string.IsNullOrWhiteSpace(VM.FormCertName)">
+                            + Ajouter
+                        </button>
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="VM.CloseEdit">Annuler</button>
+                    <button class="btn btn-primary" @onclick="VM.SaveEditAsync"
+                            disabled="@VM.IsSaving">
+                        @(VM.IsSaving ? "Enregistrement…" : "Enregistrer")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Auth.IsAuthenticated) { Nav.NavigateTo("/login"); return; }
+        VM.OnStateChanged = StateHasChanged;
+        await VM.LoadAsync();
+    }
+
+    private void Refresh() => StateHasChanged();
+
+    private async Task Delete(Character c)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm",
+            $"Supprimer la fiche « {c.Name} » ? Cette action est irréversible."))
+            return;
+        await VM.DeleteAsync(c);
+    }
+}

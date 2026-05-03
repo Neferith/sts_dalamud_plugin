@@ -35,6 +35,7 @@ builder.Services.AddScoped<IUpdateSiteSettingsUseCase, UpdateSiteSettingsUseCase
 builder.Services.AddScoped<QuickLinksViewModel>();
 builder.Services.AddScoped<SiteSettingsViewModel>();
 builder.Services.AddScoped<UsersViewModel>();
+builder.Services.AddScoped<CharactersViewModel>();
 
 // En prod, STS.Api sert l'app donc même origine — BaseAddress est correct.
 // En dev, lancer STS.Api (qui sert aussi le WASM) plutôt que le DevServer standalone.
