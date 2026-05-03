@@ -21,6 +21,8 @@ public class AuthService
     /// <summary>Token JWT courant, ou null si non authentifié.</summary>
     public string? Token => _token;
 
+    public bool IsInitialized { get; private set; }
+
     /// <summary>
     /// Charge le token depuis localStorage.
     /// Doit être appelé une fois au démarrage dans App.razor.
@@ -31,10 +33,8 @@ public class AuthService
         {
             _token = await _js.InvokeAsync<string?>("localStorage.getItem", StorageKey);
         }
-        catch
-        {
-            // JS runtime pas encore disponible (pre-rendering) — on ignore
-        }
+        catch { }
+        finally { IsInitialized = true; }
     }
 
     /// <summary>Stocke le token en mémoire et dans localStorage.</summary>
