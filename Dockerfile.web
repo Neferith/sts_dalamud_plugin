@@ -2,15 +2,19 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-COPY STS.Domain/STS.Domain.csproj           STS.Domain/
-COPY STS.Domain.Content/STS.Domain.Content.csproj  STS.Domain.Content/
-COPY STS.Web/STS.Web.csproj                 STS.Web/
+COPY STS.Domain/STS.Domain.csproj                         STS.Domain/
+COPY STS.Domain.Content/STS.Domain.Content.csproj         STS.Domain.Content/
+COPY STS.Domain.Character/STS.Domain.Character.csproj     STS.Domain.Character/
+COPY STS.Domain.User/STS.Domain.User.csproj               STS.Domain.User/
+COPY STS.Web/STS.Web.csproj                               STS.Web/
 
 RUN dotnet restore STS.Web/STS.Web.csproj
 
-COPY STS.Domain/        STS.Domain/
-COPY STS.Domain.Content/ STS.Domain.Content/
-COPY STS.Web/           STS.Web/
+COPY STS.Domain/           STS.Domain/
+COPY STS.Domain.Content/   STS.Domain.Content/
+COPY STS.Domain.Character/ STS.Domain.Character/
+COPY STS.Domain.User/      STS.Domain.User/
+COPY STS.Web/              STS.Web/
 
 RUN dotnet publish STS.Web/STS.Web.csproj \
     -c Release \

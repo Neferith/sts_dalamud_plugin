@@ -1,12 +1,13 @@
 using System;
-using STSPlugin.Repository;
 using Sts.Domain;
+using Sts.Domain.Character;
 
 namespace STSPlugin.CharacterUseCases;
 
 /// <summary>
 /// Cas d'usage : définir le personnage actif.
 /// Met à jour la configuration et synchronise le rang de l'engine STS.
+/// Plugin-specific — reste synchrone (appelé depuis le render thread ImGui).
 /// </summary>
 public interface SetActiveCharacterUseCase
 {
@@ -19,23 +20,21 @@ public interface SetActiveCharacterUseCase
     void Execute(Guid? id);
 }
 
-/// <summary>
-/// Implémentation par défaut de <see cref="SetActiveCharacterUseCase"/>.
-/// </summary>
+/// <summary>Implémentation par défaut de <see cref="SetActiveCharacterUseCase"/>.</summary>
 public class DefaultSetActiveCharacterUseCase : SetActiveCharacterUseCase
 {
-    private readonly CharacterRepository _repository;
-    private readonly Configuration _configuration;
-    private readonly StsEngine _engine;
+    private readonly ICharacterRepository _repository;
+    private readonly Configuration        _configuration;
+    private readonly StsEngine            _engine;
 
     public DefaultSetActiveCharacterUseCase(
-        CharacterRepository repository,
+        ICharacterRepository repository,
         Configuration configuration,
         StsEngine engine)
     {
-        _repository = repository;
+        _repository    = repository;
         _configuration = configuration;
-        _engine = engine;
+        _engine        = engine;
     }
 
     /// <inheritdoc/>
@@ -48,14 +47,11 @@ public class DefaultSetActiveCharacterUseCase : SetActiveCharacterUseCase
             return;
         }
 
-        var character = _repository.GetById(id.Value);
+        var character = _repository.GetByIdAsync(id.Value).GetAwaiter().GetResult();
         if (character is null) return;
 
-        // Persister l'actif
         _configuration.ActiveCharacterId = character.Id;
         _configuration.Save();
-
-        // Synchroniser le rang dans l'engine
         _engine.ChangeRank(character.RankKey);
     }
 }

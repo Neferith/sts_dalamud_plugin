@@ -1,29 +1,24 @@
 using System.Linq;
+using System.Threading.Tasks;
 using Sts.Domain;
-using STSPlugin.Repository;
+using Sts.Domain.Character;
+using Sts.Domain.Repository;
 
 namespace STSPlugin.CharacterUseCases;
 
-/// <summary>
-/// Résultat de la tentative d'équipement d'un trait.
-/// </summary>
+/// <summary>Résultat de la tentative d'équipement d'un trait.</summary>
 public enum EquipTraitResult
 {
     /// <summary>Le trait a été équipé avec succès.</summary>
     Success,
-
     /// <summary>Le trait est introuvable dans le repository.</summary>
     TraitNotFound,
-
     /// <summary>Le trait est déjà équipé.</summary>
     AlreadyEquipped,
-
     /// <summary>Plus de slots de traits disponibles.</summary>
     NoSlotAvailable,
-
     /// <summary>Le job requis pour ce trait n'est pas celui du personnage.</summary>
     JobMismatch,
-
     /// <summary>Un trait du même groupe d'exclusivité est déjà équipé.</summary>
     ExclusivityConflict,
 }
@@ -40,25 +35,23 @@ public interface EquipTraitUseCase
     /// <param name="character">Le personnage cible.</param>
     /// <param name="traitId">L'identifiant du trait à équiper.</param>
     /// <returns>Le résultat de la tentative.</returns>
-    EquipTraitResult Execute(Character character, string traitId);
+    Task<EquipTraitResult> ExecuteAsync(Character character, string traitId);
 }
 
-/// <summary>
-/// Implémentation par défaut de <see cref="EquipTraitUseCase"/>.
-/// </summary>
+/// <summary>Implémentation par défaut de <see cref="EquipTraitUseCase"/>.</summary>
 public class DefaultEquipTraitUseCase : EquipTraitUseCase
 {
-    private readonly CharacterRepository _characterRepository;
-    private readonly TraitRepository _traitRepository;
+    private readonly ICharacterRepository _characterRepository;
+    private readonly TraitRepository      _traitRepository;
 
-    public DefaultEquipTraitUseCase(CharacterRepository characterRepository, TraitRepository traitRepository)
+    public DefaultEquipTraitUseCase(ICharacterRepository characterRepository, TraitRepository traitRepository)
     {
         _characterRepository = characterRepository;
-        _traitRepository = traitRepository;
+        _traitRepository     = traitRepository;
     }
 
     /// <inheritdoc/>
-    public EquipTraitResult Execute(Character character, string traitId)
+    public async Task<EquipTraitResult> ExecuteAsync(Character character, string traitId)
     {
         var trait = _traitRepository.GetById(traitId);
         if (trait is null)
@@ -78,16 +71,15 @@ public class DefaultEquipTraitUseCase : EquipTraitUseCase
 
         if (trait.ExclusiveGroup != null)
         {
-            var equippedTraits = character.EquippedTraitIds
+            var conflict = character.EquippedTraitIds
                 .Select(id => _traitRepository.GetById(id))
-                .Where(t => t != null);
+                .Any(t => t?.ExclusiveGroup == trait.ExclusiveGroup);
 
-            var conflict = equippedTraits.Any(t => t!.ExclusiveGroup == trait.ExclusiveGroup);
             if (conflict) return EquipTraitResult.ExclusivityConflict;
         }
 
         character.EquippedTraitIds.Add(traitId);
-        _characterRepository.Save(character);
+        await _characterRepository.SaveAsync(character);
         return EquipTraitResult.Success;
     }
 }

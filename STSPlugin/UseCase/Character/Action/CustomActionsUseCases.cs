@@ -1,14 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Sts.Domain;
-using STSPlugin.Repository;
+using Sts.Domain.Character;
 
 namespace STSPlugin.CharacterUseCases;
 
-/// <summary>
-/// Cas d'usage : créer une action personnalisée pour un personnage.
-/// </summary>
+/// <summary>Cas d'usage : créer une action personnalisée pour un personnage.</summary>
 public interface CreateCustomActionUseCase
 {
     /// <summary>
@@ -18,32 +17,30 @@ public interface CreateCustomActionUseCase
     /// <param name="name">Nom de l'action.</param>
     /// <param name="contexts">Contextes du jet.</param>
     /// <returns>L'action créée.</returns>
-    RollAction Execute(Character character, string name, IReadOnlyList<string> contexts);
+    Task<RollAction> ExecuteAsync(Character character, string name, IReadOnlyList<string> contexts);
 }
 
-/// <summary>
-/// Implémentation par défaut de <see cref="CreateCustomActionUseCase"/>.
-/// </summary>
+/// <summary>Implémentation par défaut de <see cref="CreateCustomActionUseCase"/>.</summary>
 public class DefaultCreateCustomActionUseCase : CreateCustomActionUseCase
 {
-    private readonly CharacterRepository _characterRepository;
+    private readonly ICharacterRepository _characterRepository;
 
-    public DefaultCreateCustomActionUseCase(CharacterRepository characterRepository)
+    public DefaultCreateCustomActionUseCase(ICharacterRepository characterRepository)
         => _characterRepository = characterRepository;
 
     /// <inheritdoc/>
-    public RollAction Execute(Character character, string name, IReadOnlyList<string> contexts)
+    public async Task<RollAction> ExecuteAsync(Character character, string name, IReadOnlyList<string> contexts)
     {
         var action = new RollAction
         {
-            Id = Guid.NewGuid().ToString(),
-            Name = name.Trim(),
-            Contexts = [.. contexts],
+            Id           = Guid.NewGuid().ToString(),
+            Name         = name.Trim(),
+            Contexts     = [.. contexts],
             IsPredefined = false,
         };
 
         character.CustomActions.Add(action);
-        _characterRepository.Save(character);
+        await _characterRepository.SaveAsync(character);
         return action;
     }
 }
@@ -60,26 +57,24 @@ public interface DeleteCustomActionUseCase
     /// </summary>
     /// <param name="character">Le personnage cible.</param>
     /// <param name="actionId">L'identifiant de l'action à supprimer.</param>
-    void Execute(Character character, string actionId);
+    Task ExecuteAsync(Character character, string actionId);
 }
 
-/// <summary>
-/// Implémentation par défaut de <see cref="DeleteCustomActionUseCase"/>.
-/// </summary>
+/// <summary>Implémentation par défaut de <see cref="DeleteCustomActionUseCase"/>.</summary>
 public class DefaultDeleteCustomActionUseCase : DeleteCustomActionUseCase
 {
-    private readonly CharacterRepository _characterRepository;
+    private readonly ICharacterRepository _characterRepository;
 
-    public DefaultDeleteCustomActionUseCase(CharacterRepository characterRepository)
+    public DefaultDeleteCustomActionUseCase(ICharacterRepository characterRepository)
         => _characterRepository = characterRepository;
 
     /// <inheritdoc/>
-    public void Execute(Character character, string actionId)
+    public async Task ExecuteAsync(Character character, string actionId)
     {
         var action = character.CustomActions.FirstOrDefault(a => a.Id == actionId);
         if (action is null || action.IsPredefined) return;
 
         character.CustomActions.Remove(action);
-        _characterRepository.Save(character);
+        await _characterRepository.SaveAsync(character);
     }
 }

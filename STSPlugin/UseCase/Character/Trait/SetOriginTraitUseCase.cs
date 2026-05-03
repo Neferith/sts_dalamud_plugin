@@ -1,5 +1,7 @@
+using System.Threading.Tasks;
 using Sts.Domain;
-using STSPlugin.Repository;
+using Sts.Domain.Character;
+using Sts.Domain.Repository;
 
 namespace STSPlugin.CharacterUseCases;
 
@@ -16,25 +18,25 @@ public interface SetOriginTraitUseCase
     /// </summary>
     /// <param name="character">Le personnage à modifier.</param>
     /// <param name="traitId">L'identifiant du trait d'origine, ou null pour le retirer.</param>
-    void Execute(Character character, string? traitId);
+    Task ExecuteAsync(Character character, string? traitId);
 }
 
-/// <summary>
-/// Implémentation par défaut de <see cref="SetOriginTraitUseCase"/>.
-/// </summary>
+/// <summary>Implémentation par défaut de <see cref="SetOriginTraitUseCase"/>.</summary>
 public class DefaultSetOriginTraitUseCase : SetOriginTraitUseCase
 {
-    private readonly CharacterRepository _characterRepository;
-    private readonly TraitRepository _traitRepository;
+    private readonly ICharacterRepository _characterRepository;
+    private readonly TraitRepository      _traitRepository;
 
-    public DefaultSetOriginTraitUseCase(CharacterRepository characterRepository, TraitRepository traitRepository)
+    public DefaultSetOriginTraitUseCase(
+        ICharacterRepository characterRepository,
+        TraitRepository traitRepository)
     {
         _characterRepository = characterRepository;
-        _traitRepository = traitRepository;
+        _traitRepository     = traitRepository;
     }
 
     /// <inheritdoc/>
-    public void Execute(Character character, string? traitId)
+    public async Task ExecuteAsync(Character character, string? traitId)
     {
         if (traitId != null)
         {
@@ -44,6 +46,6 @@ public class DefaultSetOriginTraitUseCase : SetOriginTraitUseCase
         }
 
         character.OriginTraitId = traitId;
-        _characterRepository.Save(character);
+        await _characterRepository.SaveAsync(character);
     }
 }

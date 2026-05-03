@@ -1,11 +1,9 @@
-using Sts.Domain;
-using STSPlugin.Repository;
+using System.Threading.Tasks;
+using Sts.Domain.Character;
 
 namespace STSPlugin.CharacterUseCases;
 
-/// <summary>
-/// Cas d'usage : retirer un trait équipé d'un personnage.
-/// </summary>
+/// <summary>Cas d'usage : retirer un trait équipé d'un personnage.</summary>
 public interface UnequipTraitUseCase
 {
     /// <summary>
@@ -14,23 +12,21 @@ public interface UnequipTraitUseCase
     /// </summary>
     /// <param name="character">Le personnage cible.</param>
     /// <param name="traitId">L'identifiant du trait à retirer.</param>
-    void Execute(Character character, string traitId);
+    Task ExecuteAsync(Character character, string traitId);
 }
 
-/// <summary>
-/// Implémentation par défaut de <see cref="UnequipTraitUseCase"/>.
-/// </summary>
+/// <summary>Implémentation par défaut de <see cref="UnequipTraitUseCase"/>.</summary>
 public class DefaultUnequipTraitUseCase : UnequipTraitUseCase
 {
-    private readonly CharacterRepository _characterRepository;
+    private readonly ICharacterRepository _characterRepository;
 
-    public DefaultUnequipTraitUseCase(CharacterRepository characterRepository)
+    public DefaultUnequipTraitUseCase(ICharacterRepository characterRepository)
         => _characterRepository = characterRepository;
 
     /// <inheritdoc/>
-    public void Execute(Character character, string traitId)
+    public async Task ExecuteAsync(Character character, string traitId)
     {
         if (!character.EquippedTraitIds.Remove(traitId)) return;
-        _characterRepository.Save(character);
+        await _characterRepository.SaveAsync(character);
     }
 }

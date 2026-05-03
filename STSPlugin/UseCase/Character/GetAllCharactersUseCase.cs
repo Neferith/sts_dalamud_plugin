@@ -2,8 +2,9 @@ using Sts.Domain;
 using STSPlugin.Repository;
 using System.Collections.Generic;
 using System.Linq;
+using Sts.Domain.Character;
 
-namespace STSPlugin.CharacterUseCases;
+namespace STSPlugin.legacy.CharacterUseCases;
 
 /// <summary>
 /// Cas d'usage : récupérer la liste complète des personnages sauvegardés.

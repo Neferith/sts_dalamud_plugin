@@ -8,13 +8,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Text;
+using System.Threading.Tasks;
+using Sts.Domain.Character;
 
 namespace STSPlugin.Windows;
 
 public class CharacterWindow : Window, IDisposable
 {
     private readonly Plugin _plugin;
-    private readonly Character _character;
+    private Character _character;  
 
     private int _activeTab = 0;
     private bool _editMode = false;
@@ -79,6 +81,34 @@ public class CharacterWindow : Window, IDisposable
         else DrawInventoryTab();
     }
 
+    /// <summary>
+    /// Met à jour l'objet character avec les données fraîches de l'API.
+    /// Appelé par Plugin.RefreshCharacterWindows après un sync.
+    /// Si l'édition est en cours, la mise à jour est ignorée.
+    /// </summary>
+    public void UpdateCharacter(Character fresh)
+    {
+        if (_editMode) return;
+
+        _character.Name = fresh.Name;
+        _character.RankKey = fresh.RankKey;
+        _character.Race = fresh.Race;
+        _character.JobId = fresh.JobId;
+        _character.Histoire = fresh.Histoire;
+        _character.ReputationLevel = fresh.ReputationLevel;
+        _character.SkillPoints = fresh.SkillPoints;
+        _character.OriginTraitId = fresh.OriginTraitId;
+        _character.EquippedTraitIds = fresh.EquippedTraitIds;
+        _character.EquippedAbilities = fresh.EquippedAbilities;
+        _character.Certifications = fresh.Certifications;
+        _character.Inventory = fresh.Inventory;
+        _character.MainHandItemId = fresh.MainHandItemId;
+        _character.OffHandItemId = fresh.OffHandItemId;
+        _character.QuickbarActionIds = fresh.QuickbarActionIds;
+
+        WindowName = $"{_character.Name} — Fiche STS##{_character.Id}";
+    }
+
     // ------------------------------------------------------------------ En-tête
 
     private void DrawHeader()
@@ -95,7 +125,11 @@ public class CharacterWindow : Window, IDisposable
             ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.09f, 0.37f, 0.65f, 0.25f));
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.09f, 0.37f, 0.65f, 0.40f));
             ImGui.PushStyleColor(ImGuiCol.Text, ColInfo);
-            if (ImGui.Button("Activer##hdr_activate")) { _plugin.SetActiveCharacter.Execute(_character.Id); _plugin.RefreshEquippedTraits(); }
+            if (ImGui.Button("Activer##hdr_activate"))
+            {
+                _plugin.SetActiveCharacter.Execute(_character.Id);
+                _plugin.RefreshEquippedTraits();
+            }
             ImGui.PopStyleColor(3);
         }
 
@@ -111,8 +145,8 @@ public class CharacterWindow : Window, IDisposable
             {
                 if (!string.IsNullOrWhiteSpace(_editName)) _character.Name = _editName.Trim();
                 _character.Histoire = _editHistoire;
-                _plugin.SetSkillPoints.Execute(_character, _editSkillPoints);
-                _plugin.UpdateCharacter.Execute(_character);
+                _character.SkillPoints = Math.Max(0, _editSkillPoints); // inliné — UpdateCharacter persiste tout
+                _ = Task.Run(() => _plugin.UpdateCharacter.ExecuteAsync(_character));
                 WindowName = $"{_character.Name} — Fiche STS##{_character.Id}";
                 _editMode = false;
             }
@@ -125,7 +159,6 @@ public class CharacterWindow : Window, IDisposable
         }
         else
         {
-            // Bouton export Discord
             ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.36f, 0.19f, 0.58f, 0.25f));
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.36f, 0.19f, 0.58f, 0.45f));
             ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.78f, 0.60f, 1.0f, 1f));
@@ -150,16 +183,13 @@ public class CharacterWindow : Window, IDisposable
     {
         var rank = Rank.Get(_character.RankKey);
         var job = _character.JobId != null ? _plugin.JobRepository.GetById(_character.JobId) : null;
-
         var sb = new StringBuilder();
 
-        // Bloc 1 — Race / Job
         sb.AppendLine("```");
         sb.AppendLine($"{_character.Race.Label()} - {job?.Name ?? "Sans classe"}");
         sb.AppendLine("```");
         sb.AppendLine();
 
-        // Bloc 2 — Stats
         sb.AppendLine("```");
         sb.AppendLine($"**Rang :** {rank.Label}");
         sb.AppendLine($"**Réussite :** {rank.Palier}+");
@@ -170,36 +200,21 @@ public class CharacterWindow : Window, IDisposable
         sb.AppendLine("```");
         sb.AppendLine();
 
-        // Maps de certifications pour lookup rapide
-        var certByTrait = _character.Certifications
-            .Where(c => c.LinkedOriginTraitId != null)
-            .ToDictionary(c => c.LinkedOriginTraitId!, c => c);
-        var certByAbility = _character.Certifications
-            .Where(c => c.LinkedAbilityId != null)
-            .ToDictionary(c => c.LinkedAbilityId!, c => c);
+        var certByTrait = _character.Certifications.Where(c => c.LinkedOriginTraitId != null).ToDictionary(c => c.LinkedOriginTraitId!, c => c);
+        var certByAbility = _character.Certifications.Where(c => c.LinkedAbilityId != null).ToDictionary(c => c.LinkedAbilityId!, c => c);
 
-        // Bloc 3 — Capacités / Traits / Certifications
         sb.AppendLine("## Capacités :");
-        if (_character.EquippedAbilities.Count == 0)
-        {
-            sb.AppendLine("- Aucune");
-        }
+        if (_character.EquippedAbilities.Count == 0) { sb.AppendLine("- Aucune"); }
         else
         {
             foreach (var eq in _character.EquippedAbilities)
             {
-                var ab = _plugin.AbilityRepository.GetById(eq.AbilityId);
-                if (ab is null) continue;
-
-                var namePart = $"{ab.Name} Lv{eq.Level}";
-                sb.Append($"- **{namePart}**");
+                var ab = _plugin.AbilityRepository.GetById(eq.AbilityId); if (ab is null) continue;
+                sb.Append($"- **{ab.Name} Lv{eq.Level}**");
                 if (certByAbility.TryGetValue(eq.AbilityId, out var abCert) && abCert.FreePoints > 0)
                     sb.Append($" *(★ {abCert.Name} — {abCert.FreePoints} pt(s) gratuit(s))*");
                 sb.AppendLine(" :");
-
-                if (ab.UsageLimit != UsageLimit.None)
-                    sb.AppendLine($"> {UsageLimitLabel(ab.UsageLimit)}");
-
+                if (ab.UsageLimit != UsageLimit.None) sb.AppendLine($"> {UsageLimitLabel(ab.UsageLimit)}");
                 foreach (var ld in ab.Levels.Where(l => l.Level <= eq.Level).OrderBy(l => l.Level))
                 {
                     if (string.IsNullOrWhiteSpace(ld.Description)) continue;
@@ -212,10 +227,7 @@ public class CharacterWindow : Window, IDisposable
         sb.AppendLine("## Traits :");
         var allTraits = _character.EquippedTraitIds.ToList();
         if (_character.OriginTraitId != null) allTraits.Insert(0, _character.OriginTraitId);
-        if (allTraits.Count == 0)
-        {
-            sb.AppendLine("- Aucun");
-        }
+        if (allTraits.Count == 0) { sb.AppendLine("- Aucun"); }
         else
         {
             foreach (var tid in allTraits)
@@ -223,49 +235,32 @@ public class CharacterWindow : Window, IDisposable
                 var t = _plugin.TraitRepository.GetById(tid);
                 if (t is null) { sb.AppendLine($"- **{tid}**"); continue; }
                 sb.Append($"- **{t.Name}**");
-                if (certByTrait.TryGetValue(tid, out var traitCert))
-                    sb.Append($" *(★ {traitCert.Name} — gratuit)*");
+                if (certByTrait.TryGetValue(tid, out var traitCert)) sb.Append($" *(★ {traitCert.Name} — gratuit)*");
                 sb.AppendLine(" :");
-                if (!string.IsNullOrWhiteSpace(t.Description))
-                    sb.AppendLine($"> {t.Description.Trim()}");
+                if (!string.IsNullOrWhiteSpace(t.Description)) sb.AppendLine($"> {t.Description.Trim()}");
             }
         }
 
         sb.AppendLine();
         sb.AppendLine("## Certifications :");
-        if (_character.Certifications.Count == 0)
-        {
-            sb.AppendLine("- Aucune");
-        }
+        if (_character.Certifications.Count == 0) { sb.AppendLine("- Aucune"); }
         else
         {
             foreach (var cert in _character.Certifications)
             {
                 sb.AppendLine($"- **{cert.Name}**");
-                if (cert.LinkedOriginTraitId != null)
-                {
-                    var t = _plugin.TraitRepository.GetById(cert.LinkedOriginTraitId);
-                    sb.AppendLine($"> Trait d'origine gratuit : {t?.Name ?? cert.LinkedOriginTraitId}");
-                }
-                if (cert.LinkedAbilityId != null && cert.FreePoints > 0)
-                {
-                    var a = _plugin.AbilityRepository.GetById(cert.LinkedAbilityId);
-                    sb.AppendLine($"> {cert.FreePoints} pt(s) gratuit(s) sur : {a?.Name ?? cert.LinkedAbilityId}");
-                }
+                if (cert.LinkedOriginTraitId != null) { var t = _plugin.TraitRepository.GetById(cert.LinkedOriginTraitId); sb.AppendLine($"> Trait d'origine gratuit : {t?.Name ?? cert.LinkedOriginTraitId}"); }
+                if (cert.LinkedAbilityId != null && cert.FreePoints > 0) { var a = _plugin.AbilityRepository.GetById(cert.LinkedAbilityId); sb.AppendLine($"> {cert.FreePoints} pt(s) gratuit(s) sur : {a?.Name ?? cert.LinkedAbilityId}"); }
             }
         }
 
         sb.AppendLine();
         sb.AppendLine("## Inventaire :");
-        if (_character.Inventory.Count == 0)
-        {
-            sb.AppendLine("- Aucun objet.");
-        }
+        if (_character.Inventory.Count == 0) { sb.AppendLine("- Aucun objet."); }
         else
         {
             var weapons = _character.Inventory.Where(i => i.Category == ItemCategory.Weapon).OrderBy(i => i.SortIndex).ToList();
             var items = _character.Inventory.Where(i => i.Category == ItemCategory.Item).OrderBy(i => i.SortIndex).ToList();
-
             if (weapons.Count > 0)
             {
                 sb.AppendLine("**Armes :**");
@@ -278,13 +273,10 @@ public class CharacterWindow : Window, IDisposable
                     var masteredNote = _character.IsWeaponUnmastered(w) ? " *(non maîtrisée — palier 8)*" : "";
                     var linkedAbility = w.LinkedAbilityId != null ? _plugin.AbilityRepository.GetById(w.LinkedAbilityId) : null;
                     var linkedNote = linkedAbility != null ? $" — compétence : {linkedAbility.Name}" : "";
-
                     sb.AppendLine($"- **{w.Name}**{equippedNote}{masteredNote}{linkedNote}");
-                    if (!string.IsNullOrWhiteSpace(w.Description))
-                        sb.AppendLine($"> {w.Description.Trim()}");
+                    if (!string.IsNullOrWhiteSpace(w.Description)) sb.AppendLine($"> {w.Description.Trim()}");
                 }
             }
-
             if (items.Count > 0)
             {
                 if (weapons.Count > 0) sb.AppendLine();
@@ -292,8 +284,7 @@ public class CharacterWindow : Window, IDisposable
                 foreach (var item in items)
                 {
                     sb.AppendLine($"- **{item.Name}**");
-                    if (!string.IsNullOrWhiteSpace(item.Description))
-                        sb.AppendLine($"> {item.Description.Trim()}");
+                    if (!string.IsNullOrWhiteSpace(item.Description)) sb.AppendLine($"> {item.Description.Trim()}");
                 }
             }
         }
@@ -308,7 +299,6 @@ public class CharacterWindow : Window, IDisposable
         var weapons = _character.Inventory.Where(i => i.Category == ItemCategory.Weapon).OrderBy(i => i.SortIndex).ToList();
         var items = _character.Inventory.Where(i => i.Category == ItemCategory.Item).OrderBy(i => i.SortIndex).ToList();
 
-        // --- Slots équipés ---
         ImGui.TextColored(ColMuted, "EMPLACEMENTS"); ImGui.Spacing();
 
         var main = _character.MainHandItemId != null ? _character.Inventory.FirstOrDefault(i => i.Id == _character.MainHandItemId) : null;
@@ -323,7 +313,8 @@ public class CharacterWindow : Window, IDisposable
             ImGui.SameLine();
             ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.3f, 0.3f, 0.3f, 0.20f));
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.3f, 0.3f, 0.3f, 0.40f));
-            if (ImGui.Button("Retirer##main_unequip")) _plugin.SetItemSlot.Execute(_character, EquipSlot.MainHand, null);
+            if (ImGui.Button("Retirer##main_unequip"))
+                _ = Task.Run(() => _plugin.SetItemSlot.ExecuteAsync(_character, EquipSlot.MainHand, null));
             ImGui.PopStyleColor(2);
         }
         else ImGui.TextColored(ColMuted, "—");
@@ -337,14 +328,13 @@ public class CharacterWindow : Window, IDisposable
             ImGui.SameLine();
             ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.3f, 0.3f, 0.3f, 0.20f));
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.3f, 0.3f, 0.3f, 0.40f));
-            if (ImGui.Button("Retirer##off_unequip")) _plugin.SetItemSlot.Execute(_character, EquipSlot.OffHand, null);
+            if (ImGui.Button("Retirer##off_unequip"))
+                _ = Task.Run(() => _plugin.SetItemSlot.ExecuteAsync(_character, EquipSlot.OffHand, null));
             ImGui.PopStyleColor(2);
         }
         else ImGui.TextColored(ColMuted, "—");
 
         ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
-
-        // --- Inventaire complet ---
         ImGui.TextColored(ColMuted, $"INVENTAIRE  ({_character.Inventory.Count} objet(s))"); ImGui.Spacing();
 
         if (weapons.Count > 0)
@@ -352,31 +342,29 @@ public class CharacterWindow : Window, IDisposable
             ImGui.TextColored(ColMuted, "Armes :"); ImGui.Spacing();
             foreach (var w in weapons)
             {
-                // Supprimer
                 ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.64f, 0.17f, 0.17f, 0.20f));
                 ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.64f, 0.17f, 0.17f, 0.40f));
                 ImGui.PushStyleColor(ImGuiCol.Text, ColDanger);
-                if (ImGui.Button($"✕##inv_rm_{w.Id}")) _plugin.RemoveInventoryItem.Execute(_character, w.Id);
+                if (ImGui.Button($"✕##inv_rm_{w.Id}"))
+                    _ = Task.Run(() => _plugin.RemoveInventoryItem.ExecuteAsync(_character, w.Id));
                 ImGui.PopStyleColor(3); ImGui.SameLine();
 
-                // Bouton main principale (M)
                 var isMain = _character.MainHandItemId == w.Id;
                 ImGui.PushStyleColor(ImGuiCol.Button, isMain ? new Vector4(0.06f, 0.43f, 0.34f, 0.40f) : new Vector4(0.09f, 0.37f, 0.65f, 0.20f));
                 ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.09f, 0.37f, 0.65f, 0.40f));
                 ImGui.PushStyleColor(ImGuiCol.Text, isMain ? ColSuccess : ColInfo);
                 if (ImGui.Button($"M##inv_main_{w.Id}"))
-                    _plugin.SetItemSlot.Execute(_character, EquipSlot.MainHand, isMain ? null : w.Id);
+                    _ = Task.Run(() => _plugin.SetItemSlot.ExecuteAsync(_character, EquipSlot.MainHand, isMain ? null : w.Id));
                 ImGui.PopStyleColor(3);
                 if (ImGui.IsItemHovered()) ImGui.SetTooltip(isMain ? "Retirer de la main principale" : "Équiper en main principale");
                 ImGui.SameLine();
 
-                // Bouton main secondaire (S)
                 var isOff = _character.OffHandItemId == w.Id;
                 ImGui.PushStyleColor(ImGuiCol.Button, isOff ? new Vector4(0.06f, 0.43f, 0.34f, 0.40f) : new Vector4(0.09f, 0.37f, 0.65f, 0.20f));
                 ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.09f, 0.37f, 0.65f, 0.40f));
                 ImGui.PushStyleColor(ImGuiCol.Text, isOff ? ColSuccess : ColInfo);
                 if (ImGui.Button($"S##inv_off_{w.Id}"))
-                    _plugin.SetItemSlot.Execute(_character, EquipSlot.OffHand, isOff ? null : w.Id);
+                    _ = Task.Run(() => _plugin.SetItemSlot.ExecuteAsync(_character, EquipSlot.OffHand, isOff ? null : w.Id));
                 ImGui.PopStyleColor(3);
                 if (ImGui.IsItemHovered()) ImGui.SetTooltip(isOff ? "Retirer de la main secondaire" : "Équiper en main secondaire");
                 ImGui.SameLine();
@@ -384,7 +372,6 @@ public class CharacterWindow : Window, IDisposable
                 var mastered = !_character.IsWeaponUnmastered(w);
                 ImGui.TextColored(mastered ? ColSuccess : ColWarn, w.Name);
                 if (ImGui.IsItemHovered() && !string.IsNullOrWhiteSpace(w.Description)) ImGui.SetTooltip(w.Description);
-
                 var sn = w.LinkedAbilityId != null ? _plugin.AbilityRepository.GetById(w.LinkedAbilityId)?.Name : null;
                 if (sn != null) { ImGui.SameLine(); ImGui.TextColored(ColMuted, $"[{sn}]"); }
                 if (!mastered) { ImGui.SameLine(); ImGui.TextColored(ColWarn, "⚠ palier 8"); }
@@ -400,7 +387,8 @@ public class CharacterWindow : Window, IDisposable
                 ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.64f, 0.17f, 0.17f, 0.20f));
                 ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.64f, 0.17f, 0.17f, 0.40f));
                 ImGui.PushStyleColor(ImGuiCol.Text, ColDanger);
-                if (ImGui.Button($"✕##inv_rm_{item.Id}")) _plugin.RemoveInventoryItem.Execute(_character, item.Id);
+                if (ImGui.Button($"✕##inv_rm_{item.Id}"))
+                    _ = Task.Run(() => _plugin.RemoveInventoryItem.ExecuteAsync(_character, item.Id));
                 ImGui.PopStyleColor(3); ImGui.SameLine();
                 ImGui.Text(item.Name);
                 if (ImGui.IsItemHovered() && !string.IsNullOrWhiteSpace(item.Description)) ImGui.SetTooltip(item.Description);
@@ -409,10 +397,8 @@ public class CharacterWindow : Window, IDisposable
         }
 
         if (_character.Inventory.Count == 0) ImGui.TextColored(ColMuted, "Inventaire vide.");
-
         ImGui.Separator(); ImGui.Spacing();
 
-        // --- Formulaire ajout ---
         if (ImGui.CollapsingHeader("+ Ajouter un objet##inv_add"))
         {
             ImGui.Spacing();
@@ -457,10 +443,13 @@ public class CharacterWindow : Window, IDisposable
             if (!canAdd) { ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.3f, 0.3f, 0.3f, 0.3f)); ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.3f, 0.3f, 0.3f, 0.3f)); }
             if (ImGui.Button("✓ Ajouter##inv_confirm") && canAdd)
             {
-                _plugin.AddInventoryItem.Execute(_character, _newItemName, _newItemDescription, _newItemCategory,
-                    string.IsNullOrEmpty(_newItemAbilityId) ? null : _newItemAbilityId);
+                var itemName = _newItemName;
+                var itemDesc = _newItemDescription;
+                var itemCat = _newItemCategory;
+                var itemAbId = string.IsNullOrEmpty(_newItemAbilityId) ? null : _newItemAbilityId;
                 _newItemName = _newItemDescription = _newItemAbilityId = string.Empty;
                 _newItemCategory = ItemCategory.Item;
+                _ = Task.Run(() => _plugin.AddInventoryItem.ExecuteAsync(_character, itemName, itemDesc, itemCat, itemAbId));
             }
             if (!canAdd) ImGui.PopStyleColor(2);
             ImGui.Spacing();
@@ -474,30 +463,21 @@ public class CharacterWindow : Window, IDisposable
         var rank = Rank.Get(_character.RankKey);
         var job = _character.JobId != null ? _plugin.JobRepository.GetById(_character.JobId) : null;
 
-        // Ligne identité
         ImGui.Text(_character.Name); ImGui.SameLine();
         ImGui.TextColored(ColMuted, $"— {_character.Race.Label()}  ·  {rank.Label}  ·  palier {rank.Palier}+  ·  {rank.Rerolls} reroll(s)  ·  {rank.Traits} traits");
-
         ImGui.Spacing();
         ImGui.TextColored(ColMuted, "Job :"); ImGui.SameLine(); ImGui.Text(job?.Name ?? "Aucun");
-
-        // Réputation
         ImGui.TextColored(ColMuted, "Réputation :"); ImGui.SameLine();
         var repColor = _character.ReputationLevel < 0 ? ColDanger : _character.ReputationLevel >= 6 ? ColSuccess : ColMuted;
         ImGui.TextColored(repColor, $"{Reputation.GetLabel(_character.ReputationLevel)}  ({(_character.ReputationLevel >= 0 ? "+" : "")}{_character.ReputationLevel})");
 
-        // Histoire
         if (!string.IsNullOrWhiteSpace(_character.Histoire))
         {
-            ImGui.Spacing();
-            ImGui.TextColored(ColMuted, "Histoire :");
-            ImGui.PushStyleColor(ImGuiCol.Text, ColMuted);
-            ImGui.TextWrapped(_character.Histoire);
-            ImGui.PopStyleColor();
+            ImGui.Spacing(); ImGui.TextColored(ColMuted, "Histoire :");
+            ImGui.PushStyleColor(ImGuiCol.Text, ColMuted); ImGui.TextWrapped(_character.Histoire); ImGui.PopStyleColor();
         }
 
         ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
-
         DrawReadCertifications(); ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
 
         ImGui.TextColored(ColMuted, "TRAIT D'ORIGINE"); ImGui.Spacing();
@@ -548,16 +528,13 @@ public class CharacterWindow : Window, IDisposable
             ImGui.Text($"● {ab.Name}"); ImGui.SameLine(); ImGui.TextColored(ColInfo, $"Lv{eq.Level}");
             if (fp > 0) { ImGui.SameLine(); ImGui.TextColored(ColSuccess, $"({fp} pt(s) certif.)"); }
             if (ab.UsageLimit != UsageLimit.None) { ImGui.SameLine(); ImGui.TextColored(ColWarn, UsageLimitLabel(ab.UsageLimit)); }
-
-            var levelsToShow = ab.Levels.Where(l => l.Level <= eq.Level).OrderBy(l => l.Level);
-            foreach (var ld in levelsToShow)
+            foreach (var ld in ab.Levels.Where(l => l.Level <= eq.Level).OrderBy(l => l.Level))
             {
                 ImGui.PushStyleColor(ImGuiCol.Text, ColMuted);
-                if (eq.Level > 1) ImGui.TextColored(ColInfo, $"  Lv{ld.Level} :");  // label si plusieurs niveaux
+                if (eq.Level > 1) ImGui.TextColored(ColInfo, $"  Lv{ld.Level} :");
                 ImGui.TextWrapped(ld.Description);
                 ImGui.PopStyleColor();
             }
-
             ImGui.Spacing();
         }
     }
@@ -568,11 +545,9 @@ public class CharacterWindow : Window, IDisposable
     {
         var rank = Rank.Get(_character.RankKey);
 
-        // Nom
         ImGui.TextColored(ColMuted, "Nom :"); ImGui.SameLine();
         ImGui.SetNextItemWidth(200); ImGui.InputText("##edit_name", ref _editName, 64); ImGui.Spacing();
 
-        // Race
         ImGui.TextColored(ColMuted, "Race :"); ImGui.SameLine();
         ImGui.SetNextItemWidth(180);
         if (ImGui.BeginCombo("##race_combo", _character.Race.Label()))
@@ -580,26 +555,27 @@ public class CharacterWindow : Window, IDisposable
             foreach (var race in Enum.GetValues<CharacterRace>())
             {
                 var selected = _character.Race == race;
-                if (ImGui.Selectable(race.Label() + "##race_sel_" + race, selected))
-                    _character.Race = race;
+                if (ImGui.Selectable(race.Label() + "##race_sel_" + race, selected)) _character.Race = race;
                 if (selected) ImGui.SetItemDefaultFocus();
             }
             ImGui.EndCombo();
         }
         ImGui.Spacing();
 
-        // Rang
         ImGui.TextColored(ColMuted, "Rang :"); ImGui.Spacing();
         foreach (var rk in Enum.GetValues<RankKey>())
         {
             var cur = _character.RankKey == rk;
             if (cur) { ImGui.PushStyleColor(ImGuiCol.Button, ColActive); ImGui.PushStyleColor(ImGuiCol.ButtonHovered, ColActive); }
-            if (ImGui.Button(Rank.Get(rk).Label + "##rk_" + rk)) { _character.RankKey = rk; if (_plugin.Configuration.ActiveCharacterId == _character.Id) _plugin.Engine.ChangeRank(rk); }
+            if (ImGui.Button(Rank.Get(rk).Label + "##rk_" + rk))
+            {
+                _character.RankKey = rk;
+                if (_plugin.Configuration.ActiveCharacterId == _character.Id) _plugin.Engine.ChangeRank(rk);
+            }
             if (cur) ImGui.PopStyleColor(2); ImGui.SameLine();
         }
         ImGui.NewLine(); ImGui.Spacing();
 
-        // Réputation
         ImGui.TextColored(ColMuted, "Réputation :"); ImGui.SameLine();
         ImGui.Text($"{Reputation.GetLabel(_character.ReputationLevel)}  ({(_character.ReputationLevel >= 0 ? "+" : "")}{_character.ReputationLevel})");
         ImGui.SameLine();
@@ -611,10 +587,8 @@ public class CharacterWindow : Window, IDisposable
         if (ImGui.Button("+##rep_inc") && _character.ReputationLevel < Reputation.Max)
             _character.ReputationLevel = Reputation.Clamp(_character.ReputationLevel + 1);
         ImGui.PopStyleColor(2);
-
         ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
 
-        // Job
         ImGui.TextColored(ColMuted, "Job :"); ImGui.Spacing();
         var allJobs = _plugin.JobRepository.GetAll();
         var jobLabel = _character.JobId != null
@@ -623,30 +597,25 @@ public class CharacterWindow : Window, IDisposable
         ImGui.SetNextItemWidth(220);
         if (ImGui.BeginCombo("##job_combo", jobLabel))
         {
-            // Option "aucun"
             var noJob = _character.JobId == null;
             if (ImGui.Selectable("— Aucun —", noJob))
-                _plugin.SetJob.Execute(_character, null);
+                _ = Task.Run(() => _plugin.SetJob.ExecuteAsync(_character, null));
             if (noJob) ImGui.SetItemDefaultFocus();
-
             ImGui.Separator();
-
             foreach (var j in allJobs)
             {
                 var selected = _character.JobId == j.Id;
                 if (ImGui.Selectable(j.Name + "##job_sel_" + j.Id, selected))
-                    _plugin.SetJob.Execute(_character, j.Id);
+                    _ = Task.Run(() => _plugin.SetJob.ExecuteAsync(_character, j.Id));
                 if (selected) ImGui.SetItemDefaultFocus();
             }
             ImGui.EndCombo();
         }
         ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
 
-        // Histoire
         ImGui.TextColored(ColMuted, "Histoire :"); ImGui.Spacing();
         ImGui.SetNextItemWidth(-1);
         ImGui.InputTextMultiline("##edit_histoire", ref _editHistoire, 4096, new Vector2(0, 80));
-
         ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
 
         DrawEditCertifications(); ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
@@ -661,7 +630,8 @@ public class CharacterWindow : Window, IDisposable
             ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.64f, 0.17f, 0.17f, 0.20f));
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.64f, 0.17f, 0.17f, 0.40f));
             ImGui.PushStyleColor(ImGuiCol.Text, ColDanger);
-            if (ImGui.Button("Retirer##origin_remove")) { _plugin.SetOriginTrait.Execute(_character, null); _plugin.RefreshEquippedTraits(_character); }
+            if (ImGui.Button("Retirer##origin_remove"))
+                _ = Task.Run(async () => { await _plugin.SetOriginTrait.ExecuteAsync(_character, null); _plugin.RefreshEquippedTraits(_character); });
             ImGui.PopStyleColor(3);
         }
         else
@@ -671,7 +641,8 @@ public class CharacterWindow : Window, IDisposable
             {
                 var hc = _character.HasCertificationForOriginTrait(t.Id);
                 if (hc) ImGui.TextColored(ColSuccess, "★"); else ImGui.TextColored(ColMuted, "○"); ImGui.SameLine();
-                if (ImGui.Button($"+ {t.Name}##orig_{t.Id}")) { _plugin.SetOriginTrait.Execute(_character, t.Id); _plugin.RefreshEquippedTraits(_character); }
+                if (ImGui.Button($"+ {t.Name}##orig_{t.Id}"))
+                    _ = Task.Run(async () => { await _plugin.SetOriginTrait.ExecuteAsync(_character, t.Id); _plugin.RefreshEquippedTraits(_character); });
                 if (ImGui.IsItemHovered()) ImGui.SetTooltip(hc ? $"{t.Description}\n✓ Certifié — gratuit." : t.Description);
             }
         }
@@ -685,7 +656,8 @@ public class CharacterWindow : Window, IDisposable
             ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.64f, 0.17f, 0.17f, 0.20f));
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.64f, 0.17f, 0.17f, 0.40f));
             ImGui.PushStyleColor(ImGuiCol.Text, ColDanger);
-            if (ImGui.Button($"✕##remove_{tid}")) { _plugin.UnequipTrait.Execute(_character, tid); _plugin.RefreshEquippedTraits(_character); }
+            if (ImGui.Button($"✕##remove_{tid}"))
+                _ = Task.Run(async () => { await _plugin.UnequipTrait.ExecuteAsync(_character, tid); _plugin.RefreshEquippedTraits(_character); });
             ImGui.PopStyleColor(3); ImGui.SameLine(); ImGui.Text(t?.Name ?? tid);
             if (ImGui.IsItemHovered() && t != null) ImGui.SetTooltip(t.Description);
         }
@@ -712,7 +684,8 @@ public class CharacterWindow : Window, IDisposable
                     ImGui.PushStyleColor(ImGuiCol.Button, !conflict ? new Vector4(0.09f, 0.37f, 0.65f, 0.20f) : new Vector4(0.3f, 0.3f, 0.3f, 0.20f));
                     ImGui.PushStyleColor(ImGuiCol.ButtonHovered, !conflict ? new Vector4(0.09f, 0.37f, 0.65f, 0.40f) : new Vector4(0.3f, 0.3f, 0.3f, 0.20f));
                     ImGui.PushStyleColor(ImGuiCol.Text, !conflict ? ColInfo : ColMuted);
-                    if (ImGui.Button($"+ {t.Name}##avail_{t.Id}") && !conflict) { _plugin.EquipTrait.Execute(_character, t.Id); _plugin.RefreshEquippedTraits(_character); }
+                    if (ImGui.Button($"+ {t.Name}##avail_{t.Id}") && !conflict)
+                        _ = Task.Run(async () => { await _plugin.EquipTrait.ExecuteAsync(_character, t.Id); _plugin.RefreshEquippedTraits(_character); });
                     ImGui.PopStyleColor(3);
                     if (ImGui.IsItemHovered()) ImGui.SetTooltip(t.Description);
                 }
@@ -735,7 +708,8 @@ public class CharacterWindow : Window, IDisposable
             ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.64f, 0.17f, 0.17f, 0.20f));
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.64f, 0.17f, 0.17f, 0.40f));
             ImGui.PushStyleColor(ImGuiCol.Text, ColDanger);
-            if (ImGui.Button($"✕##cert_rm_{cert.Id}")) _plugin.RemoveCertification.Execute(_character, cert.Id);
+            if (ImGui.Button($"✕##cert_rm_{cert.Id}"))
+                _ = Task.Run(() => _plugin.RemoveCertification.ExecuteAsync(_character, cert.Id));
             ImGui.PopStyleColor(3); ImGui.SameLine();
             ImGui.PushStyleColor(ImGuiCol.Text, ColSuccess); ImGui.Text("★"); ImGui.PopStyleColor(); ImGui.SameLine(); ImGui.Text(cert.Name);
             if (cert.LinkedOriginTraitId != null) { var t = _plugin.TraitRepository.GetById(cert.LinkedOriginTraitId); ImGui.SameLine(); ImGui.TextColored(ColMuted, $"[Trait : {t?.Name ?? cert.LinkedOriginTraitId}]"); }
@@ -743,8 +717,6 @@ public class CharacterWindow : Window, IDisposable
         }
 
         ImGui.Spacing();
-
-        // Bouton d'ouverture du popup
         ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.09f, 0.37f, 0.65f, 0.20f));
         ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.09f, 0.37f, 0.65f, 0.40f));
         ImGui.PushStyleColor(ImGuiCol.Text, ColInfo);
@@ -755,7 +727,6 @@ public class CharacterWindow : Window, IDisposable
             ImGui.OpenPopup("Nouvelle certification##cert_modal");
         }
         ImGui.PopStyleColor(3);
-
         DrawCertificationPopup();
     }
 
@@ -763,14 +734,13 @@ public class CharacterWindow : Window, IDisposable
     {
         var center = ImGui.GetMainViewport().GetCenter();
         ImGui.SetNextWindowPos(center, ImGuiCond.Appearing, new Vector2(0.5f, 0.5f));
-        ImGui.SetNextWindowSize(new Vector2(520, 0), ImGuiCond.Appearing); // hauteur auto
+        ImGui.SetNextWindowSize(new Vector2(520, 0), ImGuiCond.Appearing);
 
         if (!ImGui.BeginPopupModal("Nouvelle certification##cert_modal", ImGuiWindowFlags.AlwaysAutoResize))
             return;
 
         ImGui.TextColored(ColMuted, "NOM"); ImGui.Spacing();
         ImGui.SetNextItemWidth(300); ImGui.InputText("##cert_name", ref _newCertName, 128);
-
         ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
         ImGui.TextColored(ColMuted, "Trait d'origine lié (optionnel) :"); ImGui.Spacing();
 
@@ -816,19 +786,18 @@ public class CharacterWindow : Window, IDisposable
         ImGui.PushStyleColor(ImGuiCol.Text, canAdd ? ColSuccess : ColMuted);
         if (ImGui.Button("✓ Confirmer##cert_confirm") && canAdd)
         {
-            _plugin.AddCertification.Execute(_character, _newCertName,
-                string.IsNullOrEmpty(_newCertOriginTraitId) ? null : _newCertOriginTraitId,
-                string.IsNullOrEmpty(_newCertAbilityId) ? null : _newCertAbilityId,
-                _newCertFreePoints);
+            var certName = _newCertName;
+            var origTrait = string.IsNullOrEmpty(_newCertOriginTraitId) ? null : _newCertOriginTraitId;
+            var certAbId = string.IsNullOrEmpty(_newCertAbilityId) ? null : _newCertAbilityId;
+            var certFp = _newCertFreePoints;
             _newCertName = _newCertOriginTraitId = _newCertAbilityId = string.Empty;
             _newCertFreePoints = 0;
+            _ = Task.Run(() => _plugin.AddCertification.ExecuteAsync(_character, certName, origTrait, certAbId, certFp));
             ImGui.CloseCurrentPopup();
         }
         ImGui.PopStyleColor(canAdd ? 1 : 3);
-
         ImGui.SameLine();
         if (ImGui.Button("Annuler##cert_cancel")) ImGui.CloseCurrentPopup();
-
         ImGui.EndPopup();
     }
 
@@ -856,7 +825,8 @@ public class CharacterWindow : Window, IDisposable
                 ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.64f, 0.17f, 0.17f, 0.20f));
                 ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.64f, 0.17f, 0.17f, 0.40f));
                 ImGui.PushStyleColor(ImGuiCol.Text, ColDanger);
-                if (ImGui.Button($"✕##ab_rm_{eq.AbilityId}")) _plugin.UnequipAbility.Execute(_character, eq.AbilityId);
+                if (ImGui.Button($"✕##ab_rm_{eq.AbilityId}"))
+                    _ = Task.Run(() => _plugin.UnequipAbility.ExecuteAsync(_character, eq.AbilityId));
                 ImGui.PopStyleColor(3); ImGui.SameLine();
                 ImGui.Text(ab.Name); ImGui.SameLine(); ImGui.TextColored(ColInfo, $"Lv{eq.Level}");
                 if (fp > 0) { ImGui.SameLine(); ImGui.TextColored(ColSuccess, $"({fp} pt(s) certif.)"); }
@@ -866,7 +836,8 @@ public class CharacterWindow : Window, IDisposable
                     ImGui.PushStyleColor(ImGuiCol.Button, ok ? new Vector4(0.09f, 0.37f, 0.65f, 0.20f) : new Vector4(0.3f, 0.3f, 0.3f, 0.20f));
                     ImGui.PushStyleColor(ImGuiCol.ButtonHovered, ok ? new Vector4(0.09f, 0.37f, 0.65f, 0.40f) : new Vector4(0.3f, 0.3f, 0.3f, 0.20f));
                     ImGui.PushStyleColor(ImGuiCol.Text, ok ? ColInfo : ColMuted);
-                    if (ImGui.Button($"↑ Lv{nl}##ab_up_{eq.AbilityId}") && ok) _plugin.EquipAbility.Execute(_character, eq.AbilityId, nl);
+                    if (ImGui.Button($"↑ Lv{nl}##ab_up_{eq.AbilityId}") && ok)
+                        _ = Task.Run(() => _plugin.EquipAbility.ExecuteAsync(_character, eq.AbilityId, nl));
                     ImGui.PopStyleColor(3);
                     if (ImGui.IsItemHovered() && !ok) ImGui.SetTooltip(!rank.AllowsAbilityLevel(nl) ? "Rang insuffisant." : "Pas assez de points.");
                 }
@@ -897,7 +868,8 @@ public class CharacterWindow : Window, IDisposable
                 ImGui.PushStyleColor(ImGuiCol.ButtonHovered, ok ? new Vector4(0.09f, 0.37f, 0.65f, 0.40f) : new Vector4(0.3f, 0.3f, 0.3f, 0.20f));
                 ImGui.PushStyleColor(ImGuiCol.Text, ok ? ColInfo : ColMuted);
                 var lbl = fp > 0 ? $"+ {ab.Name} (Lv{sl} · {fp} pt(s) certif.)##ab_learn_{ab.Id}" : $"+ {ab.Name} (Lv{sl})##ab_learn_{ab.Id}";
-                if (ImGui.Button(lbl) && ok) _plugin.EquipAbility.Execute(_character, ab.Id, sl);
+                if (ImGui.Button(lbl) && ok)
+                    _ = Task.Run(() => _plugin.EquipAbility.ExecuteAsync(_character, ab.Id, sl));
                 ImGui.PopStyleColor(3);
                 if (ImGui.IsItemHovered())
                 {
@@ -943,4 +915,6 @@ public class CharacterWindow : Window, IDisposable
         UsageLimit.ThreeTimesPerEvent => "⏱ 3× par event",
         _ => "",
     };
+
+
 }

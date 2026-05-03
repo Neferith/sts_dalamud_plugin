@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using Sts.Domain;
+using Sts.Domain.Character;
 
 namespace STSPlugin.Repository;
 

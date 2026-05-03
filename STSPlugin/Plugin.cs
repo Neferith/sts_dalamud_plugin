@@ -9,15 +9,20 @@ using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.System.String;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using Sts.Domain;
+using Sts.Domain.Character;
+using Sts.Domain.Repository;
+using STSPlugin.Auth;
 using STSPlugin.CharacterUseCases;
 using STSPlugin.ConfigDomain;
 using STSPlugin.Repository;
+using STSPlugin.UseCases.Auth;
 using STSPlugin.Windows;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace STSPlugin;
 
@@ -42,47 +47,53 @@ public sealed class Plugin : IDalamudPlugin
     public StsEngine Engine { get; init; }
 
     private readonly MainDiContainer _factory;
-    public CharacterRepository CharacterRepository { get; init; }
+    public ICharacterRepository CharacterRepository { get; init; }
     // Changer init → set sur les 4 repositories liés aux données
     public TraitRepository TraitRepository { get; private set; }
     public JobRepository JobRepository { get; private set; }
     public ActionRepository ActionRepository { get; private set; }
     public AbilityRepository AbilityRepository { get; private set; }
 
+    // --- use cases auth ---
+    public AuthState AuthState { get; init; }
+    public ILoginUseCase Login { get; init; }
+    public ILogoutUseCase Logout { get; init; }
+    public IGetTokenUseCase GetToken { get; init; }
+
     // --- use cases personnages ---
-    public GetAllCharactersUseCase GetAllCharacters { get; init; }
-    public GetActiveCharacterUseCase GetActiveCharacter { get; init; }
-    public CreateCharacterUseCase CreateCharacter { get; init; }
-    public UpdateCharacterUseCase UpdateCharacter { get; init; }
-    public DeleteCharacterUseCase DeleteCharacter { get; init; }
-    public SetActiveCharacterUseCase SetActiveCharacter { get; init; }
+    public IGetAllCharactersUseCase GetAllCharacters { get; private set; }
+    public GetActiveCharacterUseCase GetActiveCharacter { get; private set; }
+    public ICreateCharacterUseCase CreateCharacter { get; private set; }
+    public IUpdateCharacterUseCase UpdateCharacter { get; private set; }
+    public IDeleteCharacterUseCase DeleteCharacter { get; private set; }
+    public SetActiveCharacterUseCase SetActiveCharacter { get; private set; }
 
     // --- use cases traits / job ---
-    public SetJobUseCase SetJob { get; init; }
-    public SetOriginTraitUseCase SetOriginTrait { get; init; }
-    public EquipTraitUseCase EquipTrait { get; init; }
-    public UnequipTraitUseCase UnequipTrait { get; init; }
+    public SetJobUseCase SetJob { get; private set; }
+    public SetOriginTraitUseCase SetOriginTrait { get; private set; }
+    public EquipTraitUseCase EquipTrait { get; private set; }
+    public UnequipTraitUseCase UnequipTrait { get; private set; }
 
     // --- use cases actions ---
-    public GetActionsForCharacterUseCase GetActionsForCharacter { get; init; }
-    public CreateCustomActionUseCase CreateCustomAction { get; init; }
-    public DeleteCustomActionUseCase DeleteCustomAction { get; init; }
+    public GetActionsForCharacterUseCase GetActionsForCharacter { get; private set; }
+    public CreateCustomActionUseCase CreateCustomAction { get; private set; }
+    public DeleteCustomActionUseCase DeleteCustomAction { get; private set; }
 
     // --- use cases compétences ---
-    public EquipAbilityUseCase EquipAbility { get; init; }
-    public UnequipAbilityUseCase UnequipAbility { get; init; }
-    public SetSkillPointsUseCase SetSkillPoints { get; init; }
+    public EquipAbilityUseCase EquipAbility { get; private set; }
+    public UnequipAbilityUseCase UnequipAbility { get; private set; }
+    public SetSkillPointsUseCase SetSkillPoints { get; private set; }
 
     // --- use cases certifications ---
-    public AddCertificationUseCase AddCertification { get; init; }
-    public RemoveCertificationUseCase RemoveCertification { get; init; }
+    public AddCertificationUseCase AddCertification { get; private set; }
+    public RemoveCertificationUseCase RemoveCertification { get; private set; }
 
     // --- use cases inventaire ---
-    public AddInventoryItemUseCase AddInventoryItem { get; init; }
-    public RemoveInventoryItemUseCase RemoveInventoryItem { get; init; }
-    public SetItemSlotUseCase SetItemSlot { get; init; }
-    public ReorderInventoryUseCase ReorderInventory { get; init; }
-    public SetItemIconUseCase SetItemIcon { get; init; }
+    public AddInventoryItemUseCase AddInventoryItem { get; private set; }
+    public RemoveInventoryItemUseCase RemoveInventoryItem { get; private set; }
+    public SetItemSlotUseCase SetItemSlot { get; private set; }
+    public ReorderInventoryUseCase ReorderInventory { get; private set; }
+    public SetItemIconUseCase SetItemIcon { get; private set; }
 
     private readonly WindowSystem windowSystem = new("STSPlugin");
     private readonly MainWindow mainWindow;
@@ -113,6 +124,12 @@ public sealed class Plugin : IDalamudPlugin
         JobRepository = factory.MakeJobRepository();//new DefaultJobRepository(dataSource);
         ActionRepository = factory.MakeActionRepository();//new DefaultActionRepository(dataSource);
         AbilityRepository = factory.MakeAbilityRepository();//new DefaultAbilityRepository(dataSource);
+
+        // --- Use cases auth ---
+        AuthState = _factory.MakeAuthState();
+        Login = _factory.MakeLogin();
+        Logout = _factory.MakeLogout();
+        GetToken = _factory.MakeGetToken();
 
         // --- Use cases personnages ---
         GetAllCharacters = factory.MakeGetAllCharacters();
@@ -161,6 +178,61 @@ public sealed class Plugin : IDalamudPlugin
             Engine.ChangeRank(rankKey);
         }
 
+        // --- Auth : abonnement changement d'état + login automatique ---
+        // Quand l'état de connexion change, on recharge le repository de personnages
+        // (bascule entre LocalCharacterRepository et RemoteCharacterRepository)
+        AuthState.OnAuthChanged += () =>
+        {
+            _factory.ReloadCharacterRepository();
+
+            // Réassigner tous les use cases depuis le nouveau repository
+            GetAllCharacters = _factory.MakeGetAllCharacters();
+            GetActiveCharacter = _factory.MakeGetActiveCharacter();
+            CreateCharacter = _factory.MakeCreateCharacter();
+            UpdateCharacter = _factory.MakeUpdateCharacter();
+            DeleteCharacter = _factory.MakeDeleteCharacter();
+            SetActiveCharacter = _factory.MakeSetActiveCharacter();
+            SetJob = _factory.MakeSetJob();
+            SetOriginTrait = _factory.MakeSetOriginTrait();
+            EquipTrait = _factory.MakeEquipTrait();
+            UnequipTrait = _factory.MakeUnequipTrait();
+            GetActionsForCharacter = _factory.MakeGetActionsForCharacter();
+            CreateCustomAction = _factory.MakeCreateCustomAction();
+            DeleteCustomAction = _factory.MakeDeleteCustomAction();
+            EquipAbility = _factory.MakeEquipAbility();
+            UnequipAbility = _factory.MakeUnequipAbility();
+            SetSkillPoints = _factory.MakeSetSkillPoints();
+            AddCertification = _factory.MakeAddCertification();
+            RemoveCertification = _factory.MakeRemoveCertification();
+            AddInventoryItem = _factory.MakeAddInventoryItem();
+            RemoveInventoryItem = _factory.MakeRemoveInventoryItem();
+            SetItemSlot = _factory.MakeSetItemSlot();
+            ReorderInventory = _factory.MakeReorderInventory();
+            SetItemIcon = _factory.MakeSetItemIcon();
+
+            // Vérifier si le personnage actif existe dans le nouveau set, sinon reset
+            var currentActive = Configuration.ActiveCharacterId;
+            _ = Task.Run(async () =>
+            {
+                var all = await GetAllCharacters.ExecuteAsync();
+                if (currentActive.HasValue && !all.Any(c => c.Id == currentActive.Value))
+                {
+                    SetActiveCharacter.Execute(null);
+                    RefreshEquippedTraits();
+                }
+                // Rafraîchir l'UI
+                mainWindow.TriggerRefresh();
+            });
+        };
+
+        if (!string.IsNullOrWhiteSpace(Configuration.PlayerUsername) &&
+            !string.IsNullOrWhiteSpace(Configuration.PlayerPassword))
+        {
+            _ = Task.Run(() => Login.ExecuteAsync(
+                Configuration.PlayerUsername,
+                Configuration.PlayerPassword));
+        }
+
         // --- Windows ---
         mainWindow = new MainWindow(this);
         configWindow = new ConfigWindow(this);
@@ -172,7 +244,7 @@ public sealed class Plugin : IDalamudPlugin
         {
             HelpMessage = "Ouvre/ferme l'interface STS. \"/sts roll\" lance les dés. \"/sts roll <id>\" lance une action. \"/sts quickbar\" ouvre la barre."
         });
-        
+
         ChatGui.ChatMessage += OnChatMessage;
         ChatGui.ChatMessageUnhandled += OnChatMessageUnhandled;
 
@@ -183,8 +255,8 @@ public sealed class Plugin : IDalamudPlugin
 
     public void Dispose()
     {
-        ChatGui.ChatMessage -= OnChatMessage;
-        ChatGui.ChatMessageUnhandled -= OnChatMessageUnhandled;
+        //   ChatGui.ChatMessage -= OnChatMessage;
+        //  ChatGui.ChatMessageUnhandled -= OnChatMessageUnhandled;
 
         PluginInterface.UiBuilder.Draw -= DrawUi;
         PluginInterface.UiBuilder.OpenMainUi -= ToggleMainUi;
@@ -222,7 +294,7 @@ public sealed class Plugin : IDalamudPlugin
                 RefreshEquippedTraits();
 
                 Log.Information("[STS] Données rechargées — mode : {0}, url : {1}",
-                    Configuration.DataSourceMode, Configuration.BackendUrl);
+                    Configuration.DataSourceMode, Configuration.ApiBaseUrl);
             }
             catch (Exception ex)
             {
@@ -280,6 +352,21 @@ public sealed class Plugin : IDalamudPlugin
         _characterWindows[character.Id] = window;
         windowSystem.AddWindow(window);
         window.IsOpen = true;
+    }
+
+    /// <summary>
+    /// Met à jour les CharacterWindow ouvertes avec les données fraîches.
+    /// À appeler après un refresh des fiches depuis l'API.
+    /// </summary>
+    /// <param name="freshCharacters">Liste fraîche des personnages.</param>
+    public void RefreshCharacterWindows(IReadOnlyList<Character> freshCharacters)
+    {
+        foreach (var (id, window) in _characterWindows)
+        {
+            var fresh = freshCharacters.FirstOrDefault(c => c.Id == id);
+            if (fresh is not null)
+                window.UpdateCharacter(fresh);
+        }
     }
 
     /// <summary>
@@ -417,8 +504,8 @@ public sealed class Plugin : IDalamudPlugin
         }
 
         Log.Debug($"[STS] /random reçu : {value:D3}");
-       
-       // message. = false; // ← laisser le message s'afficher normalement
+
+        // message. = false; // ← laisser le message s'afficher normalement
         if (Engine.ReceiveRandom(value))
             Plugin.Framework.RunOnTick(OnRollComplete);
     }
@@ -426,7 +513,7 @@ public sealed class Plugin : IDalamudPlugin
     private void OnChatMessageUnhandled(IChatMessage message)
     {
         Log.Debug($"[STS] Unhandled reçu — logKind: {(int)message.LogKind}");
-        
+
     }
 
     // ------------------------------------------------------------------ Résultat

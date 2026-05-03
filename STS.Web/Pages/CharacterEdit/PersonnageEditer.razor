@@ -1,0 +1,506 @@
+@page "/personnages/{Id:guid}/editer"
+@using STS.Web.ViewModels
+@using Sts.Domain.Character
+@using Sts.Domain
+@inject AuthService Auth
+@inject NavigationManager Nav
+@inject CharacterEditViewModel VM
+
+<PageTitle>Éditer — @(VM.Character?.Name ?? "Personnage")</PageTitle>
+
+@if (VM.IsLoading)
+{
+    <div class="sts-loading"><div class="sts-spinner-lg"></div></div>
+}
+else if (VM.Error is not null && VM.Character is null)
+{
+    <div class="sts-alert sts-alert-error">@VM.Error</div>
+}
+else if (VM.Character is { } c)
+{
+    var rank = Rank.Get(c.RankKey);
+
+    <!-- En-tête -->
+    <div class="sts-page-header" style="margin-bottom:1.5rem;">
+        <a href="/personnages/@c.Id" class="sts-back-link">← @c.Name</a>
+        @if (VM.IsSaving)
+        {
+            <span class="sts-dim" style="margin-left:auto;font-size:13px;">
+                <span class="sts-spinner" style="display:inline-block;width:12px;height:12px;margin-right:4px;"></span>
+                Sauvegarde…
+            </span>
+        }
+    </div>
+
+    @if (VM.Error is not null)
+    {
+        <div class="sts-alert sts-alert-error" style="margin-bottom:1rem;">@VM.Error</div>
+    }
+    @if (VM.Success is not null)
+    {
+        <div class="sts-alert sts-alert-success" style="margin-bottom:1rem;">@VM.Success</div>
+    }
+
+    <!-- ══ Infos de base ══════════════════════════════════════════════════ -->
+    <div class="sts-edit-section">
+        <h2 class="sts-section-title">Informations générales</h2>
+        <div class="sts-card">
+            <div class="sts-field" style="margin-bottom:1rem;">
+                <label class="sts-label">Nom</label>
+                <input class="sts-input" @bind="VM.FormName" @bind:event="oninput" maxlength="64" />
+            </div>
+
+            <div class="sts-field" style="margin-bottom:1rem;">
+                <label class="sts-label">Race</label>
+                <div class="sts-rank-buttons">
+                    @foreach (var race in Enum.GetValues<CharacterRace>())
+                    {
+                        <button class="sts-rank-btn @(c.Race == race ? "active" : "")"
+                                @onclick="() => VM.SetRaceAsync(race)" type="button">
+                            @race.Label()
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <div class="sts-field" style="margin-bottom:1rem;">
+                <label class="sts-label">Rang</label>
+                <div class="sts-rank-buttons">
+                    @foreach (var rk in Enum.GetValues<RankKey>())
+                    {
+                        <button class="sts-rank-btn @(c.RankKey == rk ? "active" : "")"
+                                @onclick="() => VM.SetRankAsync(rk)" type="button">
+                            @Rank.Get(rk).Label
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <div class="sts-field" style="margin-bottom:1rem;">
+                <label class="sts-label">Réputation — @Reputation.GetLabel(c.ReputationLevel) (@(c.ReputationLevel >= 0 ? "+" : "")@c.ReputationLevel)</label>
+                <div style="display:flex;gap:0.5rem;">
+                    <button class="sts-rank-btn" @onclick="() => VM.ChangeReputationAsync(-1)"
+                            disabled="@(c.ReputationLevel <= Reputation.Min)" type="button">−</button>
+                    <button class="sts-rank-btn" @onclick="() => VM.ChangeReputationAsync(+1)"
+                            disabled="@(c.ReputationLevel >= Reputation.Max)" type="button">+</button>
+                </div>
+            </div>
+
+            <div class="sts-field" style="margin-bottom:1rem;">
+                <label class="sts-label">Job</label>
+                <div class="sts-rank-buttons">
+                    <button class="sts-rank-btn @(c.JobId == null ? "active" : "")"
+                            @onclick='() => VM.SetJobAsync(null)' type="button">— Aucun —</button>
+                    @foreach (var job in VM.AllJobs)
+                    {
+                        <button class="sts-rank-btn @(c.JobId == job.Id ? "active" : "")"
+                                @onclick="() => VM.SetJobAsync(job.Id)" type="button">
+                            @job.Name
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <div class="sts-field" style="margin-bottom:1rem;">
+                <label class="sts-label">Histoire</label>
+                <textarea class="sts-input" rows="4" @bind="VM.FormHistoire" @bind:event="oninput"
+                          style="resize:vertical;"></textarea>
+            </div>
+
+            <div class="sts-field" style="margin-bottom:1rem;">
+                <label class="sts-label">Points de compétence accordés</label>
+                <div style="display:flex;align-items:center;gap:0.75rem;">
+                    <button class="sts-rank-btn" @onclick="() => { VM.FormSkillPoints = Math.Max(0, VM.FormSkillPoints - 1); }" type="button">−</button>
+                    <span style="min-width:2rem;text-align:center;">@VM.FormSkillPoints</span>
+                    <button class="sts-rank-btn" @onclick="() => VM.FormSkillPoints++" type="button">+</button>
+                    <span class="sts-dim" style="font-size:12px;">(@c.SpentSkillPoints dépensés · @VM.RemainingSkillPoints restants)</span>
+                </div>
+            </div>
+
+            <div style="text-align:right;">
+                <button class="sts-btn sts-btn-primary" @onclick="VM.SaveBasicInfoAsync"
+                        disabled="@VM.IsSaving" type="button">
+                    Sauvegarder les infos
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ Certifications ════════════════════════════════════════════════ -->
+    <div class="sts-edit-section">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+            <h2 class="sts-section-title" style="margin:0;">Certifications (@c.Certifications.Count)</h2>
+            <button class="sts-btn sts-btn-ghost sts-btn-sm" @onclick="VM.OpenCertModal" type="button">+ Ajouter</button>
+        </div>
+        @if (c.Certifications.Count > 0)
+        {
+            <div class="sts-cards" style="margin-top:0.5rem;">
+                @foreach (var cert in c.Certifications)
+                {
+                    <div class="sts-card">
+                        <div class="sts-card-header">
+                            <span style="color:var(--amber)">★</span>
+                            <span class="sts-card-title">@cert.Name</span>
+                            <button class="sts-btn-icon sts-btn-danger" style="margin-left:auto;"
+                                    @onclick="() => VM.RemoveCertificationAsync(cert.Id)" type="button">✕</button>
+                        </div>
+                        <div class="sts-card-meta">
+                            @if (cert.LinkedOriginTraitId is not null)
+                            { <span>Trait : @VM.TraitName(cert.LinkedOriginTraitId)</span> }
+                            @if (cert.LinkedAbilityId is not null && cert.FreePoints > 0)
+                            { <span>@cert.FreePoints pt(s) sur @VM.AbilityName(cert.LinkedAbilityId)</span> }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    <!-- ══ Trait d'origine ═══════════════════════════════════════════════ -->
+    <div class="sts-edit-section">
+        <h2 class="sts-section-title">Trait d'origine</h2>
+        @if (c.OriginTraitId is { } oid)
+        {
+            var ot = VM.GetTrait(oid);
+            var hc = c.HasCertificationForOriginTrait(oid);
+            <div class="sts-card sts-card-accent-amber">
+                <div class="sts-card-header">
+                    <span class="sts-card-title">@(ot?.Name ?? oid)</span>
+                    @if (hc) { <span class="sts-badge sts-badge-passive">Certifié</span> }
+                    <button class="sts-btn-icon sts-btn-danger" style="margin-left:auto;"
+                            @onclick="() => VM.SetOriginTraitAsync(null)" type="button">✕</button>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(ot?.Description))
+                { <div class="sts-card-desc">@ot.Description</div> }
+            </div>
+        }
+        else
+        {
+            <div class="sts-rank-buttons">
+                @foreach (var t in VM.OriginTraits)
+                {
+                    var hc = c.HasCertificationForOriginTrait(t.Id);
+                    <button class="sts-rank-btn @(hc ? "active" : "")" title="@t.Description"
+                            @onclick="() => VM.SetOriginTraitAsync(t.Id)" type="button">
+                        @if (hc) { <span>★ </span> }
+                        @t.Name
+                    </button>
+                }
+            </div>
+        }
+    </div>
+
+    <!-- ══ Traits équipés ════════════════════════════════════════════════ -->
+    <div class="sts-edit-section">
+        <h2 class="sts-section-title">Traits (@c.EquippedTraitIds.Count / @rank.Traits)</h2>
+
+        @if (c.EquippedTraitIds.Count > 0)
+        {
+            <div class="sts-cards" style="margin-bottom:0.75rem;">
+                @foreach (var tid in c.EquippedTraitIds)
+                {
+                    var t = VM.GetTrait(tid);
+                    <div class="sts-card">
+                        <div class="sts-card-header">
+                            <span class="sts-card-title">@(t?.Name ?? tid)</span>
+                            <button class="sts-btn-icon sts-btn-danger" style="margin-left:auto;"
+                                    @onclick="() => VM.UnequipTraitAsync(tid)" type="button">✕</button>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(t?.Description))
+                        { <div class="sts-card-desc">@t.Description</div> }
+                    </div>
+                }
+            </div>
+        }
+
+        @if (c.FreeTraitSlots > 0)
+        {
+            <p class="sts-dim" style="font-size:12px;margin-bottom:0.5rem;">@c.FreeTraitSlots slot(s) libre(s)</p>
+            @foreach (var cat in new[] { TraitCategory.Connaissance, TraitCategory.RoleDps, TraitCategory.RoleSoigneur, TraitCategory.RoleTank, TraitCategory.Job })
+            {
+                var avail = VM.AvailableTraits(cat);
+                if (avail.Count == 0) continue;
+                <p class="sts-dim" style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin:0.5rem 0 0.25rem;">@CharacterEditViewModel.CategoryLabel(cat)</p>
+                <div class="sts-rank-buttons" style="margin-bottom:0.5rem;">
+                    @foreach (var t in avail)
+                    {
+                        var conflict = VM.HasTraitConflict(t);
+                        <button class="sts-rank-btn @(conflict ? "" : "")"
+                                style="@(conflict ? "opacity:0.4;" : "")"
+                                title="@t.Description"
+                                @onclick="() => VM.EquipTraitAsync(t.Id)"
+                                disabled="@conflict" type="button">
+                            + @t.Name
+                        </button>
+                    }
+                </div>
+            }
+        }
+        else
+        {
+            <p class="sts-dim" style="font-size:12px;">Tous les slots sont utilisés.</p>
+        }
+    </div>
+
+    <!-- ══ Compétences ═══════════════════════════════════════════════════ -->
+    <div class="sts-edit-section">
+        <h2 class="sts-section-title">Compétences (@c.SpentSkillPoints / @VM.FormSkillPoints pts)</h2>
+
+        @if (c.EquippedAbilities.Count > 0)
+        {
+            <div class="sts-cards" style="margin-bottom:0.75rem;">
+                @foreach (var eq in c.EquippedAbilities)
+                {
+                    var ab  = VM.GetAbility(eq.AbilityId);
+                    var fp  = c.GetFreePointsForAbility(eq.AbilityId);
+                    var rnk = Rank.Get(c.RankKey);
+                    var canUp = eq.Level < (ab?.MaxLevel ?? 1) && rnk.AllowsAbilityLevel(eq.Level + 1) && VM.RemainingSkillPoints > 0;
+
+                    <div class="sts-card">
+                        <div class="sts-card-header">
+                            <span class="sts-card-title">@(ab?.Name ?? eq.AbilityId)</span>
+                            <span class="sts-badge sts-badge-active">Lv@(eq.Level)</span>
+                            @if (fp > 0) { <span class="sts-badge sts-badge-passive">@fp pt(s) certif.</span> }
+                            @if (canUp)
+                            {
+                                <button class="sts-rank-btn" style="font-size:11px;padding:2px 8px;"
+                                        @onclick="() => VM.LevelUpAbilityAsync(eq.AbilityId)" type="button">
+                                    ↑ Lv@(eq.Level + 1)
+                                </button>
+                            }
+                            <button class="sts-btn-icon sts-btn-danger" style="margin-left:auto;"
+                                    @onclick="() => VM.UnequipAbilityAsync(eq.AbilityId)" type="button">✕</button>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+        @if (VM.RemainingSkillPoints > 0 || c.EquippedAbilities.Count == 0)
+        {
+            <p class="sts-dim" style="font-size:12px;margin-bottom:0.5rem;">Apprendre (@VM.RemainingSkillPoints pt(s) disponible(s))</p>
+            @foreach (var cat in new[] { AbilityCategory.Weapon, AbilityCategory.RoleDps, AbilityCategory.RoleSoigneur, AbilityCategory.RoleTank, AbilityCategory.Job })
+            {
+                var avail = VM.AvailableAbilities(cat);
+                if (avail.Count == 0) continue;
+                <p class="sts-dim" style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin:0.5rem 0 0.25rem;">@CharacterEditViewModel.AbilityCategoryLabel(cat)</p>
+                <div class="sts-rank-buttons" style="margin-bottom:0.5rem;">
+                    @foreach (var ab in avail)
+                    {
+                        var sl   = ab.StartLevel;
+                        var fp   = c.GetFreePointsForAbility(ab.Id);
+                        var cost = Math.Max(0, sl - fp);
+                        var ok   = Rank.Get(c.RankKey).AllowsAbilityLevel(sl) && (cost == 0 || VM.RemainingSkillPoints >= cost);
+                        <button class="sts-rank-btn"
+                                style="@(!ok ? "opacity:0.4;" : "")"
+                                title="@(ab.Levels.FirstOrDefault(l => l.Level == sl)?.Description ?? "")"
+                                @onclick="() => VM.LearnAbilityAsync(ab.Id)"
+                                disabled="@(!ok)" type="button">
+                            + @ab.Name (Lv@sl@(fp > 0 ? $" · {fp}pt certif." : ""))
+                        </button>
+                    }
+                </div>
+            }
+        }
+    </div>
+
+    <!-- ══ Inventaire ════════════════════════════════════════════════════ -->
+    <div class="sts-edit-section">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+            <h2 class="sts-section-title" style="margin:0;">Inventaire (@c.Inventory.Count objet(s))</h2>
+            <button class="sts-btn sts-btn-ghost sts-btn-sm" @onclick="VM.OpenItemModal" type="button">+ Ajouter</button>
+        </div>
+
+        @if (c.Inventory.Count > 0)
+        {
+            var weapons = c.Inventory.Where(i => i.Category == ItemCategory.Weapon).OrderBy(i => i.SortIndex).ToList();
+            var items   = c.Inventory.Where(i => i.Category == ItemCategory.Item).OrderBy(i => i.SortIndex).ToList();
+
+            @if (weapons.Count > 0)
+            {
+                <p class="sts-dim" style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin:0.75rem 0 0.25rem;">Armes</p>
+                <div class="sts-cards">
+                    @foreach (var w in weapons)
+                    {
+                        var isMain    = c.MainHandItemId == w.Id;
+                        var isOff     = c.OffHandItemId  == w.Id;
+                        var unmastered = c.IsWeaponUnmastered(w);
+                        <div class="sts-card">
+                            <div class="sts-card-header">
+                                <span class="sts-card-title">@w.Name</span>
+                                @if (unmastered) { <span class="sts-badge sts-badge-job">⚠ Palier 8</span> }
+                                <div style="display:flex;gap:4px;margin-left:auto;">
+                                    <button class="sts-rank-btn @(isMain ? "active" : "")" style="font-size:11px;padding:2px 7px;"
+                                            title="@(isMain ? "Retirer main principale" : "Main principale")"
+                                            @onclick='() => VM.SetItemSlotAsync("main", isMain ? null : w.Id)' type="button">M</button>
+                                    <button class="sts-rank-btn @(isOff ? "active" : "")" style="font-size:11px;padding:2px 7px;"
+                                            title="@(isOff ? "Retirer main secondaire" : "Main secondaire")"
+                                            @onclick='() => VM.SetItemSlotAsync("off", isOff ? null : w.Id)' type="button">S</button>
+                                    <button class="sts-btn-icon sts-btn-danger"
+                                            @onclick="() => VM.RemoveItemAsync(w.Id)" type="button">✕</button>
+                                </div>
+                            </div>
+                            @if (w.LinkedAbilityId is not null)
+                            { <div class="sts-card-meta"><span>Compétence : @VM.AbilityName(w.LinkedAbilityId)</span></div> }
+                            @if (!string.IsNullOrWhiteSpace(w.Description))
+                            { <div class="sts-card-desc">@w.Description</div> }
+                        </div>
+                    }
+                </div>
+            }
+
+            @if (items.Count > 0)
+            {
+                <p class="sts-dim" style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin:0.75rem 0 0.25rem;">Objets</p>
+                <div class="sts-cards">
+                    @foreach (var item in items)
+                    {
+                        <div class="sts-card">
+                            <div class="sts-card-header">
+                                <span class="sts-card-title">@item.Name</span>
+                                <button class="sts-btn-icon sts-btn-danger" style="margin-left:auto;"
+                                        @onclick="() => VM.RemoveItemAsync(item.Id)" type="button">✕</button>
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(item.Description))
+                            { <div class="sts-card-desc">@item.Description</div> }
+                        </div>
+                    }
+                </div>
+            }
+        }
+    </div>
+}
+
+<!-- ══ Modal certification ══════════════════════════════════════════════ -->
+@if (VM.ShowCertModal)
+{
+    <div class="sts-modal-backdrop" @onclick="VM.CloseCertModal"></div>
+    <div class="sts-modal">
+        <div class="sts-modal-header">
+            <h2 class="sts-modal-title">Nouvelle certification</h2>
+            <button class="sts-modal-close" @onclick="VM.CloseCertModal">✕</button>
+        </div>
+        <div class="sts-modal-body">
+            <div class="sts-field" style="margin-bottom:1rem;">
+                <label class="sts-label">Nom</label>
+                <input class="sts-input" @bind="VM.NewCertName" placeholder="ex : Faucheur" />
+            </div>
+            <div class="sts-field" style="margin-bottom:1rem;">
+                <label class="sts-label">Trait d'origine lié (optionnel)</label>
+                <div class="sts-rank-buttons">
+                    <button class="sts-rank-btn @(string.IsNullOrEmpty(VM.NewCertOriginTrait) ? "active" : "")"
+                            @onclick='() => VM.NewCertOriginTrait = string.Empty' type="button">Aucun</button>
+                    @if (VM.Character is not null)
+                    {
+                        @foreach (var t in VM.OriginTraits)
+                        {
+                            <button class="sts-rank-btn @(VM.NewCertOriginTrait == t.Id ? "active" : "")"
+                                    @onclick="() => VM.NewCertOriginTrait = VM.NewCertOriginTrait == t.Id ? string.Empty : t.Id"
+                                    type="button">@t.Name</button>
+                        }
+                    }
+                </div>
+            </div>
+            <div class="sts-field" style="margin-bottom:1rem;">
+                <label class="sts-label">Compétence d'arme avec points gratuits (optionnel)</label>
+                <div class="sts-rank-buttons">
+                    <button class="sts-rank-btn @(string.IsNullOrEmpty(VM.NewCertAbilityId) ? "active" : "")"
+                            @onclick='() => { VM.NewCertAbilityId = string.Empty; VM.NewCertFreePoints = 0; }' type="button">Aucune</button>
+                    @foreach (var ab in VM.WeaponAbilities)
+                    {
+                        <button class="sts-rank-btn @(VM.NewCertAbilityId == ab.Id ? "active" : "")"
+                                @onclick="() => VM.NewCertAbilityId = VM.NewCertAbilityId == ab.Id ? string.Empty : ab.Id"
+                                type="button">@ab.Name</button>
+                    }
+                </div>
+                @if (!string.IsNullOrEmpty(VM.NewCertAbilityId))
+                {
+                    <div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.5rem;">
+                        <label class="sts-label" style="white-space:nowrap;">Points gratuits</label>
+                        <button class="sts-rank-btn" @onclick="() => VM.NewCertFreePoints = Math.Max(0, VM.NewCertFreePoints - 1)" type="button">−</button>
+                        <span>@VM.NewCertFreePoints</span>
+                        <button class="sts-rank-btn" @onclick="() => VM.NewCertFreePoints++" type="button">+</button>
+                    </div>
+                }
+            </div>
+        </div>
+        <div class="sts-modal-footer">
+            <button class="sts-btn sts-btn-ghost" @onclick="VM.CloseCertModal">Annuler</button>
+            <button class="sts-btn sts-btn-primary" @onclick="VM.AddCertificationAsync"
+                    disabled="@string.IsNullOrWhiteSpace(VM.NewCertName)" type="button">Ajouter</button>
+        </div>
+    </div>
+}
+
+<!-- ══ Modal inventaire ═════════════════════════════════════════════════ -->
+@if (VM.ShowItemModal)
+{
+    <div class="sts-modal-backdrop" @onclick="VM.CloseItemModal"></div>
+    <div class="sts-modal">
+        <div class="sts-modal-header">
+            <h2 class="sts-modal-title">Ajouter un objet</h2>
+            <button class="sts-modal-close" @onclick="VM.CloseItemModal">✕</button>
+        </div>
+        <div class="sts-modal-body">
+            <div class="sts-field" style="margin-bottom:1rem;">
+                <label class="sts-label">Type</label>
+                <div class="sts-rank-buttons">
+                    <button class="sts-rank-btn @(VM.NewItemCategory == ItemCategory.Item ? "active" : "")"
+                            @onclick='() => { VM.NewItemCategory = ItemCategory.Item; VM.NewItemAbilityId = string.Empty; }' type="button">Objet</button>
+                    <button class="sts-rank-btn @(VM.NewItemCategory == ItemCategory.Weapon ? "active" : "")"
+                            @onclick='() => VM.NewItemCategory = ItemCategory.Weapon' type="button">Arme</button>
+                </div>
+            </div>
+            <div class="sts-field" style="margin-bottom:1rem;">
+                <label class="sts-label">Nom</label>
+                <input class="sts-input" @bind="VM.NewItemName" placeholder="Nom de l'objet" />
+            </div>
+            <div class="sts-field" style="margin-bottom:1rem;">
+                <label class="sts-label">Description</label>
+                <textarea class="sts-input" rows="3" @bind="VM.NewItemDesc" style="resize:vertical;"></textarea>
+            </div>
+            @if (VM.NewItemCategory == ItemCategory.Weapon)
+            {
+                <div class="sts-field">
+                    <label class="sts-label">Compétence liée (optionnel)</label>
+                    <div class="sts-rank-buttons">
+                        <button class="sts-rank-btn @(string.IsNullOrEmpty(VM.NewItemAbilityId) ? "active" : "")"
+                                @onclick='() => VM.NewItemAbilityId = string.Empty' type="button">Aucune</button>
+                        @foreach (var ab in VM.WeaponAbilities)
+                        {
+                            <button class="sts-rank-btn @(VM.NewItemAbilityId == ab.Id ? "active" : "")"
+                                    @onclick="() => VM.NewItemAbilityId = VM.NewItemAbilityId == ab.Id ? string.Empty : ab.Id"
+                                    type="button">@ab.Name</button>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+        <div class="sts-modal-footer">
+            <button class="sts-btn sts-btn-ghost" @onclick="VM.CloseItemModal">Annuler</button>
+            <button class="sts-btn sts-btn-primary" @onclick="VM.AddItemAsync"
+                    disabled="@string.IsNullOrWhiteSpace(VM.NewItemName)" type="button">Ajouter</button>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Auth.IsAuthenticated)
+        {
+            Auth.RequestLogin();
+            Nav.NavigateTo("/");
+            return;
+        }
+
+        VM.OnStateChanged = StateHasChanged;
+        await VM.LoadAsync(Id);
+
+        // Rediriger si pas propriétaire
+        if (VM.Character is not null && !VM.IsOwner)
+            Nav.NavigateTo($"/personnages/{Id}");
+    }
+}

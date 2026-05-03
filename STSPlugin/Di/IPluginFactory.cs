@@ -1,7 +1,12 @@
 using Sts.Domain;
+using Sts.Domain.Character;
+using Sts.Domain.Character;
+using Sts.Domain.DataSource;
+using Sts.Domain.Repository;
+using STSPlugin.Auth;
 using STSPlugin.CharacterUseCases;
-using STSPlugin.DataSource;
-using STSPlugin.Repository;
+using STSPlugin.CharacterUseCases;
+using STSPlugin.UseCases.Auth;
 
 namespace STSPlugin;
 
@@ -19,18 +24,18 @@ public interface IPluginFactory
     IDataSource MakeDataSource();
 
     // --- Repositories ---
-    CharacterRepository MakeCharacterRepository();
+    ICharacterRepository MakeCharacterRepository();
     TraitRepository MakeTraitRepository();
     JobRepository MakeJobRepository();
     ActionRepository MakeActionRepository();
     AbilityRepository MakeAbilityRepository();
 
     // --- Use cases personnages ---
-    GetAllCharactersUseCase MakeGetAllCharacters();
+    IGetAllCharactersUseCase MakeGetAllCharacters();
     GetActiveCharacterUseCase MakeGetActiveCharacter();
-    CreateCharacterUseCase MakeCreateCharacter();
-    UpdateCharacterUseCase MakeUpdateCharacter();
-    DeleteCharacterUseCase MakeDeleteCharacter();
+    ICreateCharacterUseCase MakeCreateCharacter();
+    IUpdateCharacterUseCase MakeUpdateCharacter();
+    IDeleteCharacterUseCase MakeDeleteCharacter();
     SetActiveCharacterUseCase MakeSetActiveCharacter();
 
     // --- Use cases traits / job ---
@@ -59,4 +64,10 @@ public interface IPluginFactory
     SetItemSlotUseCase MakeSetItemSlot();
     ReorderInventoryUseCase MakeReorderInventory();
     SetItemIconUseCase MakeSetItemIcon();
+
+
+    AuthState MakeAuthState();
+    ILoginUseCase MakeLogin();
+    ILogoutUseCase MakeLogout();
+    IGetTokenUseCase MakeGetToken();
 }

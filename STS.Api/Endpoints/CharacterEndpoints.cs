@@ -1,0 +1,125 @@
+using System;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Sts.Domain;
+using Sts.Domain.Character;
+
+namespace Sts.Api.Endpoints;
+
+/// <summary>Corps de la requête de création d'un personnage.</summary>
+public record CreateCharacterBody(string Name, RankKey Rank);
+
+/// <summary>
+/// Endpoints de gestion des fiches personnages.
+///
+/// Règles d'accès :
+/// - GET  /api/characters         → admin : tous ; member : les siens uniquement
+/// - GET  /api/characters/{id}    → admin : tous ; member : les siens uniquement
+/// - POST /api/characters         → member uniquement (crée pour soi-même)
+/// - PUT  /api/characters/{id}    → member sur ses propres fiches uniquement
+/// - DELETE /api/characters/{id}  → admin, ou member sur ses propres fiches
+/// </summary>
+public static class CharacterEndpoints
+{
+    /// <summary>Enregistre les endpoints <c>/api/characters</c>.</summary>
+    public static void MapCharacterEndpoints(this WebApplication app)
+    {
+        var group = app.MapGroup("/api/characters")
+            .WithTags("Characters")
+            .RequireAuthorization();
+
+        // GET /api/characters
+        group.MapGet("/", async (
+            IGetAllCharactersUseCase getAll,
+            ClaimsPrincipal user) =>
+        {
+            return Results.Ok(await getAll.ExecuteAsync());
+        })
+        .WithName("GetCharacters")
+        .WithSummary("Retourne tous les personnages visibles par les utilisateurs connectés.");
+
+        // GET /api/characters/{id}
+        group.MapGet("/{id:guid}", async (
+            Guid id,
+            IGetCharacterByIdUseCase getById,
+            ClaimsPrincipal user) =>
+        {
+            var character = await getById.ExecuteAsync(id);
+            if (character is null) return Results.NotFound();
+
+            if (!user.IsInRole("admin") && character.UserId != GetUserId(user))
+                return Results.Forbid();
+
+            return Results.Ok(character);
+        })
+        .WithName("GetCharacter")
+        .WithSummary("Retourne un personnage par son identifiant.");
+
+        // POST /api/characters — member crée pour lui-même
+        group.MapPost("/", async (
+            [FromBody] CreateCharacterBody body,
+            ICreateCharacterUseCase create,
+            ClaimsPrincipal user) =>
+        {
+            var userId = GetUserId(user);
+            if (userId is null) return Results.Unauthorized();
+
+            var character = await create.ExecuteAsync(body.Name, body.Rank, userId);
+            return Results.Created($"/api/characters/{character.Id}", character);
+        })
+        .WithName("CreateCharacter")
+        .WithSummary("Crée un nouveau personnage pour l'utilisateur connecté.");
+
+        // PUT /api/characters/{id}
+        group.MapPut("/{id:guid}", async (
+            Guid id,
+            [FromBody] Character character,
+            IUpdateCharacterUseCase update,
+            IGetCharacterByIdUseCase getById,
+            ClaimsPrincipal user) =>
+        {
+            if (character.Id != id) return Results.BadRequest();
+
+            var existing = await getById.ExecuteAsync(id);
+            if (existing is null) return Results.NotFound();
+
+            if (existing.UserId != character.UserId)
+                return Results.BadRequest(new { error = "Le UserId ne peut pas être modifié." });
+
+            if (!user.IsInRole("admin") && existing.UserId != GetUserId(user))
+                return Results.Forbid();
+
+            await update.ExecuteAsync(character);
+            return Results.NoContent();
+        })
+        .WithName("UpdateCharacter")
+        .WithSummary("Met à jour un personnage existant.");
+
+        // DELETE /api/characters/{id}
+        group.MapDelete("/{id:guid}", async (
+            Guid id,
+            IDeleteCharacterUseCase delete,
+            IGetCharacterByIdUseCase getById,
+            ClaimsPrincipal user) =>
+        {
+            var existing = await getById.ExecuteAsync(id);
+            if (existing is null) return Results.NotFound();
+
+            if (!user.IsInRole("admin") && existing.UserId != GetUserId(user))
+                return Results.Forbid();
+
+            await delete.ExecuteAsync(id);
+            return Results.NoContent();
+        })
+        .WithName("DeleteCharacter")
+        .WithSummary("Supprime un personnage.");
+    }
+
+    private static Guid? GetUserId(ClaimsPrincipal user)
+    {
+        var sub = user.FindFirstValue(ClaimTypes.NameIdentifier);
+        return Guid.TryParse(sub, out var id) ? id : null;
+    }
+}

@@ -16,14 +16,16 @@ STS est un écosystème full-stack autour d'un système de roleplay tabulaire Fi
 
 ```
 STS.sln
-├── STS.Domain/            # Modèles et use cases du moteur de jeu ; namespace : Sts.Domain
-├── STS.Domain.Content/    # Modèles de contenu (règles, QuickLinks, SiteSettings) ; partagé API ↔ Web ↔ Admin
-├── STS.Domain.Tests/      # Tests xUnit ; référence STS.Api pour tester les repositories directement
-├── STS.Api/               # ASP.NET Core Minimal API ; JWT auth ; endpoints CRUD ; déploiement Docker
-├── STS.Admin/             # Blazor WASM ; interface d'administration (CRUD, filtres, tri)
-├── STS.Web/               # Blazor WASM ; frontend public ; rendu Markdown via Markdig
-├── STS.Discord/           # BackgroundService Discord.Net ; pattern décorateur sur les use cases
-└── STSPlugin/             # Plugin Dalamud ; référence STS.Domain
+├── STS.Domain/              # Moteur de jeu, DataSource/DataModel, repositories partagés ; namespace : Sts.Domain
+├── STS.Domain.Content/      # Modèles de contenu (règles, QuickLinks, SiteSettings) ; partagé API ↔ Web ↔ Admin
+├── STS.Domain.Character/    # Modèle Character, ICharacterRepository, use cases character ; namespace : Sts.Domain.Character
+├── STS.Domain.User/         # Modèle User (roles : Admin/Member), IUserRepository, use cases auth ; namespace : Sts.Domain.User
+├── STS.Domain.Tests/        # Tests xUnit ; référence STS.Api pour tester les repositories directement
+├── STS.Api/                 # ASP.NET Core Minimal API ; JWT auth ; endpoints CRUD ; déploiement Docker
+├── STS.Admin/               # Blazor WASM ; interface d'administration (CRUD, filtres, tri, gestion utilisateurs)
+├── STS.Web/                 # Blazor WASM ; frontend public ; fiches personnages ; auth membre
+├── STS.Discord/             # BackgroundService Discord.Net ; pattern décorateur sur les use cases
+└── STSPlugin/               # Plugin Dalamud ; référence STS.Domain + STS.Domain.Character
 ```
 
 ---
@@ -34,41 +36,59 @@ Le projet applique la **Clean Architecture**. Ne jamais la violer.
 
 | Couche | Projets | Ce qu'elle contient |
 |---|---|---|
-| Domain | `STS.Domain`, `STS.Domain.Content` | Interfaces, use cases, modèles métier |
+| Domain | `STS.Domain`, `STS.Domain.Content`, `STS.Domain.Character`, `STS.Domain.User` | Interfaces, use cases, modèles métier |
 | Infrastructure | `STS.Api` | Implémentations concrètes (repositories JSON, HTTP) |
 | Presentation | `STS.Admin`, `STS.Web`, `STSPlugin` | UI uniquement |
 | Cross-cutting | `STS.Discord` | Décorateurs autour des use cases |
 
-**Règle d'or :** Les interfaces et implémentations de use cases restent dans `STS.Domain` ou `STS.Domain.Content`. Les implémentations d'infrastructure (fichiers JSON, HTTP) restent dans `STS.Api`. **Un use case = une opération.**
+**Règle d'or :** Les interfaces et implémentations de use cases restent dans le domain. Les implémentations d'infrastructure restent dans `STS.Api`. **Un use case = une opération.**
+
+### Dépendances entre projets domain
+
+```
+STS.Domain.Character  →  STS.Domain        (RankKey, Rank, RollAction…)
+STS.Domain.User       →  (aucune)          User est autonome
+STS.Api               →  STS.Domain.Character + STS.Domain.User
+STSPlugin             →  STS.Domain + STS.Domain.Character
+STS.Web               →  STS.Domain.Character + STS.Domain.User
+```
+
+`Character.UserId` est un `Guid?` nu — pas de référence directe à `User`, pas de dépendance circulaire.
 
 ---
 
 ## Namespaces
 
-- `STS.Domain` utilise le namespace **`Sts.Domain`** (pas `STS.Domain`)
-- `STS.Domain.Content` utilise le namespace **`Sts.Domain.Content`**
-- `STS.Admin` utilise les namespaces **`Sts.Admin`** (racine) et **`STS.Admin`** (sous-dossiers — incohérence héritée, ne pas changer)
-- Les use cases du plugin utilisent **`STSPlugin.CharacterUseCases`** pour éviter l'ambiguïté avec `Sts.Domain.UseCases`
+- `STS.Domain` → **`Sts.Domain`**
+- `STS.Domain.Content` → **`Sts.Domain.Content`**
+- `STS.Domain.Character` → **`Sts.Domain.Character`**
+- `STS.Domain.User` → **`Sts.Domain.User`**
+- `STS.Domain` repositories partagés → **`Sts.Domain.Repositories`**
+- `STS.Domain` datasource → **`Sts.Domain.DataSource`**
+- `STS.Admin` → `Sts.Admin` (racine) et `STS.Admin` (sous-dossiers — incohérence héritée, ne pas changer)
+- Use cases plugin → **`STSPlugin.CharacterUseCases`**
+- Use cases auth plugin → **`STSPlugin.UseCases.Auth`**
+- État auth plugin → **`STSPlugin.Auth`**
 
 ---
 
 ## Conventions de nommage
 
-- Use cases : `ICreatePostUseCase`, `IUpdatePostUseCase`, `IDeletePostUseCase` (un verbe, une opération)
-- Repositories : `RulesRepository`, `IJobRepository`
-- Fakes de test : `FakeRulesDataSource`, `FakeRulesRepository` (classes écrites à la main, **pas de framework de mock**)
+- Use cases : `ICreateCharacterUseCase`, `IAuthenticateUserUseCase` (un verbe, une opération)
+- Repositories : `ICharacterRepository`, `IUserRepository`, `ITraitRepository`
+- Fakes de test : `FakeRulesDataSource`, `FakeRulesRepository` (**pas de framework de mock**)
+- DTOs API : `UserDto`, `CreateUserRequest`, `LoginRequest` — dans la couche API, pas dans le domain
 
 ---
 
 ## Règles xmldoc — obligatoires sur tous les membres publics
 
-Toute réécriture ou nouveau fichier doit inclure la documentation XML complète.
-
 ```csharp
-/// <summary>Crée un nouveau post de règles dans la section spécifiée.</summary>
-/// <param name="request">Les données du post à créer.</param>
-/// <returns>Le post créé avec son identifiant assigné.</returns>
-public async Task<RulesPost> ExecuteAsync(CreatePostRequest request) { ... }
+/// <summary>Authentifie un utilisateur par son nom et son code d'accès.</summary>
+/// <param name="username">Nom d'utilisateur saisi.</param>
+/// <param name="plainCode">Code d'accès en clair (non haché).</param>
+/// <returns>L'utilisateur authentifié, ou null si les identifiants sont incorrects.</returns>
+public async Task<User?> ExecuteAsync(string username, string plainCode) { ... }
 ```
 
 Utiliser `<inheritdoc/>` sur les implémentations d'interface.
@@ -77,9 +97,47 @@ Utiliser `<inheritdoc/>` sur les implémentations d'interface.
 
 ## Patterns établis
 
-### Clean Architecture côté Admin et Web — ViewModel + RemoteRepository
+### DataSource partagée (IDataSource)
 
-Les nouvelles pages de `STS.Admin` et `STS.Web` suivent un pattern strict :
+`IDataSource` est dans `Sts.Domain.DataSource`. Deux méthodes :
+- `Load()` — sync, retourne depuis le cache mémoire
+- `LoadAsync()` — async, charge la source et remplit le cache
+
+**Implémentations :**
+- `LocalJsonDataSource` — lit `data.json` sur disque (plugin mode local)
+- `RemoteJsonDataSource` — GET HTTP sync avec timeout (plugin mode remote)
+- `CachedDataSource` — décorateur remote → cache disque → local (plugin)
+- `HttpDataSource` — GET `/api/data` async avec cache mémoire (STS.Web)
+
+**Dans STS.Web** : `HttpDataSource.LoadAsync()` est appelé au démarrage avant `host.RunAsync()`. Les repositories singletons appellent `Load()` de façon synchrone ensuite.
+
+### Repositories de données de référence
+
+`ITraitRepository`, `IJobRepository`, `IAbilityRepository`, `IActionRepository` sont dans `Sts.Domain.Repositories`. Les implémentations `Default*Repository` sont aussi dans `STS.Domain` — elles prennent `IDataSource` et sont partagées entre plugin et web.
+
+**Constructeur pré-charge :** les Default*Repository chargent dans leur constructeur via `dataSource.Load()`. C'est possible car `Load()` est synchrone et le cache est déjà rempli (pre-load async au démarrage côté web, sync côté plugin).
+
+### Auth JWT unifiée (admin + member)
+
+Un seul endpoint `POST /api/auth/login`. Le JWT contient :
+- `ClaimTypes.NameIdentifier` = `userId` (Guid)
+- `ClaimTypes.Name` = `username`
+- `ClaimTypes.Role` = `"admin"` ou `"member"` (minuscules)
+
+Policies ASP.NET Core : `"admin"` et `"member"` déclarées dans `AddAuthorization`.
+
+`ISeedAdminUseCase` est exécuté au démarrage via `AdminSeedService` (`IHostedService`) — crée le compte admin depuis `appsettings` s'il n'existe pas.
+
+**STS.Web :** `AuthService` parse le JWT côté client (base64 decode du payload) pour extraire `UserId`, `Username`, `Role`. Pas de localStorage pour l'instant — session en mémoire uniquement.
+
+### Fiches personnages — accès et limites
+
+- Lecture : tout utilisateur authentifié voit toutes les fiches
+- Création : membre → 1 fiche max ; admin → 8 fiches max
+- Édition/suppression : propriétaire uniquement (vérifié via `UserId` dans le JWT)
+- `Character.UserId` est `Guid?` — null pour les fiches créées localement dans le plugin (rétrocompatibilité)
+
+### ViewModel pattern (STS.Admin et STS.Web)
 
 ```
 Pages/
@@ -89,102 +147,82 @@ Pages/
 ```
 
 **ViewModel :**
-- Injecté via DI (`AddScoped<XxxViewModel>()`)
-- Expose `Action? OnStateChanged` — le composant assigne `StateHasChanged`
-- Contient `IsLoading`, `Error`, et les champs de formulaire
-- Les commandes (`LoadAsync`, `SaveAsync`, etc.) appellent `Notify()` pour déclencher le re-render
+- `Action? OnStateChanged` — le composant assigne `StateHasChanged`
+- `IsLoading`, `IsSaving`, `Error`, `Success` — état standard
+- Commandes async appellent `Notify()` pour déclencher le re-render
+- Enregistré en `AddScoped<XxxViewModel>()` dans Program.cs
 
-**RemoteRepository :**
-- Implémente les **interfaces du domain** (`IQuickLinksRepository`, `ISiteSettingsRepository`)
-- Parle uniquement à l'API HTTP via `HttpClient`
-- Enregistré dans DI à la place des repositories JSON : même interface, implémentation différente
+### CharacterApiService (STS.Web)
 
-**Use cases :**
-- Les **mêmes implémentations** que `STS.Api` sont réutilisées dans `STS.Admin` et `STS.Web`
-- Seul le repository enregistré dans le DI change selon le projet
+Wrapper HTTP direct pour les fiches personnages — pas d'implémentation de `ICharacterRepository` (corps HTTP incompatibles entre POST et PUT). Méthodes : `GetAllAsync`, `GetByIdAsync`, `CreateAsync`, `UpdateAsync`, `DeleteAsync`.
 
-### Interfaces lecture seule (STS.Web)
+### Auth plugin (STSPlugin)
 
-`STS.Web` n'a accès qu'aux endpoints publics. Les interfaces de repository sont donc séparées :
+`AuthState` (singleton dans `MainDiContainer`) stocke le JWT, `TokenExpiry`, `Username`, `UserId` parsé depuis le token.
 
-```csharp
-// Lecture seule — utilisée par STS.Web et les use cases en lecture
-public interface IQuickLinksReadRepository
-{
-    Task<IEnumerable<QuickLink>> GetAllAsync();
-}
+Trois use cases dans `STSPlugin.UseCases.Auth` :
+- `ILoginUseCase` — POST `/api/auth/login`, parse le JWT, remplit `AuthState`
+- `ILogoutUseCase` — efface `AuthState`
+- `IGetTokenUseCase` — retourne le token valide, renouvelle automatiquement si expiré
 
-// Complète — étend la lecture seule, utilisée par STS.Api et STS.Admin
-public interface IQuickLinksRepository : IQuickLinksReadRepository
-{
-    Task<QuickLink> AddAsync(CreateQuickLinkParameters parameters);
-    Task<QuickLink?> UpdateAsync(Guid id, UpdateQuickLinkParameters parameters);
-    Task<bool> DeleteAsync(Guid id);
-}
-```
+Login automatique au démarrage si `PlayerUsername` + `PlayerPassword` sont renseignés dans `Configuration`. `ApiBaseUrl` remplace `BackendUrl` — toutes les URLs sont dérivées (`DataUrl`, `AuthUrl`, `CharactersUrl`).
 
-Dans `STS.Api` et `STS.Admin`, enregistrer les deux interfaces pour le même repository :
+Quand `AuthState.OnAuthChanged` se déclenche, `Plugin.cs` recharge le `CharacterRepository` (bascule Local ↔ Remote) et réassigne tous les use cases character (`private set`).
 
-```csharp
-builder.Services.AddSingleton<IQuickLinksRepository>(new QuickLinksRepository(...));
-builder.Services.AddSingleton<IQuickLinksReadRepository>(sp =>
-    sp.GetRequiredService<IQuickLinksRepository>());
-```
+### RemoteCharacterRepository (STSPlugin)
 
-### Paramètres de use case vs DTOs
+Implémente `ICharacterRepository` via appels HTTP à `/api/characters`. Injecte le JWT via `IGetTokenUseCase` et `AuthState`. Filtre `GetAllAsync()` sur `AuthState.UserId` — le plugin n'affiche que les fiches du joueur connecté.
 
-Les paramètres de use case (`CreateQuickLinkParameters`, `UpdateQuickLinkParameters`) vivent dans `STS.Domain.Content.UseCases`. Ce ne sont **pas** des DTOs HTTP — les DTOs appartiennent à la couche API/infrastructure. Les paramètres sont des entrées métier, pas des shapes JSON.
+`SaveAsync()` détecte création vs mise à jour via GET préalable (POST si inexistant, PUT si existant).
+
+`CharacterWindow.UpdateCharacter(fresh)` met à jour les fenêtres ouvertes après un sync. Ignorée si `_editMode` est actif. `_character` n'est pas `readonly` pour permettre cette mise à jour.
+
+### Use cases plugin — sync vs async
+
+- `GetActiveCharacterUseCase` et `SetActiveCharacterUseCase` restent **synchrones** (appelés depuis le render thread ImGui). Ils utilisent `.GetAwaiter().GetResult()` sur les méthodes async du repository.
+- Tous les autres use cases character sont **async**.
+- Les mutations dans les fenêtres ImGui utilisent `_ = Task.Run(() => useCase.ExecuteAsync(...))`.
+- Le cache UI (`_characters`, `_activeCharacter`) est mis à jour via `TriggerRefresh()` après chaque mutation.
 
 ### Décorateur Discord
 
-`STS.Discord` enveloppe `ICreatePostUseCase`, `IUpdatePostUseCase`, `IDeletePostUseCase` via le pattern décorateur.
-
-**Important :** `AddDiscordBot()` doit être appelé **après** les enregistrements des use cases dans `Program.cs`.
-
-`DiscordMappingStore` persiste `sectionId → forumChannelId` et `postId → threadId` dans `discord-mappings.json`. Quand `Discord:BotToken` est absent : `NullDiscordPublisher` est injecté automatiquement.
+`AddDiscordBot()` doit être appelé **après** les enregistrements des use cases dans `Program.cs`.
 
 ### Thread safety dans l'API
 
-`STS.Api` utilise `ReaderWriterLockSlim` pour les repositories JSON. **Ne jamais appeler une méthode qui acquiert le lock depuis l'intérieur d'un lock déjà détenu.** Utiliser une méthode privée interne sans lock pour les opérations imbriquées.
+`UserRepository` et `CharacterRepository` utilisent `SemaphoreSlim(1,1)`. **Ne jamais appeler une méthode qui acquiert le lock depuis une méthode qui le détient déjà** — risque de deadlock. Utiliser une méthode privée interne sans lock pour les opérations imbriquées.
 
-### Responsabilité des repositories JSON
+Pattern correct :
+```csharp
+public async Task SaveAsync(Character character)
+{
+    await _lock.WaitAsync();
+    try   { await SaveInternalAsync(character); }   // interne, sans lock
+    finally { _lock.Release(); }
+}
 
-Les repositories JSON (`QuickLinksRepository`, `SiteSettingsRepository`) gèrent eux-mêmes les opérations find+update/delete en interne. Les use cases ne font **jamais** `GetByIdAsync` suivi d'un `UpdateAsync` — le repository encapsule cette logique. Cela garantit que les `RemoteRepository` HTTP n'ont pas besoin d'un appel supplémentaire.
+private async Task SaveInternalAsync(Character character) { ... } // pas de lock ici
+```
 
-### Chemins de fichiers JSON
-
-Les chemins sont passés par configuration, cohérents avec `Discord:MappingsFilePath` :
+### Chemins de fichiers JSON (STS.Api)
 
 ```json
 "Data": {
-  "QuickLinksFilePath": "data/quick-links.json",
-  "SiteSettingsFilePath": "data/site-settings.json"
+  "UsersFilePath": "/data/users.json",
+  "CharactersFilePath": "/data/characters.json",
+  "QuickLinksFilePath": "/data/quick-links.json",
+  "SiteSettingsFilePath": "/data/site-settings.json"
 }
 ```
 
-En production Docker, surcharger par variables d'environnement avec des chemins absolus :
-
-```yaml
-environment:
-  - Data__QuickLinksFilePath=/data/quick-links.json
-  - Data__SiteSettingsFilePath=/data/site-settings.json
-```
-
-Les repositories créent le répertoire parent automatiquement (`Directory.CreateDirectory`) — aucune pré-création manuelle requise.
-
-### Auth dans STS.Admin
-
-`AuthService` stocke le JWT dans localStorage. `ApiClient` injecte automatiquement le header Bearer et redirige sur 401.
-
-### CachedDataSource dans STSPlugin
-
-`CachedDataSource` doit être instancié via DI pour que le fallback et le cache fonctionnent. Trois niveaux : remote → disk → bundled.
+Variables d'environnement Docker : `Data__UsersFilePath=/data/users.json`, etc.
 
 ---
 
 ## Pièges ImGui connus (STSPlugin)
 
 - **`BeginTabBar` + drag-and-drop = crash.** Remplacer par un toggle `_activeTab` (int) géré manuellement.
+- **`_character` dans `CharacterWindow` n'est pas `readonly`** — nécessaire pour `UpdateCharacter(fresh)`. Ne pas remettre `readonly`.
 - Deux bugs connus à corriger :
   1. Le bouton Roll contourne `plugin.StartRoll()`.
   2. Avantage/Désavantage non supporté correctement en mode GameRandom.
@@ -195,8 +233,7 @@ Les repositories créent le répertoire parent automatiquement (`Directory.Creat
 
 - Framework : **xUnit + FluentAssertions**
 - **Pas de framework de mock** — fakes écrits à la main
-- `STS.Domain.Tests` référence `STS.Api` directement pour tester les repositories JSON (tests d'intégration fichier)
-- Les fakes implémentent les interfaces domain et dupliquent la logique interne du repository pour les tests unitaires
+- `STS.Domain.Tests` référence `STS.Api` directement pour tester les repositories JSON
 - Lancer les tests : `dotnet test`
 
 ---
@@ -205,23 +242,50 @@ Les repositories créent le répertoire parent automatiquement (`Directory.Creat
 
 - Déploiement sur OVH VPS via Docker ; reverse proxy Caddy (HTTPS Let's Encrypt)
 - SSH sur le port **2222**, authentification par clé uniquement
-- Les fichiers JSON (`quick-links.json`, `site-settings.json`) sont dans le volume `sts-db` (`/data/`) aux côtés de `sts.db` — ils sont créés automatiquement au premier write
+- Volume `sts-db` (`/data/`) : `sts.db`, `users.json`, `characters.json`, `quick-links.json`, `site-settings.json`
+- Les fichiers JSON sont créés automatiquement au premier write
 
 ---
 
 ## Blazor — pièges connus
 
 - `section` est un mot-clé réservé dans les directives Razor — renommer toute variable portant ce nom.
-- `@namespace` obligatoire dans les composants dont le dossier crée une collision de nom avec Blazor (ex. `Pages/Home/Home.razor` nécessite `@namespace STS.Web.Pages.Home`).
+- `@namespace` obligatoire dans les composants dont le dossier crée une collision de nom avec Blazor.
 - Pour du JS réagissant à des éléments chargés dynamiquement, utiliser un `MutationObserver`.
-- Le highlighter Chroma applique la classe `.go` — neutraliser avec `background: transparent !important`.
+- En Blazor WASM, `Scoped` se comporte comme `Singleton` — ne pas enregistrer en `Singleton` un service qui dépend de `HttpClient` (enregistré en `Scoped`).
+- **`_Imports.razor` dans STS.Web** — centraliser les `@using` récurrents :
+  ```razor
+  @using Sts.Domain
+  @using Sts.Domain.Character
+  @using Sts.Domain.User
+  @using STS.Web.ViewModels
+  @using STS.Web.Services
+  ```
+
+## BCrypt
+
+Le package NuGet s'appelle **`BCrypt.Net-Next`** (pas `BCrypt.Net`). L'appel se fait via le chemin complet pour éviter l'ambiguïté entre le namespace et la classe :
+
+```csharp
+// ✅ Correct
+BCrypt.Net.BCrypt.HashPassword(plaintext, workFactor);
+BCrypt.Net.BCrypt.Verify(plaintext, hash);
+
+// ✅ Aussi valide — alias
+using BC = BCrypt.Net.BCrypt;
+BC.HashPassword(plaintext, workFactor);
+
+// ❌ Éviter — crée une ambiguïté
+using BCrypt.Net;
+BCrypt.HashPassword(...); // erreur de compilation
+```
 
 ---
 
 ## CSS / Frontend (STS.Web)
 
 - Thème bleu-nuit : `--bg-deep`, `--bg-surface`, `--bg-card`, `--teal`, `--ice`, `--moon`, `--amber`, `--purple`
-- Classes utilitaires : `sts-card`, `sts-card-accent`, `sts-card-accent-ice`, `sts-card-accent-amber`, `sts-nav`, `sts-nav-link`, `sts-sidebar`, etc.
+- Classes utilitaires : `sts-card`, `sts-card-accent`, `sts-nav`, `sts-btn`, `sts-btn-primary`, `sts-btn-ghost`, `sts-input`, `sts-label`, `sts-field`, `sts-modal`, `sts-modal-backdrop`, `sts-rank-btn`, `sts-section-title`, `sts-back-link`
 - Pas de Bootstrap côté `STS.Web` — CSS custom uniquement
 - Valider les changements dans les DevTools avant de committer
 

@@ -1,0 +1,191 @@
+/* ── Modale ──────────────────────────────────────────────────────────────── */
+
+.sts-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(2px);
+    z-index: 100;
+}
+
+.sts-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 101;
+    width: min(420px, calc(100vw - 2rem));
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    overflow: hidden;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+}
+
+.sts-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.sts-modal-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.sts-modal-close {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0.25rem;
+    line-height: 1;
+    transition: color 0.15s;
+}
+
+.sts-modal-close:hover { color: var(--text-primary); }
+
+.sts-modal-body {
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.sts-modal-footer {
+    padding: 1rem 1.5rem 1.25rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    border-top: 1px solid var(--border);
+}
+
+/* ── Champs ──────────────────────────────────────────────────────────────── */
+
+.sts-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.sts-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-secondary, var(--text-muted));
+}
+
+.sts-input {
+    background: var(--bg-base, var(--bg-surface));
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    padding: 0.55rem 0.75rem;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    width: 100%;
+}
+
+.sts-input:focus {
+    border-color: var(--teal);
+    box-shadow: 0 0 0 3px rgba(var(--teal-rgb, 15, 110, 86), 0.15);
+}
+
+.sts-input-error { border-color: var(--danger, #c0392b); }
+.sts-input:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Alerte ──────────────────────────────────────────────────────────────── */
+
+.sts-alert {
+    padding: 0.6rem 0.9rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+}
+
+.sts-alert-error {
+    background: rgba(192, 57, 43, 0.12);
+    border: 1px solid rgba(192, 57, 43, 0.35);
+    color: var(--danger, #e74c3c);
+}
+
+/* ── Boutons ─────────────────────────────────────────────────────────────── */
+
+.sts-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    transition: background 0.15s, opacity 0.15s;
+    white-space: nowrap;
+}
+
+.sts-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.sts-btn-sm { padding: 0.35rem 0.75rem; font-size: 0.8rem; }
+
+.sts-btn-primary {
+    background: var(--teal);
+    color: #fff;
+}
+.sts-btn-primary:hover:not(:disabled) { filter: brightness(1.1); }
+
+.sts-btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+}
+.sts-btn-ghost:hover:not(:disabled) {
+    background: rgba(255,255,255,0.06);
+    color: var(--text-primary);
+}
+
+/* ── Spinner inline ──────────────────────────────────────────────────────── */
+
+.sts-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: sts-spin 0.6s linear infinite;
+    display: inline-block;
+}
+
+@keyframes sts-spin { to { transform: rotate(360deg); } }
+
+/* ── Zone auth dans la nav ───────────────────────────────────────────────── */
+
+.sts-nav-auth {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-left: auto;
+    padding-right: 0.5rem;
+}
+
+.sts-nav-username {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Masquer la zone auth dans le menu mobile si besoin */
+@media (max-width: 768px) {
+    .sts-nav-auth { padding-right: 3rem; }
+}
