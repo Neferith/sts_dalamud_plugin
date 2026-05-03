@@ -15,12 +15,20 @@
     <div style="display:flex;gap:0.5rem;margin-left:auto;">
         @if (VM.IsOwner)
         {
-            <a href="/personnages/@Id/editer" class="sts-btn sts-btn-primary sts-btn-sm">✎ Éditer</a>
-            <button class="sts-btn sts-btn-ghost sts-btn-sm" @onclick="ExportDiscord"
-                    disabled="@_exporting">⬇ Discord</button>
-            <button class="sts-btn sts-btn-ghost sts-btn-sm" @onclick="ExportPdf"
-                    disabled="@_exporting">⬇ PDF</button>
-            <button class="sts-btn sts-btn-ghost sts-btn-sm" @onclick="Delete">Supprimer</button>
+            <!-- Desktop -->
+            <div class="sts-actions-desktop">
+                <a href="/personnages/@Id/editer" class="sts-btn sts-btn-primary sts-btn-sm">✎ Éditer</a>
+                <button class="sts-btn sts-btn-ghost sts-btn-sm" @onclick="ExportDiscord"
+                        disabled="@_exporting">⬇ Discord</button>
+                <button class="sts-btn sts-btn-ghost sts-btn-sm" @onclick="ExportPdf"
+                        disabled="@_exporting">⬇ PDF</button>
+                <button class="sts-btn sts-btn-ghost sts-btn-sm" @onclick="Delete">Supprimer</button>
+            </div>
+
+            <!-- Mobile -->
+            <div class="sts-actions-mobile">
+                <button class="sts-btn sts-btn-ghost sts-btn-sm" @onclick="() => _showActionsModal = true">⋯</button>
+            </div>
         }
     </div>
 </div>
@@ -256,8 +264,29 @@ else if (VM.Character is { } c)
     }
 }
 
+@if (_showActionsModal)
+{
+    <div class="sts-modal-backdrop" @onclick="() => _showActionsModal = false"></div>
+    <div class="sts-modal">
+        <div class="sts-modal-header">
+            <h2 class="sts-modal-title">Actions</h2>
+            <button class="sts-modal-close" @onclick="() => _showActionsModal = false">✕</button>
+        </div>
+        <div class="sts-modal-body" style="display:flex;flex-direction:column;gap:0.75rem;">
+            <a href="/personnages/@Id/editer" class="sts-btn sts-btn-primary">✎ Éditer</a>
+            <button class="sts-btn sts-btn-ghost" @onclick="() => { _showActionsModal = false; _ = ExportDiscord(); }"
+                    disabled="@_exporting">⬇ Export Discord</button>
+            <button class="sts-btn sts-btn-ghost" @onclick="() => { _showActionsModal = false; _ = ExportPdf(); }"
+                    disabled="@_exporting">⬇ Export PDF</button>
+            <button class="sts-btn sts-btn-ghost" style="color:var(--error, #e05)"
+                    @onclick="() => { _showActionsModal = false; _ = Delete(); }">Supprimer</button>
+        </div>
+    </div>
+}
+
 @code {
     [Parameter] public Guid Id { get; set; }
+    private bool _showActionsModal;
 
     protected override async Task OnInitializedAsync()
     {
