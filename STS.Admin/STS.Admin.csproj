@@ -13,6 +13,7 @@
         <ProjectReference Include="..\STS.Domain\STS.Domain.csproj" />
         <ProjectReference Include="..\STS.Domain.Content\STS.Domain.Content.csproj" />
         <ProjectReference Include="..\STS.Domain.User\STS.Domain.User.csproj" />
+        <ProjectReference Include="..\STS.Domain.Character\STS.Domain.Character.csproj" />
         <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.0" />
         <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.0" PrivateAssets="all" />
     </ItemGroup>
