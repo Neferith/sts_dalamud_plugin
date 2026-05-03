@@ -160,45 +160,57 @@ else if (VM.Character is { } c)
     @if (c.EquippedAbilities.Count > 0)
     {
         <h2 class="sts-section-title">Compétences (@c.SpentSkillPoints / @c.SkillPoints pts)</h2>
-        <div class="sts-cards">
-            @foreach (var eq in c.EquippedAbilities)
-            {
-                var ability = VM.GetAbility(eq.AbilityId);
-                var fp      = c.GetFreePointsForAbility(eq.AbilityId);
-                var levelDesc = ability?.Levels
-                    .Where(l => l.Level <= eq.Level)
-                    .OrderBy(l => l.Level)
-                    .ToList() ?? [];
 
-                <div class="sts-card">
-                    <div class="sts-card-header">
-                        <span class="sts-card-title">@(ability?.Name ?? eq.AbilityId)</span>
-                        <span class="sts-badge sts-badge-active">Lv@(eq.Level)</span>
-                        @if (fp > 0)
+        @foreach (var rang in new[] { 1, 2, 3 })
+        {
+            var groupe = c.EquippedAbilities
+                .Where(eq => eq.Level == rang)
+                .ToList();
+
+            if (groupe.Count == 0) continue;
+
+            <p class="sts-dim" style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin:0.75rem 0 0.25rem;">
+                Rang @rang
+            </p>
+            <div class="sts-cards">
+                @foreach (var eq in groupe)
+                {
+                    var ability   = VM.GetAbility(eq.AbilityId);
+                    var fp        = c.GetFreePointsForAbility(eq.AbilityId);
+                    var levelDesc = ability?.Levels
+                        .Where(l => l.Level <= eq.Level)
+                        .OrderBy(l => l.Level)
+                        .ToList() ?? [];
+
+                    <div class="sts-card">
+                        <div class="sts-card-header">
+                            <span class="sts-card-title">@(ability?.Name ?? eq.AbilityId)</span>
+                            @if (fp > 0)
+                            {
+                                <span class="sts-badge sts-badge-passive">@fp pt(s) certif.</span>
+                            }
+                            @if (ability?.UsageLimit is UsageLimit ul && ul != UsageLimit.None)
+                            {
+                                <span class="sts-badge sts-badge-job">@VM.UsageLimitLabel(ul)</span>
+                            }
+                        </div>
+                        @foreach (var ld in levelDesc)
                         {
-                            <span class="sts-badge sts-badge-passive">@fp pt(s) certif.</span>
-                        }
-                        @if (ability?.UsageLimit is UsageLimit ul && ul != UsageLimit.None)
-                        {
-                            <span class="sts-badge sts-badge-job">@VM.UsageLimitLabel(ul)</span>
+                            @if (!string.IsNullOrWhiteSpace(ld.Description))
+                            {
+                                <div class="sts-card-desc" style="margin-top:4px;">
+                                    @if (eq.Level > 1)
+                                    {
+                                        <span style="color:var(--teal); font-size:11px;">Lv@(ld.Level) — </span>
+                                    }
+                                    @ld.Description
+                                </div>
+                            }
                         }
                     </div>
-                    @foreach (var ld in levelDesc)
-                    {
-                        @if (!string.IsNullOrWhiteSpace(ld.Description))
-                        {
-                            <div class="sts-card-desc" style="margin-top:4px;">
-                                @if (eq.Level > 1)
-                                {
-                                    <span style="color:var(--teal); font-size:11px;">Lv@(ld.Level) — </span>
-                                }
-                                @ld.Description
-                            </div>
-                        }
-                    }
-                </div>
-            }
-        </div>
+                }
+            </div>
+        }
     }
 
     <!-- Inventaire -->
