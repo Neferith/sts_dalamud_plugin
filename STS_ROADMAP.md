@@ -11,6 +11,22 @@
 
 ---
 
+## 🎯 V1 — Features en attente
+
+Objectif : fiche personnage complète et utilisable en event.
+
+- [ ] **Image de personnage** — upload depuis STS.Web et STS.Admin, affichée sur la fiche
+- [ ] **Stats visibles** — rang, palier, rerolls, réputation, avoirs de compagnie
+- [ ] **Capacités par rang** — liste rang 1, rang 2, rang 3 avec descriptions
+- [ ] **Traits** — liste des traits équipés avec descriptions (déjà partiellement présent)
+- [ ] **Possessions uniques** — liste dédiée (distincte de l'inventaire général)
+- [ ] **Export depuis STS.Admin** — PDF, Markdown, JSON par fiche
+- [ ] **Amélioration visuelle STS.Web** — rendu fiche plus riche, mise en page soignée
+- [ ] **Session persistante STS.Web** — localStorage pour le JWT
+- [ ] **Vue fiches dans STS.Admin** — liste de toutes les fiches + modération (certifications, rang)
+
+---
+
 ## 🗃️ Données
 - [ ] Corrections des incohérences dans `data.json` (surfacées via l'admin UI)
 - [ ] Migration `users.json` → SQLite
@@ -31,8 +47,8 @@
 - [x] `RemoteJsonDataSource` + `CachedDataSource` — consommation de l'API
 - [x] `LocalCharacterRepository` async — fiches personnages locales
 - [x] Use cases character async — pattern cache UI pour le render thread ImGui
-- [ ] `RemoteCharacterRepository` — synchronisation fiches locales ↔ API
-- [ ] Auth du plugin vers l'API (token joueur)
+- [x] `RemoteCharacterRepository` — synchronisation fiches depuis l'API, filtre sur `UserId`
+- [x] Auth du plugin vers l'API (`ILoginUseCase`, `ILogoutUseCase`, `IGetTokenUseCase`, `AuthState`)
 - [ ] 🖼️ Portrait capture — détection GPOSE via `ICondition` (déféré)
 
 ---

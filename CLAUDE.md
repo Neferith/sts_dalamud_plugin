@@ -67,6 +67,8 @@ STS.Web               →  STS.Domain.Character + STS.Domain.User
 - `STS.Domain` datasource → **`Sts.Domain.DataSource`**
 - `STS.Admin` → `Sts.Admin` (racine) et `STS.Admin` (sous-dossiers — incohérence héritée, ne pas changer)
 - Use cases plugin → **`STSPlugin.CharacterUseCases`**
+- Use cases auth plugin → **`STSPlugin.UseCases.Auth`**
+- État auth plugin → **`STSPlugin.Auth`**
 
 ---
 
@@ -154,6 +156,27 @@ Pages/
 
 Wrapper HTTP direct pour les fiches personnages — pas d'implémentation de `ICharacterRepository` (corps HTTP incompatibles entre POST et PUT). Méthodes : `GetAllAsync`, `GetByIdAsync`, `CreateAsync`, `UpdateAsync`, `DeleteAsync`.
 
+### Auth plugin (STSPlugin)
+
+`AuthState` (singleton dans `MainDiContainer`) stocke le JWT, `TokenExpiry`, `Username`, `UserId` parsé depuis le token.
+
+Trois use cases dans `STSPlugin.UseCases.Auth` :
+- `ILoginUseCase` — POST `/api/auth/login`, parse le JWT, remplit `AuthState`
+- `ILogoutUseCase` — efface `AuthState`
+- `IGetTokenUseCase` — retourne le token valide, renouvelle automatiquement si expiré
+
+Login automatique au démarrage si `PlayerUsername` + `PlayerPassword` sont renseignés dans `Configuration`. `ApiBaseUrl` remplace `BackendUrl` — toutes les URLs sont dérivées (`DataUrl`, `AuthUrl`, `CharactersUrl`).
+
+Quand `AuthState.OnAuthChanged` se déclenche, `Plugin.cs` recharge le `CharacterRepository` (bascule Local ↔ Remote) et réassigne tous les use cases character (`private set`).
+
+### RemoteCharacterRepository (STSPlugin)
+
+Implémente `ICharacterRepository` via appels HTTP à `/api/characters`. Injecte le JWT via `IGetTokenUseCase` et `AuthState`. Filtre `GetAllAsync()` sur `AuthState.UserId` — le plugin n'affiche que les fiches du joueur connecté.
+
+`SaveAsync()` détecte création vs mise à jour via GET préalable (POST si inexistant, PUT si existant).
+
+`CharacterWindow.UpdateCharacter(fresh)` met à jour les fenêtres ouvertes après un sync. Ignorée si `_editMode` est actif. `_character` n'est pas `readonly` pour permettre cette mise à jour.
+
 ### Use cases plugin — sync vs async
 
 - `GetActiveCharacterUseCase` et `SetActiveCharacterUseCase` restent **synchrones** (appelés depuis le render thread ImGui). Ils utilisent `.GetAwaiter().GetResult()` sur les méthodes async du repository.
@@ -199,6 +222,7 @@ Variables d'environnement Docker : `Data__UsersFilePath=/data/users.json`, etc.
 ## Pièges ImGui connus (STSPlugin)
 
 - **`BeginTabBar` + drag-and-drop = crash.** Remplacer par un toggle `_activeTab` (int) géré manuellement.
+- **`_character` dans `CharacterWindow` n'est pas `readonly`** — nécessaire pour `UpdateCharacter(fresh)`. Ne pas remettre `readonly`.
 - Deux bugs connus à corriger :
   1. Le bouton Roll contourne `plugin.StartRoll()`.
   2. Avantage/Désavantage non supporté correctement en mode GameRandom.

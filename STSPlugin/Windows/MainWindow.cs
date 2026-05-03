@@ -27,9 +27,6 @@ public class MainWindow : Window, IDisposable
     private static readonly Vector4 ColActive = new(0.20f, 0.20f, 0.20f, 0.40f);
 
     // ── Cache async ────────────────────────────────────────────────────────────
-    // Draw() est synchrone (render thread). Les use cases sont async.
-    // On ne lit jamais directement les use cases dans Draw() — uniquement le cache.
-
     private IReadOnlyList<Character> _characters = [];
     private Character? _activeCharacter;
     private bool _isLoading;
@@ -63,27 +60,55 @@ public class MainWindow : Window, IDisposable
     /// Déclenche un refresh des données en arrière-plan.
     /// Ignoré si un refresh est déjà en cours.
     /// </summary>
-    private void TriggerRefresh()
+    public void TriggerRefresh()
     {
-        if (_refreshTask is { IsCompleted: false }) return;
+        if (_refreshTask is { IsCompleted: false })
+        {
+            Plugin.Log.Debug("[STS] TriggerRefresh — ignoré, refresh déjà en cours");
+            return;
+        }
 
+        Plugin.Log.Debug("[STS] TriggerRefresh — démarrage refresh");
         _isLoading = true;
         _refreshTask = Task.Run(RefreshAsync);
     }
 
+    private string? _refreshError;
+
     private async Task RefreshAsync()
     {
+        _refreshError = null;
+        Plugin.Log.Debug("[STS] RefreshAsync — début");
+        Plugin.Log.Debug("[STS] RefreshAsync — connecté : {0}, repo : {1}",
+            plugin.AuthState.IsAuthenticated,
+            plugin.GetAllCharacters.GetType().Name);
         try
         {
+            Plugin.Log.Debug("[STS] RefreshAsync — appel GetAllCharacters...");
             var characters = await plugin.GetAllCharacters.ExecuteAsync();
+            Plugin.Log.Debug("[STS] RefreshAsync — {0} fiche(s) reçue(s)", characters.Count);
+
             var activeCharacter = plugin.GetActiveCharacter.Execute();
+            Plugin.Log.Debug("[STS] RefreshAsync — actif : {0}",
+                activeCharacter?.Name ?? "aucun");
 
             _characters = characters;
             _activeCharacter = activeCharacter;
+            Plugin.Log.Debug("[STS] RefreshAsync — cache UI mis à jour");
+
+            // Mettre à jour les CharacterWindow ouvertes avec les données fraîches
+            plugin.RefreshCharacterWindows(characters);
+        }
+        catch (Exception ex)
+        {
+            _refreshError = $"Erreur sync : {ex.Message}";
+            Plugin.Log.Warning("[STS] RefreshAsync échoué — {0} : {1}",
+                ex.GetType().Name, ex.Message);
         }
         finally
         {
             _isLoading = false;
+            Plugin.Log.Debug("[STS] RefreshAsync — terminé");
         }
     }
 
@@ -112,10 +137,6 @@ public class MainWindow : Window, IDisposable
 
     // ── Loader ─────────────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Affiche un indicateur de chargement inline.
-    /// À enrichir (spinner animé, etc.) selon les besoins futurs.
-    /// </summary>
     private static void DrawLoader()
     {
         ImGui.Spacing();
@@ -167,8 +188,6 @@ public class MainWindow : Window, IDisposable
         DrawHistory();
     }
 
-    // ------------------------------------------------------------------ En-tête personnage actif
-
     private void DrawActiveCharacterHeader(Character active)
     {
         var rank = Rank.Get(active.RankKey);
@@ -182,8 +201,6 @@ public class MainWindow : Window, IDisposable
         ImGui.SameLine();
         ImGui.TextColored(ColMuted, $"— {rank.Label}");
     }
-
-    // ------------------------------------------------------------------ Stats
 
     private void DrawStats()
     {
@@ -209,8 +226,6 @@ public class MainWindow : Window, IDisposable
         ImGui.EndGroup();
     }
 
-    // ------------------------------------------------------------------ Mode
-
     private void DrawModeRow()
     {
         ImGui.TextColored(ColMuted, "Mode :");
@@ -234,8 +249,6 @@ public class MainWindow : Window, IDisposable
             Engine.Mode = mode;
         if (active) ImGui.PopStyleColor(2);
     }
-
-    // ------------------------------------------------------------------ Modificateur
 
     private void DrawModifierRow()
     {
@@ -266,16 +279,12 @@ public class MainWindow : Window, IDisposable
         }
     }
 
-    // ------------------------------------------------------------------ Bouton lancer
-
     private void DrawRollButton()
     {
         var avail = ImGui.GetContentRegionAvail().X;
         if (ImGui.Button("Lancer les dés##roll", new Vector2(avail, 0)))
             plugin.StartRoll(null);
     }
-
-    // ------------------------------------------------------------------ Dés
 
     private void DrawDice()
     {
@@ -317,8 +326,6 @@ public class MainWindow : Window, IDisposable
         ImGui.EndGroup();
     }
 
-    // ------------------------------------------------------------------ Reroll
-
     private void DrawRerollButton()
     {
         if (!Engine.HasRolled) return;
@@ -345,8 +352,6 @@ public class MainWindow : Window, IDisposable
         }
     }
 
-    // ------------------------------------------------------------------ Résultat
-
     private void DrawResult()
     {
         if (Engine.LastResult is not { } result) return;
@@ -370,8 +375,6 @@ public class MainWindow : Window, IDisposable
         ImGui.TextColored(ColMuted, $"{lbl}  ·  palier {result.Palier}+");
     }
 
-    // ------------------------------------------------------------------ Reset event
-
     private void DrawResetButton()
     {
         var avail = ImGui.GetContentRegionAvail().X;
@@ -382,8 +385,6 @@ public class MainWindow : Window, IDisposable
             Engine.ResetEvent();
         ImGui.PopStyleColor(3);
     }
-
-    // ------------------------------------------------------------------ Historique
 
     private void DrawHistory()
     {
@@ -427,10 +428,36 @@ public class MainWindow : Window, IDisposable
         var characters = _characters;
         var activeId = _activeCharacter?.Id;
 
-        // ---- Liste des personnages ----
+        // ---- Header + bouton Rafraîchir ----
         ImGui.TextColored(ColMuted, "PERSONNAGES");
+
+        // Statut de connexion + bouton sync alignés à droite
+        var isConnected = plugin.AuthState.IsAuthenticated;
+        if (isConnected)
+        {
+            ImGui.SameLine();
+            ImGui.SetCursorPosX(ImGui.GetContentRegionAvail().X - 110);
+            ImGui.TextColored(ColMuted, $"● {plugin.AuthState.Username}");
+        }
+
+        ImGui.SameLine();
+        ImGui.SetCursorPosX(ImGui.GetContentRegionAvail().X - 60);
+        ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.3f, 0.3f, 0.3f, 0.20f));
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.3f, 0.3f, 0.3f, 0.35f));
+        if (ImGui.Button("↺ Sync##refresh_chars"))
+            TriggerRefresh();
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip(isConnected ? "Synchroniser depuis l'API" : "Rafraîchir les fiches locales");
+        ImGui.PopStyleColor(2);
+
         ImGui.Separator();
         ImGui.Spacing();
+
+        if (_refreshError is not null)
+        {
+            ImGui.TextColored(new Vector4(0.64f, 0.17f, 0.17f, 1f), _refreshError);
+            ImGui.Spacing();
+        }
 
         if (characters.Count == 0)
         {
@@ -487,7 +514,6 @@ public class MainWindow : Window, IDisposable
 
             var avail = ImGui.GetContentRegionAvail().X;
 
-            // Activer / Désactiver
             if (!isActive)
             {
                 ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.09f, 0.37f, 0.65f, 0.25f));
@@ -516,13 +542,11 @@ public class MainWindow : Window, IDisposable
 
             ImGui.Spacing();
 
-            // Ouvrir la fiche
             if (ImGui.Button("Ouvrir la fiche##open_char", new Vector2(avail, 0)))
                 plugin.OpenCharacterWindow(selected);
 
             ImGui.Spacing();
 
-            // Supprimer
             ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.64f, 0.17f, 0.17f, 0.20f));
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.64f, 0.17f, 0.17f, 0.40f));
             ImGui.PushStyleColor(ImGuiCol.Text, ColDanger);
