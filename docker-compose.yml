@@ -7,19 +7,23 @@ services:
       - "8080:8080"
     volumes:
       - ./data.json:/app/data.json
-      - ./discord-mappings.json:/app/discord-mappings.json  # ← ajout
+      - ./discord-mappings.json:/app/discord-mappings.json
       - sts-db:/data
       - sts-images:/app/images
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - Sts__DataFilePath=/app/data.json
-      - Discord__MappingsFilePath=/app/discord-mappings.json  # ← ajout
+      - Discord__MappingsFilePath=/app/discord-mappings.json
       - Jwt__Secret=${JWT_SECRET}
       - Discord__BotToken=${DISCORD_BOT_TOKEN}
       - Jwt__Issuer=sts-api
       - Jwt__Audience=sts-admin
       - Admin__Username=${ADMIN_USERNAME}
       - Admin__Password=${ADMIN_PASSWORD}
+      - Data__QuickLinksFilePath=/data/quick-links.json
+      - Data__SiteSettingsFilePath=/data/site-settings.json
+      - Data__UsersFilePath=/data/users.json
+      - Data__CharactersFilePath=/data/characters.json
 
   sts-web:
     image: sts-web:latest
