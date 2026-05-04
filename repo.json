@@ -5,7 +5,7 @@
         "Description":  "Outil de jets de dés pour le Système Très Simple.",
         "IconUrl":  "https://raw.githubusercontent.com/Neferith/sts_dalamud_plugin/master/STSPlugin/MoonLogo_sharpened.png",
         "InternalName":  "STSPlugin",
-        "AssemblyVersion":  "18.0.0.0",
+        "AssemblyVersion":  "18.1.0.0",
         "RepoUrl":  "https://github.com/Neferith/sts_dalamud_plugin",
         "ApplicableVersion":  "any",
         "DalamudApiLevel":  15,

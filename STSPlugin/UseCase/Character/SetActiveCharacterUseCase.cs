@@ -11,16 +11,13 @@ public interface SetActiveCharacterUseCase
 public class DefaultSetActiveCharacterUseCase : SetActiveCharacterUseCase
 {
     private readonly Configuration _configuration;
-    private readonly StsEngine _engine;
     private readonly CharacterStore _store;
 
     public DefaultSetActiveCharacterUseCase(
         Configuration configuration,
-        StsEngine engine,
         CharacterStore store)
     {
         _configuration = configuration;
-        _engine = engine;
         _store = store;
     }
 
@@ -28,7 +25,6 @@ public class DefaultSetActiveCharacterUseCase : SetActiveCharacterUseCase
     {
         _configuration.ActiveCharacterId = character?.Id;
         _configuration.Save();
-        if (character != null) _engine.ChangeRank(character.RankKey);
-        _store.SetActive(character?.Id);
+        _store.SetActive(character?.Id); // → OnActiveChanged → RefreshEquippedTraits → ChangeRank
     }
 }

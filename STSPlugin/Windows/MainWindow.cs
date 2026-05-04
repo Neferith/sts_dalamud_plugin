@@ -3,7 +3,6 @@ using Dalamud.Interface.Windowing;
 using Sts.Domain;
 using Sts.Domain.Character;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
@@ -15,7 +14,6 @@ public class MainWindow : Window, IDisposable
     private readonly Plugin plugin;
     private StsEngine Engine => plugin.Engine;
 
-    // Couleurs
     private static readonly Vector4 ColSuccess = new(0.06f, 0.43f, 0.34f, 1f);
     private static readonly Vector4 ColSuccessBg = new(0.06f, 0.43f, 0.34f, 0.15f);
     private static readonly Vector4 ColFail = new(0.55f, 0.55f, 0.55f, 1f);
@@ -26,15 +24,10 @@ public class MainWindow : Window, IDisposable
     private static readonly Vector4 ColWarn = new(0.52f, 0.31f, 0.04f, 1f);
     private static readonly Vector4 ColActive = new(0.20f, 0.20f, 0.20f, 0.40f);
 
-    // ── Cache async ────────────────────────────────────────────────────────────
-    private IReadOnlyList<Character> _characters = [];
-    private Character? _activeCharacter;
-    private bool _isLoading;
-    private Task? _refreshTask;
-
     // ── État UI ────────────────────────────────────────────────────────────────
     private string _newCharName = string.Empty;
     private Guid? _selectedId = null;
+    private bool _isSyncing = false;
 
     public MainWindow(Plugin plugin)
         : base("STS — Système Très Simple##sts_main",
@@ -47,72 +40,9 @@ public class MainWindow : Window, IDisposable
             MaximumSize = new Vector2(520, 860),
         };
         Size = new Vector2(370, 560);
-
-        // Chargement initial
-        TriggerRefresh();
     }
 
     public void Dispose() { }
-
-    // ── Refresh async ──────────────────────────────────────────────────────────
-
-    /// <summary>
-    /// Déclenche un refresh des données en arrière-plan.
-    /// Ignoré si un refresh est déjà en cours.
-    /// </summary>
-    public void TriggerRefresh()
-    {
-        if (_refreshTask is { IsCompleted: false })
-        {
-            Plugin.Log.Debug("[STS] TriggerRefresh — ignoré, refresh déjà en cours");
-            return;
-        }
-
-        Plugin.Log.Debug("[STS] TriggerRefresh — démarrage refresh");
-        _isLoading = true;
-        _refreshTask = Task.Run(RefreshAsync);
-    }
-
-    private string? _refreshError;
-
-    private async Task RefreshAsync()
-    {
-        _refreshError = null;
-        Plugin.Log.Debug("[STS] RefreshAsync — début");
-        Plugin.Log.Debug("[STS] RefreshAsync — connecté : {0}, repo : {1}",
-            plugin.AuthState.IsAuthenticated,
-            plugin.GetAllCharacters.GetType().Name);
-        try
-        {
-            Plugin.Log.Debug("[STS] RefreshAsync — appel GetAllCharacters...");
-            var characters = await plugin.GetAllCharacters.ExecuteAsync();
-            Plugin.Log.Debug("[STS] RefreshAsync — {0} fiche(s) reçue(s)", characters.Count);
-
-            var activeCharacter = plugin.GetActiveCharacter.Execute();
-            Plugin.Log.Debug("[STS] RefreshAsync — actif : {0}",
-                activeCharacter?.Name ?? "aucun");
-
-            _characters = characters;
-            _activeCharacter = activeCharacter;
-            Plugin.Log.Debug("[STS] RefreshAsync — cache UI mis à jour");
-
-            // Mettre à jour les CharacterWindow ouvertes avec les données fraîches
-            plugin.RefreshCharacterWindows(characters);
-        }
-        catch (Exception ex)
-        {
-            _refreshError = $"Erreur sync : {ex.Message}";
-            Plugin.Log.Warning("[STS] RefreshAsync échoué — {0} : {1}",
-                ex.GetType().Name, ex.Message);
-        }
-        finally
-        {
-            _isLoading = false;
-            Plugin.Log.Debug("[STS] RefreshAsync — terminé");
-        }
-    }
-
-    // ── Draw ───────────────────────────────────────────────────────────────────
 
     public override void Draw()
     {
@@ -135,26 +65,11 @@ public class MainWindow : Window, IDisposable
         ImGui.EndTabBar();
     }
 
-    // ── Loader ─────────────────────────────────────────────────────────────────
-
-    private static void DrawLoader()
-    {
-        ImGui.Spacing();
-        ImGui.TextColored(new Vector4(0.60f, 0.60f, 0.58f, 0.8f), "Chargement…");
-        ImGui.Spacing();
-    }
-
     // ================================================================== Onglet Dés
 
     private void DrawDiceTab()
     {
-        if (_isLoading)
-        {
-            DrawLoader();
-            return;
-        }
-
-        var active = _activeCharacter;
+        var active = plugin.GetActiveCharacter.Execute();
 
         if (active is null)
         {
@@ -196,7 +111,6 @@ public class MainWindow : Window, IDisposable
         ImGui.Text("●");
         ImGui.PopStyleColor();
         ImGui.SameLine();
-
         ImGui.Text(active.Name);
         ImGui.SameLine();
         ImGui.TextColored(ColMuted, $"— {rank.Label}");
@@ -208,21 +122,17 @@ public class MainWindow : Window, IDisposable
         var rrLeft = Engine.RerollsLeft;
 
         ImGui.BeginGroup();
-
         ImGui.TextColored(ColMuted, "Palier");
         ImGui.SameLine();
         ImGui.Text($"{Engine.EffectivePalier}+");
         ImGui.SameLine(); ImGui.Spacing(); ImGui.SameLine();
-
         ImGui.TextColored(ColMuted, "Rerolls");
         ImGui.SameLine();
         ImGui.TextColored(rrLeft > 0 ? ColInfo : ColFail, $"{rrLeft}/{rank.Rerolls}");
         ImGui.SameLine(); ImGui.Spacing(); ImGui.SameLine();
-
         ImGui.TextColored(ColMuted, "Traits");
         ImGui.SameLine();
         ImGui.Text($"{rank.Traits}");
-
         ImGui.EndGroup();
     }
 
@@ -240,13 +150,8 @@ public class MainWindow : Window, IDisposable
     private void ModeButton(string label, RollMode mode)
     {
         var active = Engine.Mode == mode;
-        if (active)
-        {
-            ImGui.PushStyleColor(ImGuiCol.Button, ColActive);
-            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, ColActive);
-        }
-        if (ImGui.Button(label + "##mode"))
-            Engine.Mode = mode;
+        if (active) { ImGui.PushStyleColor(ImGuiCol.Button, ColActive); ImGui.PushStyleColor(ImGuiCol.ButtonHovered, ColActive); }
+        if (ImGui.Button(label + "##mode")) Engine.Mode = mode;
         if (active) ImGui.PopStyleColor(2);
     }
 
@@ -254,27 +159,20 @@ public class MainWindow : Window, IDisposable
     {
         ImGui.TextColored(ColMuted, "Modif MJ :");
         ImGui.SameLine();
-
-        if (ImGui.Button("−##mod_m"))
-            Engine.Modifier = Math.Max(-3, Engine.Modifier - 1);
+        if (ImGui.Button("−##mod_m")) Engine.Modifier = Math.Max(-3, Engine.Modifier - 1);
         ImGui.SameLine();
 
         var mod = Engine.Modifier;
         var modStr = mod == 0 ? "0" : mod > 0 ? $"+{mod}" : $"{mod}";
-        var modCol = mod > 0 ? ColSuccess : mod < 0 ? ColDanger
-                              : ImGui.GetStyle().Colors[(int)ImGuiCol.Text];
+        var modCol = mod > 0 ? ColSuccess : mod < 0 ? ColDanger : ImGui.GetStyle().Colors[(int)ImGuiCol.Text];
         ImGui.TextColored(modCol, modStr);
         ImGui.SameLine();
-
-        if (ImGui.Button("+##mod_p"))
-            Engine.Modifier = Math.Min(3, Engine.Modifier + 1);
+        if (ImGui.Button("+##mod_p")) Engine.Modifier = Math.Min(3, Engine.Modifier + 1);
 
         if (mod != 0)
         {
             ImGui.SameLine();
-            var help = mod > 0
-                ? $"Palier facilité → {Engine.EffectivePalier}+"
-                : $"Palier durci → {Engine.EffectivePalier}+";
+            var help = mod > 0 ? $"Palier facilité → {Engine.EffectivePalier}+" : $"Palier durci → {Engine.EffectivePalier}+";
             ImGui.TextColored(ColMuted, help);
         }
     }
@@ -291,7 +189,6 @@ public class MainWindow : Window, IDisposable
         if (Engine.LastResult is not { } result) return;
 
         DrawDiceSet(result.Chosen, result.Palier, chosen: true);
-
         if (result.Rejected is { } rejected)
         {
             ImGui.SameLine();
@@ -304,22 +201,17 @@ public class MainWindow : Window, IDisposable
     private void DrawDiceSet(DiceSet diceSet, int palier, bool chosen)
     {
         var alpha = chosen ? 1f : 0.3f;
-
         ImGui.BeginGroup();
         foreach (var val in diceSet.Values)
         {
             var suc = val >= palier;
-            var label = DiceSet.Display(val);
             var col = suc ? ColSuccess : ColFail;
             var bgCol = suc ? ColSuccessBg : ColFailBg;
-
             ImGui.PushStyleColor(ImGuiCol.Text, col with { W = alpha });
             ImGui.PushStyleColor(ImGuiCol.Button, bgCol with { W = alpha * 0.6f });
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, bgCol with { W = alpha * 0.6f });
             ImGui.PushStyleColor(ImGuiCol.ButtonActive, bgCol with { W = alpha * 0.6f });
-
-            ImGui.Button(label + "##die_" + val + "_" + chosen, new Vector2(52, 52));
-
+            ImGui.Button(DiceSet.Display(val) + "##die_" + val + "_" + chosen, new Vector2(52, 52));
             ImGui.PopStyleColor(4);
             ImGui.SameLine();
         }
@@ -329,7 +221,6 @@ public class MainWindow : Window, IDisposable
     private void DrawRerollButton()
     {
         if (!Engine.HasRolled) return;
-
         var left = Engine.RerollsLeft;
         var avail = ImGui.GetContentRegionAvail().X;
 
@@ -355,23 +246,12 @@ public class MainWindow : Window, IDisposable
     private void DrawResult()
     {
         if (Engine.LastResult is not { } result) return;
-
-        var col = result.Successes == 0 ? ColDanger
-                : result.Successes >= 2 ? ColSuccess
-                : ImGui.GetStyle().Colors[(int)ImGuiCol.Text];
-
+        var col = result.Successes == 0 ? ColDanger : result.Successes >= 2 ? ColSuccess : ImGui.GetStyle().Colors[(int)ImGuiCol.Text];
         if (Engine.Mode != RollMode.Normal)
-        {
-            var tag = Engine.Mode == RollMode.Avantage ? "Avantage" : "Désavantage";
-            ImGui.TextColored(ColMuted, tag + " — meilleur set retenu");
-        }
-
+            ImGui.TextColored(ColMuted, (Engine.Mode == RollMode.Avantage ? "Avantage" : "Désavantage") + " — meilleur set retenu");
         ImGui.TextColored(col, result.Successes.ToString());
         ImGui.SameLine();
-
-        var lbl = result.Successes == 0 ? "Aucune réussite"
-                : result.Successes == 1 ? "réussite"
-                : "réussites";
+        var lbl = result.Successes == 0 ? "Aucune réussite" : result.Successes == 1 ? "réussite" : "réussites";
         ImGui.TextColored(ColMuted, $"{lbl}  ·  palier {result.Palier}+");
     }
 
@@ -389,28 +269,16 @@ public class MainWindow : Window, IDisposable
     private void DrawHistory()
     {
         if (Engine.History.Count == 0) return;
-
         ImGui.Spacing();
         ImGui.TextColored(ColMuted, "HISTORIQUE");
         ImGui.Separator();
-
         foreach (var entry in Engine.History)
         {
-            var col = entry.TotalSuccesses == 0 ? ColDanger
-                    : entry.TotalSuccesses >= 2 ? ColSuccess
-                    : ImGui.GetStyle().Colors[(int)ImGuiCol.Text];
-
-            ImGui.TextColored(ColMuted, entry.RankLabel);
-            ImGui.SameLine();
-            ImGui.Text(entry.Dice.ToDisplayString());
-            ImGui.SameLine();
-            ImGui.TextColored(ColMuted, $"({entry.Palier}+)");
-            ImGui.SameLine();
-            if (entry.ActionName != null)
-            {
-                ImGui.TextColored(ColMuted, entry.ActionName);
-                ImGui.SameLine();
-            }
+            var col = entry.TotalSuccesses == 0 ? ColDanger : entry.TotalSuccesses >= 2 ? ColSuccess : ImGui.GetStyle().Colors[(int)ImGuiCol.Text];
+            ImGui.TextColored(ColMuted, entry.RankLabel); ImGui.SameLine();
+            ImGui.Text(entry.Dice.ToDisplayString()); ImGui.SameLine();
+            ImGui.TextColored(ColMuted, $"({entry.Palier}+)"); ImGui.SameLine();
+            if (entry.ActionName != null) { ImGui.TextColored(ColMuted, entry.ActionName); ImGui.SameLine(); }
             ImGui.TextColored(col, $"{entry.TotalSuccesses} ✓");
         }
     }
@@ -419,46 +287,46 @@ public class MainWindow : Window, IDisposable
 
     private void DrawCharacterTab()
     {
-        if (_isLoading)
-        {
-            DrawLoader();
-            return;
-        }
-
-        var characters = _characters;
-        var activeId = _activeCharacter?.Id;
-
-        // ---- Header + bouton Rafraîchir ----
-        ImGui.TextColored(ColMuted, "PERSONNAGES");
-
-        // Statut de connexion + bouton sync alignés à droite
+        // Lecture directe depuis le store — zéro appel réseau
+        var characters = plugin.CharacterStore.All;
+        var activeId = plugin.CharacterStore.Active?.Id;
         var isConnected = plugin.AuthState.IsAuthenticated;
+
+        // ---- Header ----
+        ImGui.TextColored(ColMuted, "PERSONNAGES");
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        // ---- Barre d'état + bouton Sync ----
         if (isConnected)
         {
+            ImGui.PushStyleColor(ImGuiCol.Text, ColSuccess);
+            ImGui.Text("●");
+            ImGui.PopStyleColor();
             ImGui.SameLine();
-            ImGui.SetCursorPosX(ImGui.GetContentRegionAvail().X - 110);
-            ImGui.TextColored(ColMuted, $"● {plugin.AuthState.Username}");
+            ImGui.TextColored(ColMuted, plugin.AuthState.Username);
+            ImGui.SameLine();
         }
 
-        ImGui.SameLine();
-        ImGui.SetCursorPosX(ImGui.GetContentRegionAvail().X - 60);
+        var syncLabel = _isSyncing ? "…##sync" : "↺ Sync##sync";
         ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.3f, 0.3f, 0.3f, 0.20f));
         ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.3f, 0.3f, 0.3f, 0.35f));
-        if (ImGui.Button("↺ Sync##refresh_chars"))
-            TriggerRefresh();
+        if (ImGui.Button(syncLabel) && !_isSyncing)
+        {
+            _isSyncing = true;
+            _ = Task.Run(async () =>
+            {
+                try { await plugin.GetAllCharacters.ExecuteAsync(); }
+                finally { _isSyncing = false; }
+            });
+        }
         if (ImGui.IsItemHovered())
             ImGui.SetTooltip(isConnected ? "Synchroniser depuis l'API" : "Rafraîchir les fiches locales");
         ImGui.PopStyleColor(2);
 
-        ImGui.Separator();
         ImGui.Spacing();
 
-        if (_refreshError is not null)
-        {
-            ImGui.TextColored(new Vector4(0.64f, 0.17f, 0.17f, 1f), _refreshError);
-            ImGui.Spacing();
-        }
-
+        // ---- Liste ----
         if (characters.Count == 0)
         {
             ImGui.TextColored(ColMuted, "Aucun personnage. Créez-en un ci-dessous.");
@@ -471,29 +339,16 @@ public class MainWindow : Window, IDisposable
                 var isActive = character.Id == activeId;
                 var isSelected = character.Id == _selectedId;
 
-                if (isActive)
-                {
-                    ImGui.PushStyleColor(ImGuiCol.Text, ColSuccess);
-                    ImGui.Text("●");
-                    ImGui.PopStyleColor();
-                }
-                else
-                {
-                    ImGui.TextColored(ColMuted, "○");
-                }
+                if (isActive) { ImGui.PushStyleColor(ImGuiCol.Text, ColSuccess); ImGui.Text("●"); ImGui.PopStyleColor(); }
+                else ImGui.TextColored(ColMuted, "○");
                 ImGui.SameLine();
 
-                if (ImGui.Selectable(
-                    $"{character.Name}  [{Rank.Get(character.RankKey).Label}]##{character.Id}",
-                    isSelected))
-                {
+                if (ImGui.Selectable($"{character.Name}  [{Rank.Get(character.RankKey).Label}]##{character.Id}", isSelected))
                     _selectedId = isSelected ? null : character.Id;
-                }
 
                 if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
                 {
                     plugin.SetActiveCharacter.Execute(character);
-                    plugin.RefreshEquippedTraits();
                     _selectedId = character.Id;
                 }
             }
@@ -520,11 +375,7 @@ public class MainWindow : Window, IDisposable
                 ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.09f, 0.37f, 0.65f, 0.40f));
                 ImGui.PushStyleColor(ImGuiCol.Text, ColInfo);
                 if (ImGui.Button("Activer ce personnage##activate", new Vector2(avail, 0)))
-                {
                     plugin.SetActiveCharacter.Execute(selected);
-                    plugin.RefreshEquippedTraits();
-                    TriggerRefresh();
-                }
                 ImGui.PopStyleColor(3);
             }
             else
@@ -533,10 +384,7 @@ public class MainWindow : Window, IDisposable
                 ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.52f, 0.31f, 0.04f, 0.35f));
                 ImGui.PushStyleColor(ImGuiCol.Text, ColWarn);
                 if (ImGui.Button("Désactiver##deactivate", new Vector2(avail, 0)))
-                {
                     plugin.SetActiveCharacter.Execute(null);
-                    TriggerRefresh();
-                }
                 ImGui.PopStyleColor(3);
             }
 
@@ -555,12 +403,11 @@ public class MainWindow : Window, IDisposable
                 _ = Task.Run(async () =>
                 {
                     await plugin.DeleteCharacter.ExecuteAsync(selectedId);
-                    TriggerRefresh();
+                    await plugin.GetAllCharacters.ExecuteAsync(); // resync store
                 });
                 _selectedId = null;
             }
             ImGui.PopStyleColor(3);
-
             ImGui.Spacing();
         }
 
@@ -575,11 +422,7 @@ public class MainWindow : Window, IDisposable
         ImGui.SameLine();
 
         var canCreate = !string.IsNullOrWhiteSpace(_newCharName);
-        if (!canCreate)
-        {
-            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.3f, 0.3f, 0.3f, 0.3f));
-            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.3f, 0.3f, 0.3f, 0.3f));
-        }
+        if (!canCreate) { ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.3f, 0.3f, 0.3f, 0.3f)); ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.3f, 0.3f, 0.3f, 0.3f)); }
 
         var nameToCreate = _newCharName;
         if (ImGui.Button("Créer##create") && canCreate)
@@ -589,7 +432,7 @@ public class MainWindow : Window, IDisposable
             {
                 var created = await plugin.CreateCharacter.ExecuteAsync(nameToCreate, RankKey.Novice);
                 _selectedId = created.Id;
-                TriggerRefresh();
+                await plugin.GetAllCharacters.ExecuteAsync(); // resync store
             });
         }
 

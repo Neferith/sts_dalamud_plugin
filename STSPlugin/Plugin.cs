@@ -40,15 +40,15 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IClientState ClientState { get; private set; } = null!;
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
     [PluginService] internal static ITextureProvider TextureProvider { get; private set; } = null!;
-
     [PluginService] internal static IObjectTable ObjectTable { get; private set; } = null!;
 
     public Configuration Configuration { get; init; }
     public StsEngine Engine { get; init; }
 
+    public CharacterStore CharacterStore { get; init; }
+
     private readonly MainDiContainer _factory;
     public ICharacterRepository CharacterRepository { get; init; }
-    // Changer init → set sur les 4 repositories liés aux données
     public TraitRepository TraitRepository { get; private set; }
     public JobRepository JobRepository { get; private set; }
     public ActionRepository ActionRepository { get; private set; }
@@ -105,25 +105,21 @@ public sealed class Plugin : IDalamudPlugin
     public Plugin()
     {
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+        CharacterStore = new CharacterStore();
 
         // --- Container ---
-        IPluginFactory factory = new MainDiContainer(Configuration, PluginInterface, Log);
+        IPluginFactory factory = new MainDiContainer(CharacterStore, Configuration, PluginInterface, Log);
         _factory = (MainDiContainer)factory;
 
         // --- Engine ---
         Engine = factory.MakeEngine();
 
-        // --- DataSource ---
-        // var dataPath = Path.Combine(PluginInterface.AssemblyLocation.DirectoryName!, "data.json");
-        // var dataSource = new LocalJsonDataSource(dataPath);
-
         // --- Repositories ---
-        //var charactersDir = //Path.Combine(PluginInterface.GetPluginConfigDirectory(), "characters");
-        CharacterRepository = factory.MakeCharacterRepository();//new DefaultCharacterRepository(charactersDir);
-        TraitRepository = factory.MakeTraitRepository();//new DefaultTraitRepository(dataSource);
-        JobRepository = factory.MakeJobRepository();//new DefaultJobRepository(dataSource);
-        ActionRepository = factory.MakeActionRepository();//new DefaultActionRepository(dataSource);
-        AbilityRepository = factory.MakeAbilityRepository();//new DefaultAbilityRepository(dataSource);
+        CharacterRepository = factory.MakeCharacterRepository();
+        TraitRepository = factory.MakeTraitRepository();
+        JobRepository = factory.MakeJobRepository();
+        ActionRepository = factory.MakeActionRepository();
+        AbilityRepository = factory.MakeAbilityRepository();
 
         // --- Use cases auth ---
         AuthState = _factory.MakeAuthState();
@@ -166,23 +162,25 @@ public sealed class Plugin : IDalamudPlugin
         ReorderInventory = factory.MakeReorderInventory();
         SetItemIcon = factory.MakeSetItemIcon();
 
-        // --- Appliquer le personnage actif au démarrage ---
-        var active = GetActiveCharacter.Execute();
-        if (active != null)
-        {
-            Engine.ChangeRank(active.RankKey);
-            RefreshEquippedTraits(active);
-        }
-        else if (Enum.TryParse<RankKey>(Configuration.LastRank, out var rankKey))
-        {
+        // --- Rang par défaut depuis la config en attendant le fetch initial ---
+        if (Enum.TryParse<RankKey>(Configuration.LastRank, out var rankKey))
             Engine.ChangeRank(rankKey);
-        }
+
+        // --- Abonnements store ---
+        // OnActiveChanged : synchronise engine + UI quand le personnage actif change
+        _factory.CharacterStore.OnActiveChanged += () =>
+        {
+            RefreshEquippedTraits(_factory.CharacterStore.Active);
+           // mainWindow?.TriggerRefresh();
+          //  quickbarWindow?.TriggerRefresh();
+        };
+
+
 
         // --- Auth : abonnement changement d'état + login automatique ---
-        // Quand l'état de connexion change, on recharge le repository de personnages
-        // (bascule entre LocalCharacterRepository et RemoteCharacterRepository)
         AuthState.OnAuthChanged += () =>
         {
+            Log.Debug("[STS] AuthState changé");
             _factory.ReloadCharacterRepository();
 
             // Réassigner tous les use cases depuis le nouveau repository
@@ -210,22 +208,25 @@ public sealed class Plugin : IDalamudPlugin
             ReorderInventory = _factory.MakeReorderInventory();
             SetItemIcon = _factory.MakeSetItemIcon();
 
-            // Vérifier si le personnage actif existe dans le nouveau set, sinon reset
-            var currentActive = Configuration.ActiveCharacterId;
+            // Fetch → decorator peuple le store → OnActiveChanged + OnListChanged → UI
+            var currentActiveId = Configuration.ActiveCharacterId;
             _ = Task.Run(async () =>
             {
-                var all = await GetAllCharacters.ExecuteAsync();
-                if (currentActive.HasValue && !all.Any(c => c.Id == currentActive.Value))
+                try
                 {
-                    SetActiveCharacter.Execute(null);
-                    RefreshEquippedTraits();
+                    var all = await GetAllCharacters.ExecuteAsync();
+                    // Si le personnage actif a disparu du nouveau set, on le réinitialise
+                    if (currentActiveId.HasValue && !all.Any(c => c.Id == currentActiveId.Value))
+                        SetActiveCharacter.Execute(null);
                 }
-                // Rafraîchir l'UI
-                mainWindow?.TriggerRefresh();
-             //   quickbarWindow?.TriggerRefresh();
+                catch (Exception ex)
+                {
+                    Log.Warning("[STS] OnAuthChanged — rechargement échoué : {0}", ex.Message);
+                }
             });
         };
 
+        // --- Auto-login ---
         if (!string.IsNullOrWhiteSpace(Configuration.PlayerUsername) &&
             !string.IsNullOrWhiteSpace(Configuration.PlayerPassword))
         {
@@ -240,6 +241,9 @@ public sealed class Plugin : IDalamudPlugin
 
         windowSystem.AddWindow(mainWindow);
         windowSystem.AddWindow(configWindow);
+
+        // --- Fetch initial — peuple le store → OnActiveChanged → RefreshEquippedTraits ---
+        _ = Task.Run(() => GetAllCharacters.ExecuteAsync());
 
         CommandManager.AddHandler(CmdMain, new CommandInfo(OnCommand)
         {
@@ -256,9 +260,6 @@ public sealed class Plugin : IDalamudPlugin
 
     public void Dispose()
     {
-        //   ChatGui.ChatMessage -= OnChatMessage;
-        //  ChatGui.ChatMessageUnhandled -= OnChatMessageUnhandled;
-
         PluginInterface.UiBuilder.Draw -= DrawUi;
         PluginInterface.UiBuilder.OpenMainUi -= ToggleMainUi;
         PluginInterface.UiBuilder.OpenConfigUi -= ToggleConfigUi;
@@ -271,21 +272,16 @@ public sealed class Plugin : IDalamudPlugin
         windowSystem.RemoveAllWindows();
     }
 
-    /// <summary>
-    /// Recharge les repositories depuis la source configurée (Local ou Remote).
-    /// Appelé depuis ConfigWindow via le bouton Rafraîchir.
-    /// </summary>
     public void ReloadDataSources()
     {
-        System.Threading.Tasks.Task.Run(() =>
+        Task.Run(() =>
         {
             try
             {
                 _factory.ReloadDataSources();
 
-                // Load() est appelé UNE seule fois ici, partagé entre les 4 repos
                 var dataSource = _factory.MakeDataSource();
-                dataSource.Load(); // charge + remplit le cache mémoire interne si besoin
+                dataSource.Load();
 
                 TraitRepository = _factory.MakeTraitRepository();
                 JobRepository = _factory.MakeJobRepository();
@@ -355,11 +351,6 @@ public sealed class Plugin : IDalamudPlugin
         window.IsOpen = true;
     }
 
-    /// <summary>
-    /// Met à jour les CharacterWindow ouvertes avec les données fraîches.
-    /// À appeler après un refresh des fiches depuis l'API.
-    /// </summary>
-    /// <param name="freshCharacters">Liste fraîche des personnages.</param>
     public void RefreshCharacterWindows(IReadOnlyList<Character> freshCharacters)
     {
         foreach (var (id, window) in _characterWindows)
@@ -370,18 +361,27 @@ public sealed class Plugin : IDalamudPlugin
         }
     }
 
-    /// <summary>
-    /// Met à jour les traits équipés dans l'engine quand le personnage actif change.
-    /// À appeler après tout changement de personnage actif ou de traits équipés.
-    /// </summary>
     public void RefreshEquippedTraits(Character? character = null)
     {
         var active = character ?? GetActiveCharacter.Execute();
+
+        Log.Debug("[STS] RefreshEquippedTraits — character param: {0}, resolved: {1}",
+            character?.Name ?? "null",
+            active?.Name ?? "null");
+
         if (active is null)
         {
+            Log.Debug("[STS] RefreshEquippedTraits — aucun personnage actif, reset traits");
             Engine.SetEquippedTraits([]);
             return;
         }
+
+        Log.Debug("[STS] RefreshEquippedTraits — rang: {0}, traits équipés: {1}, trait origine: {2}",
+            active.RankKey,
+            active.EquippedTraitIds.Count,
+            active.OriginTraitId ?? "null");
+
+        Engine.ChangeRank(active.RankKey);
 
         var traits = active.EquippedTraitIds
             .Select(id => TraitRepository.GetById(id))
@@ -395,7 +395,15 @@ public sealed class Plugin : IDalamudPlugin
             traits.Add(originTrait);
         }
 
+        Log.Debug("[STS] RefreshEquippedTraits — {0} trait(s) résolus: [{1}]",
+            traits.Count,
+            string.Join(", ", traits.Select(t => t.Name)));
+
         Engine.SetEquippedTraits(traits);
+
+        Log.Debug("[STS] RefreshEquippedTraits — terminé, rang engine: {0}, palier: {1}",
+            Engine.CurrentRank.Label,
+            Engine.EffectivePalier);
     }
 
     // ------------------------------------------------------------------ Roll
@@ -404,7 +412,6 @@ public sealed class Plugin : IDalamudPlugin
     {
         mainWindow.IsOpen = true;
 
-        // Évaluer les prérequis de l'action avant le jet
         Engine.PalierOverride = null;
         if (action != null)
         {
@@ -427,10 +434,6 @@ public sealed class Plugin : IDalamudPlugin
         }
     }
 
-    /// <summary>
-    /// Évalue les prérequis d'une action et retourne un palier forcé si une règle s'applique.
-    /// Null = pas de forçage.
-    /// </summary>
     private int? EvaluateRequirements(RollAction action, Character character)
     {
         foreach (var req in action.Requirements)
@@ -439,7 +442,6 @@ public sealed class Plugin : IDalamudPlugin
             {
                 case ActionRequirementType.Weapon:
                     var equipped = character.EquippedWeapons.ToList();
-                    // Pas d'arme équipée ou toutes non maîtrisées → palier 8
                     if (equipped.Count == 0 || equipped.All(w => character.IsWeaponUnmastered(w)))
                         return 8;
                     break;
@@ -506,7 +508,6 @@ public sealed class Plugin : IDalamudPlugin
 
         Log.Debug($"[STS] /random reçu : {value:D3}");
 
-        // message. = false; // ← laisser le message s'afficher normalement
         if (Engine.ReceiveRandom(value))
             Plugin.Framework.RunOnTick(OnRollComplete);
     }
@@ -514,7 +515,6 @@ public sealed class Plugin : IDalamudPlugin
     private void OnChatMessageUnhandled(IChatMessage message)
     {
         Log.Debug($"[STS] Unhandled reçu — logKind: {(int)message.LogKind}");
-
     }
 
     // ------------------------------------------------------------------ Résultat
