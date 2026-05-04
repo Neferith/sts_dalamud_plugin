@@ -183,6 +183,7 @@ public sealed class Plugin : IDalamudPlugin
         // (bascule entre LocalCharacterRepository et RemoteCharacterRepository)
         AuthState.OnAuthChanged += () =>
         {
+            Log.Debug("[STS] AuthState changé");
             _factory.ReloadCharacterRepository();
 
             // Réassigner tous les use cases depuis le nouveau repository
@@ -218,8 +219,9 @@ public sealed class Plugin : IDalamudPlugin
                 if (currentActive.HasValue && !all.Any(c => c.Id == currentActive.Value))
                 {
                     SetActiveCharacter.Execute(null);
-                    RefreshEquippedTraits();
+                    
                 }
+                RefreshEquippedTraits();
                 // Rafraîchir l'UI
                 mainWindow?.TriggerRefresh();
              //   quickbarWindow?.TriggerRefresh();
@@ -377,11 +379,24 @@ public sealed class Plugin : IDalamudPlugin
     public void RefreshEquippedTraits(Character? character = null)
     {
         var active = character ?? GetActiveCharacter.Execute();
+
+        Log.Debug("[STS] RefreshEquippedTraits — character param: {0}, resolved: {1}",
+            character?.Name ?? "null",
+            active?.Name ?? "null");
+
         if (active is null)
         {
+            Log.Debug("[STS] RefreshEquippedTraits — aucun personnage actif, reset traits");
             Engine.SetEquippedTraits([]);
             return;
         }
+
+        Log.Debug("[STS] RefreshEquippedTraits — rang: {0}, traits équipés: {1}, trait origine: {2}",
+            active.RankKey,
+            active.EquippedTraitIds.Count,
+            active.OriginTraitId ?? "null");
+
+        Engine.ChangeRank(active.RankKey);
 
         var traits = active.EquippedTraitIds
             .Select(id => TraitRepository.GetById(id))
@@ -395,7 +410,15 @@ public sealed class Plugin : IDalamudPlugin
             traits.Add(originTrait);
         }
 
+        Log.Debug("[STS] RefreshEquippedTraits — {0} trait(s) résolus: [{1}]",
+            traits.Count,
+            string.Join(", ", traits.Select(t => t.Name)));
+
         Engine.SetEquippedTraits(traits);
+
+        Log.Debug("[STS] RefreshEquippedTraits — terminé, rang engine: {0}, palier: {1}",
+            Engine.CurrentRank.Label,
+            Engine.EffectivePalier);
     }
 
     // ------------------------------------------------------------------ Roll
