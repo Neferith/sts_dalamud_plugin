@@ -30,7 +30,8 @@ public class MainDiContainer : IPluginFactory
     private readonly string _configDir;
     private readonly IPluginLog _log;
 
-    private ActiveCharacterState _activeCharacterState { get; init; }
+    public CharacterStore CharacterStore { get; init; }
+
 
     private AuthState? _authState;
     private ILoginUseCase? _login;
@@ -92,7 +93,7 @@ public class MainDiContainer : IPluginFactory
         _assemblyDir = pluginInterface.AssemblyLocation.DirectoryName!;
         _configDir = pluginInterface.GetPluginConfigDirectory();
         _log = log;
-        _activeCharacterState = new ActiveCharacterState();
+        CharacterStore = new CharacterStore();
     }
 
     // ── Moteur ────────────────────────────────────────────────────────────────
@@ -205,7 +206,8 @@ public class MainDiContainer : IPluginFactory
     // ── Use cases personnages (STS.Domain.Character) ──────────────────────────
 
     public IGetAllCharactersUseCase MakeGetAllCharacters()
-        => _getAllCharacters ??= new GetAllCharactersUseCase(MakeCharacterRepository());
+        => _getAllCharacters ??= new StoreUpdatingGetAllCharactersUseCase(
+            new GetAllCharactersUseCase(MakeCharacterRepository()), CharacterStore, _config);
 
     public ICreateCharacterUseCase MakeCreateCharacter()
         => _createCharacter ??= new CreateCharacterUseCase(MakeCharacterRepository());
@@ -219,12 +221,11 @@ public class MainDiContainer : IPluginFactory
     // ── Use cases personnages (plugin-specific, sync) ─────────────────────────
 
     public GetActiveCharacterUseCase MakeGetActiveCharacter()
-        => _getActiveCharacter ??= new DefaultGetActiveCharacterUseCase(_activeCharacterState);
+        => _getActiveCharacter ??= new DefaultGetActiveCharacterUseCase(CharacterStore);
 
     public SetActiveCharacterUseCase MakeSetActiveCharacter()
         => _setActiveCharacter ??= new DefaultSetActiveCharacterUseCase(
-             _config, MakeEngine(), _activeCharacterState);
-
+             _config, MakeEngine(), CharacterStore);
     // ── Use cases traits / job ────────────────────────────────────────────────
 
     public SetJobUseCase MakeSetJob()

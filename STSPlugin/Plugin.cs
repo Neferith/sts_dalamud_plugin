@@ -222,7 +222,7 @@ public sealed class Plugin : IDalamudPlugin
                 }
                 // Rafraîchir l'UI
                 mainWindow?.TriggerRefresh();
-                quickbarWindow?.TriggerRefresh();
+             //   quickbarWindow?.TriggerRefresh();
             });
         };
 
