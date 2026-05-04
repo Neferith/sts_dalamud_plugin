@@ -225,7 +225,7 @@ public class MainDiContainer : IPluginFactory
 
     public SetActiveCharacterUseCase MakeSetActiveCharacter()
         => _setActiveCharacter ??= new DefaultSetActiveCharacterUseCase(
-             _config, MakeEngine(), CharacterStore);
+             _config,  CharacterStore);
     // ── Use cases traits / job ────────────────────────────────────────────────
 
     public SetJobUseCase MakeSetJob()
