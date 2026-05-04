@@ -30,6 +30,8 @@ public class MainDiContainer : IPluginFactory
     private readonly string _configDir;
     private readonly IPluginLog _log;
 
+    private ActiveCharacterState _activeCharacterState { get; init; }
+
     private AuthState? _authState;
     private ILoginUseCase? _login;
     private ILogoutUseCase? _logout;
@@ -90,6 +92,7 @@ public class MainDiContainer : IPluginFactory
         _assemblyDir = pluginInterface.AssemblyLocation.DirectoryName!;
         _configDir = pluginInterface.GetPluginConfigDirectory();
         _log = log;
+        _activeCharacterState = new ActiveCharacterState();
     }
 
     // ── Moteur ────────────────────────────────────────────────────────────────
@@ -216,11 +219,11 @@ public class MainDiContainer : IPluginFactory
     // ── Use cases personnages (plugin-specific, sync) ─────────────────────────
 
     public GetActiveCharacterUseCase MakeGetActiveCharacter()
-        => _getActiveCharacter ??= new DefaultGetActiveCharacterUseCase(MakeCharacterRepository(), _config);
+        => _getActiveCharacter ??= new DefaultGetActiveCharacterUseCase(_activeCharacterState);
 
     public SetActiveCharacterUseCase MakeSetActiveCharacter()
         => _setActiveCharacter ??= new DefaultSetActiveCharacterUseCase(
-            MakeCharacterRepository(), _config, MakeEngine());
+             _config, MakeEngine(), _activeCharacterState);
 
     // ── Use cases traits / job ────────────────────────────────────────────────
 

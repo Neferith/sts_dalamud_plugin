@@ -127,7 +127,7 @@ public class CharacterWindow : Window, IDisposable
             ImGui.PushStyleColor(ImGuiCol.Text, ColInfo);
             if (ImGui.Button("Activer##hdr_activate"))
             {
-                _plugin.SetActiveCharacter.Execute(_character.Id);
+                _plugin.SetActiveCharacter.Execute(_character);
                 _plugin.RefreshEquippedTraits();
             }
             ImGui.PopStyleColor(3);

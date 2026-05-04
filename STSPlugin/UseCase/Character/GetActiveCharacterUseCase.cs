@@ -18,20 +18,10 @@ public interface GetActiveCharacterUseCase
 /// <summary>Implémentation par défaut de <see cref="GetActiveCharacterUseCase"/>.</summary>
 public class DefaultGetActiveCharacterUseCase : GetActiveCharacterUseCase
 {
-    private readonly ICharacterRepository _repository;
-    private readonly Configuration        _configuration;
+    private readonly ActiveCharacterState _state;
 
-    public DefaultGetActiveCharacterUseCase(
-        ICharacterRepository repository,
-        Configuration configuration)
-    {
-        _repository    = repository;
-        _configuration = configuration;
-    }
+    public DefaultGetActiveCharacterUseCase(ActiveCharacterState state)
+        => _state = state;
 
-    /// <inheritdoc/>
-    public Character? Execute()
-        => _configuration.ActiveCharacterId is { } id
-            ? _repository.GetByIdAsync(id).GetAwaiter().GetResult()
-            : null;
+    public Character? Execute() => _state.Current;
 }
