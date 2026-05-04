@@ -15,7 +15,20 @@
     letter-spacing: 0.15em;
     text-transform: uppercase;
     color: var(--text-muted);
-    margin: 0 0 0.5rem;
+    margin: 0 0 0.75rem;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.home-hero-kicker::after {
+    content: '';
+    display: block;
+    width: 32px;
+    height: 1px;
+    background: var(--teal);
+    opacity: 0.6;
 }
 
 .home-hero-title {
@@ -187,6 +200,10 @@
         padding: 2.5rem 3rem;
         gap: 3rem;
     }
+
+    .home-hero-kicker {
+        align-items: flex-start;
+    }
 }
 
 /* ── Très grand écran (≥ 1920px — 2K et au-delà) ───────────────────────────── */
@@ -198,7 +215,7 @@
     }
 
     .home-hero-title {
-        font-size: 34px;
+        font-size: 42px;
     }
 
     .home-hero-text {
