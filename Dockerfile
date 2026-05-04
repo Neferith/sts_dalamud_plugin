@@ -12,6 +12,7 @@ COPY STS.Discord/STS.Discord.csproj                       STS.Discord/
 COPY STS.Export/STS.Export.csproj                         STS.Export/
 COPY STS.Api/STS.Api.csproj                               STS.Api/
 COPY STS.Admin/STS.Admin.csproj                           STS.Admin/
+COPY Directory.Build.props .
 
 # Restaurer les dépendances
 RUN dotnet restore STS.Api/STS.Api.csproj
