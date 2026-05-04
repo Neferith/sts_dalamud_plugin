@@ -148,11 +148,50 @@ public class AuthService
 
             Token = token;
             ParseToken(token);
+            // Token expiré — on nettoie et on ne restaure pas
+            if (IsTokenExpired())
+            {
+                Token = null;
+                Username = null;
+                Role = null;
+                UserId = null;
+                await _js.InvokeVoidAsync("localStorage.removeItem", "sts_token");
+                return;
+            }
+
             _http.DefaultRequestHeaders.Authorization =
                 new AuthenticationHeaderValue("Bearer", Token);
 
             OnAuthChanged?.Invoke();
         }
         catch { /* JS non disponible ou token invalide */ }
+    }
+
+    /// <summary>Indique si le token JWT est expiré.</summary>
+    public bool IsTokenExpired()
+    {
+        if (Token is null) return true;
+        try
+        {
+            var parts = Token.Split('.');
+            if (parts.Length != 3) return true;
+
+            var payload = parts[1].Replace('-', '+').Replace('_', '/');
+            switch (payload.Length % 4)
+            {
+                case 2: payload += "=="; break;
+                case 3: payload += "="; break;
+            }
+
+            var json = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(payload));
+            var claims = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json);
+            if (claims is null) return true;
+
+            if (!claims.TryGetValue("exp", out var exp)) return true;
+            var expUnix = exp.GetInt64();
+            var expDate = DateTimeOffset.FromUnixTimeSeconds(expUnix);
+            return expDate <= DateTimeOffset.UtcNow;
+        }
+        catch { return true; }
     }
 }
