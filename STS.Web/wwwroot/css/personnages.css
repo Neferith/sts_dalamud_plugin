@@ -311,3 +311,214 @@
         justify-content: center;
     }
 }
+
+
+/* ── Ajouts à characters.css ─────────────────────────────────────────────── */
+/* À ajouter à la suite du fichier characters.css existant                   */
+
+/* ── Bouton danger ───────────────────────────────────────────────────────── */
+
+.sts-btn-danger {
+    color: #e07070 !important;
+    border-color: rgba(220, 50, 50, 0.25) !important;
+}
+
+    .sts-btn-danger:hover {
+        background: rgba(220, 50, 50, 0.08);
+    }
+
+/* ── Stat box cliquable (lien inventaire) ────────────────────────────────── */
+
+.sts-stat-box-link {
+    cursor: pointer;
+    transition: border-color 0.15s;
+}
+
+    .sts-stat-box-link:hover {
+        border-color: var(--border-strong);
+    }
+
+/* ── Onglets Fiche / Inventaire ──────────────────────────────────────────── */
+
+.sts-tab-bar {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    margin: 1rem 0 0.75rem;
+    gap: 0;
+}
+
+.sts-tab {
+    font-size: 13px;
+    padding: 7px 18px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+    .sts-tab:hover {
+        color: var(--text-secondary);
+    }
+
+    .sts-tab.active {
+        color: var(--teal);
+        border-bottom-color: var(--teal);
+        font-weight: 500;
+    }
+
+.sts-tab-count {
+    font-size: 10px;
+    color: var(--text-muted);
+}
+
+/* ── Collapse headers ────────────────────────────────────────────────────── */
+
+.sts-collapse-hdr {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    padding: 2px 0;
+    margin: 1.25rem 0 0.4rem;
+}
+
+    .sts-collapse-hdr:first-child {
+        margin-top: 0;
+    }
+
+    .sts-collapse-hdr:hover .sts-section-title {
+        color: var(--text-secondary);
+    }
+
+.sts-chevron {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    color: var(--text-muted);
+    transition: transform 0.2s ease;
+    margin-left: auto;
+}
+
+    .sts-chevron.collapsed {
+        transform: rotate(-90deg);
+    }
+
+/* ── Rang headers collapsables ───────────────────────────────────────────── */
+
+.sts-rang-hdr {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    user-select: none;
+    margin: 10px 0 4px;
+}
+
+    .sts-rang-hdr:hover .sts-rang-label {
+        opacity: 0.8;
+    }
+
+/* Couleur du chevron selon le rang */
+.sts-chevron-rang-1 {
+    color: var(--teal);
+}
+
+.sts-chevron-rang-2 {
+    color: var(--purple);
+}
+
+.sts-chevron-rang-3 {
+    color: var(--amber);
+}
+
+/* Couleur du label selon le rang (surcharge .sts-rang-label existant) */
+.sts-rang-label-2 {
+    color: var(--purple);
+}
+
+.sts-rang-label-3 {
+    color: var(--amber);
+}
+
+/* ── Inventaire stats ────────────────────────────────────────────────────── */
+
+.sts-inv-stats {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 0.5rem;
+}
+
+/* ── Grille inventaire ───────────────────────────────────────────────────── */
+
+.sts-inv-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 7px;
+    margin-top: 0.4rem;
+    margin-bottom: 0.5rem;
+}
+
+.sts-inv-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 10px 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+    .sts-inv-card:hover {
+        border-color: var(--border-strong);
+        background: var(--bg-card-hover);
+    }
+
+.sts-inv-card-equipped {
+    border-color: rgba(78, 195, 196, 0.4);
+}
+
+.sts-inv-icon {
+    font-size: 18px;
+    display: block;
+    margin-bottom: 5px;
+    line-height: 1;
+}
+
+.sts-inv-name {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 5px;
+    line-height: 1.3;
+}
+
+/* Icône main équipée */
+.sts-inv-hand {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+}
+
+.sts-inv-hand-main {
+    color: var(--teal);
+}
+
+.sts-inv-hand-off {
+    color: var(--text-muted);
+}
+
+/* Placeholder invisible pour aligner les cartes sans icône de main */
+.sts-inv-hand-placeholder {
+    display: inline-block;
+    width: 13px;
+    height: 13px;
+}

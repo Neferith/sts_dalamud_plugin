@@ -12,22 +12,18 @@
 
 <div class="sts-page-header" style="margin-bottom:1rem;">
     <a href="/personnages" class="sts-back-link">← Personnages</a>
-    <div style="display:flex;gap:0.5rem;margin-left:auto;">
-        @if (VM.IsOwner)
-        {
-            <div class="sts-actions-desktop">
-                <a href="/personnages/@Id/editer" class="sts-btn sts-btn-primary sts-btn-sm">✎ Éditer</a>
-                <button class="sts-btn sts-btn-ghost sts-btn-sm" @onclick="ExportDiscord"
-                        disabled="@_exporting">⬇ Discord</button>
-                <button class="sts-btn sts-btn-ghost sts-btn-sm" @onclick="ExportPdf"
-                        disabled="@_exporting">⬇ PDF</button>
-                <button class="sts-btn sts-btn-ghost sts-btn-sm" @onclick="Delete">Supprimer</button>
-            </div>
-            <div class="sts-actions-mobile">
-                <button class="sts-btn sts-btn-ghost sts-btn-sm" @onclick="() => _showActionsModal = true">⋯</button>
-            </div>
-        }
-    </div>
+    @if (VM.IsOwner)
+    {
+        <div class="sts-actions-desktop" style="margin-left:auto;">
+            <a href="/personnages/@Id/editer" class="sts-btn sts-btn-primary sts-btn-sm">✎ Éditer</a>
+            <button class="sts-btn sts-btn-ghost sts-btn-sm" @onclick="ExportDiscord" disabled="@_exporting">⬇ Discord</button>
+            <button class="sts-btn sts-btn-ghost sts-btn-sm" @onclick="ExportPdf" disabled="@_exporting">⬇ PDF</button>
+            <button class="sts-btn sts-btn-ghost sts-btn-sm sts-btn-danger" @onclick="Delete">Supprimer</button>
+        </div>
+        <div class="sts-actions-mobile" style="margin-left:auto;">
+            <button class="sts-btn sts-btn-ghost sts-btn-sm" @onclick="() => _showActionsModal = true">⋯ Actions</button>
+        </div>
+    }
 </div>
 
 @if (VM.IsLoading)
@@ -40,9 +36,13 @@ else if (VM.Error is not null)
 }
 else if (VM.Character is { } c)
 {
-    var rank = Rank.Get(c.RankKey);
+    var rank        = Rank.Get(c.RankKey);
+    var weaponCount = c.Inventory.Count(i => i.Category == ItemCategory.Weapon);
+    var itemCount   = c.Inventory.Count(i => i.Category == ItemCategory.Item);
+    var weapons     = c.Inventory.Where(i => i.Category == ItemCategory.Weapon).OrderBy(i => i.SortIndex).ToList();
+    var items       = c.Inventory.Where(i => i.Category == ItemCategory.Item).OrderBy(i => i.SortIndex).ToList();
 
-    <!-- En-tête -->
+    <!-- En-tête personnage -->
     <div class="sts-char-header" style="display:flex;gap:1.25rem;align-items:flex-start;">
         @if (VM.ImageUrl is not null)
         {
@@ -75,11 +75,18 @@ else if (VM.Character is { } c)
                     <div class="sts-stat-label">Réputation</div>
                     <div class="sts-stat-value" style="font-size:14px;">
                         @Reputation.GetLabel(c.ReputationLevel)
-                        <small style="font-size:11px;color:var(--text-muted);">
-                            (@(c.ReputationLevel >= 0 ? "+" : "")@c.ReputationLevel)
-                        </small>
+                        <small style="font-size:11px;color:var(--text-muted);">(@(c.ReputationLevel >= 0 ? "+" : "")@c.ReputationLevel)</small>
                     </div>
                 </div>
+                @if (c.Inventory.Count > 0)
+                {
+                    <div class="sts-stat-box sts-stat-box-link" @onclick="() => _activeTab = 1">
+                        <div class="sts-stat-label">Inventaire</div>
+                        <div style="font-size:12px;font-weight:500;color:var(--teal);margin-top:2px;">
+                            @weaponCount arme(s) · @itemCount objet(s)
+                        </div>
+                    </div>
+                }
             </div>
         </div>
     </div>
@@ -94,173 +101,248 @@ else if (VM.Character is { } c)
         </div>
     }
 
-    <!-- Grille 2 colonnes : gauche = certifs + traits, droite = compétences -->
-    <div class="sts-detail-grid">
-
-        <!-- Colonne gauche -->
-        <div>
-            <!-- Certifications -->
-            @if (c.Certifications.Count > 0)
-            {
-                <h2 class="sts-section-title">Certifications (@c.Certifications.Count)</h2>
-                <div class="sts-cert-grid">
-                    @foreach (var cert in c.Certifications)
-                    {
-                        <div class="sts-cert-item">
-                            <div class="sts-cert-name">★ @cert.Name</div>
-                            <div class="sts-cert-sub">
-                                @if (cert.LinkedOriginTraitId is not null)
-                                {
-                                    <span>Trait : @VM.TraitName(cert.LinkedOriginTraitId)</span>
-                                }
-                                @if (cert.LinkedAbilityId is not null && cert.FreePoints > 0)
-                                {
-                                    <span>@cert.FreePoints pt(s) — @VM.AbilityName(cert.LinkedAbilityId)</span>
-                                }
-                            </div>
-                        </div>
-                    }
-                </div>
-            }
-
-            <!-- Trait d'origine -->
-            @if (c.OriginTraitId is not null)
-            {
-                var originTrait = VM.GetTrait(c.OriginTraitId);
-                var hasCert     = c.HasCertificationForOriginTrait(c.OriginTraitId);
-                <h2 class="sts-section-title">Trait d'origine</h2>
-                <div class="sts-trait-item" style="border-color:var(--amber);border-left:2px solid var(--amber);border-radius:0 6px 6px 0;">
-                    <div class="sts-trait-dot" style="background:var(--amber);"></div>
-                    <div>
-                        <div class="sts-trait-name">
-                            @(originTrait?.Name ?? c.OriginTraitId)
-                            @if (hasCert)
-                            {
-                                <span class="sts-badge sts-badge-passive" style="margin-left:6px;">Certifié — gratuit</span>
-                            }
-                        </div>
-                        @if (!string.IsNullOrWhiteSpace(originTrait?.Description))
-                        {
-                            <div class="sts-trait-desc">@originTrait.Description</div>
-                        }
-                    </div>
-                </div>
-            }
-
-            <!-- Traits -->
-            @if (c.EquippedTraitIds.Count > 0)
-            {
-                <h2 class="sts-section-title">Traits (@c.EquippedTraitIds.Count / @rank.Traits)</h2>
-                @foreach (var tid in c.EquippedTraitIds)
-                {
-                    var trait = VM.GetTrait(tid);
-                    <div class="sts-trait-item">
-                        <div class="sts-trait-dot"></div>
-                        <div>
-                            <div class="sts-trait-name">
-                                @(trait?.Name ?? tid)
-                                @if (trait?.Category is TraitCategory cat)
-                                {
-                                    <span class="sts-badge sts-badge-weapon" style="margin-left:6px;">@cat</span>
-                                }
-                            </div>
-                            @if (!string.IsNullOrWhiteSpace(trait?.Description))
-                            {
-                                <div class="sts-trait-desc">@trait.Description</div>
-                            }
-                        </div>
-                    </div>
-                }
-            }
-        </div>
-
-        <!-- Colonne droite : compétences -->
-        <div>
-            @if (c.EquippedAbilities.Count > 0)
-            {
-                <h2 class="sts-section-title">Compétences (@c.SpentSkillPoints / @c.SkillPoints pts)</h2>
-
-                @foreach (var rang in new[] { 1, 2, 3 })
-                {
-                    var groupe = c.EquippedAbilities.Where(eq => eq.Level == rang).ToList();
-                    if (groupe.Count == 0) continue;
-
-                    <p class="sts-rang-label">Rang @rang</p>
-                    @foreach (var eq in groupe)
-                    {
-                        var ability   = VM.GetAbility(eq.AbilityId);
-                        var fp        = c.GetFreePointsForAbility(eq.AbilityId);
-                        var levelDesc = ability?.Levels
-                            .Where(l => l.Level <= eq.Level)
-                            .OrderBy(l => l.Level)
-                            .ToList() ?? [];
-
-                        var accentClass = rang switch { 2 => "sts-ability-card-r2", 3 => "sts-ability-card-r3", _ => "" };
-
-                        <div class="sts-ability-card @accentClass">
-                            <div class="sts-card-header">
-                                <span class="sts-card-title">@(ability?.Name ?? eq.AbilityId)</span>
-                                @if (fp > 0)
-                                {
-                                    <span class="sts-badge sts-badge-passive">@fp pt(s) certif.</span>
-                                }
-                                @if (ability?.UsageLimit is UsageLimit ul && ul != UsageLimit.None)
-                                {
-                                    <span class="sts-badge sts-badge-job">@VM.UsageLimitLabel(ul)</span>
-                                }
-                            </div>
-                            @foreach (var ld in levelDesc)
-                            {
-                                @if (!string.IsNullOrWhiteSpace(ld.Description))
-                                {
-                                    <div class="sts-card-desc" style="margin-top:4px;">
-                                        @if (eq.Level > 1)
-                                        {
-                                            <span style="color:var(--teal);font-size:11px;">Lv@(ld.Level) — </span>
-                                        }
-                                        @ld.Description
-                                    </div>
-                                }
-                            }
-                        </div>
-                    }
-                }
-            }
-
-            <!-- Inventaire -->
+    <!-- Onglets -->
+    <div class="sts-tab-bar">
+        <button class="sts-tab @(_activeTab == 0 ? "active" : "")" @onclick="() => _activeTab = 0">Fiche</button>
+        <button class="sts-tab @(_activeTab == 1 ? "active" : "")" @onclick="() => _activeTab = 1">
+            Inventaire
             @if (c.Inventory.Count > 0)
             {
-                <h2 class="sts-section-title">Inventaire (@c.Inventory.Count objet(s))</h2>
-                @foreach (var item in c.Inventory.OrderBy(i => i.SortIndex))
+                <span class="sts-tab-count">(@c.Inventory.Count)</span>
+            }
+        </button>
+    </div>
+
+    <!-- ── Onglet Fiche ── -->
+    @if (_activeTab == 0)
+    {
+        <div class="sts-detail-grid">
+
+            <!-- Colonne gauche : certifications + compétences -->
+            <div>
+                @if (c.Certifications.Count > 0)
                 {
-                    var isMain    = c.MainHandItemId == item.Id;
-                    var isOff     = c.OffHandItemId  == item.Id;
+                    <div class="sts-collapse-hdr" @onclick="() => _certOpen = !_certOpen">
+                        <span class="sts-section-title" style="margin:0;">Certifications (@c.Certifications.Count)</span>
+                        <svg class="sts-chevron @(_certOpen ? "" : "collapsed")" viewBox="0 0 16 16" fill="none">
+                            <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    @if (_certOpen)
+                    {
+                        <div class="sts-cert-grid" style="margin-top:0.4rem;margin-bottom:0.5rem;">
+                            @foreach (var cert in c.Certifications)
+                            {
+                                <div class="sts-cert-item">
+                                    <div class="sts-cert-name">★ @cert.Name</div>
+                                    <div class="sts-cert-sub">
+                                        @if (cert.LinkedOriginTraitId is not null)
+                                        {
+                                            <span>Trait : @VM.TraitName(cert.LinkedOriginTraitId)</span>
+                                        }
+                                        @if (cert.LinkedAbilityId is not null && cert.FreePoints > 0)
+                                        {
+                                            <span>@cert.FreePoints pt(s) — @VM.AbilityName(cert.LinkedAbilityId)</span>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                }
+
+                <div class="sts-collapse-hdr" style="margin-top:1.25rem;" @onclick="() => _compOpen = !_compOpen">
+                    <span class="sts-section-title" style="margin:0;">Compétences (@c.SpentSkillPoints / @c.SkillPoints pts)</span>
+                    <svg class="sts-chevron @(_compOpen ? "" : "collapsed")" viewBox="0 0 16 16" fill="none">
+                        <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                @if (_compOpen)
+                {
+                    @foreach (var rang in new[] { 1, 2, 3 })
+                    {
+                        var groupe   = c.EquippedAbilities.Where(eq => eq.Level == rang).ToList();
+                        if (groupe.Count == 0) continue;
+                        var rangOpen = rang switch { 2 => _r2Open, 3 => _r3Open, _ => _r1Open };
+
+                        <div class="sts-rang-hdr" @onclick="() => ToggleRang(rang)">
+                            <span class="sts-rang-label sts-rang-label-@rang">Rang @rang</span>
+                            <svg class="sts-chevron sts-chevron-rang-@rang @(rangOpen ? "" : "collapsed")"
+                                 viewBox="0 0 16 16" fill="none">
+                                <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        @if (rangOpen)
+                        {
+                            @foreach (var eq in groupe)
+                            {
+                                var ability     = VM.GetAbility(eq.AbilityId);
+                                var fp          = c.GetFreePointsForAbility(eq.AbilityId);
+                                var levelDesc   = ability?.Levels
+                                    .Where(l => l.Level <= eq.Level)
+                                    .OrderBy(l => l.Level)
+                                    .ToList() ?? [];
+                                var accentClass = rang switch { 2 => "sts-ability-card-r2", 3 => "sts-ability-card-r3", _ => "" };
+
+                                <div class="sts-ability-card @accentClass">
+                                    <div class="sts-card-header">
+                                        <span class="sts-card-title">@(ability?.Name ?? eq.AbilityId)</span>
+                                        @if (fp > 0)
+                                        {
+                                            <span class="sts-badge sts-badge-passive">@fp pt(s) certif.</span>
+                                        }
+                                        @if (ability?.UsageLimit is UsageLimit ul && ul != UsageLimit.None)
+                                        {
+                                            <span class="sts-badge sts-badge-job">@VM.UsageLimitLabel(ul)</span>
+                                        }
+                                    </div>
+                                    @foreach (var ld in levelDesc)
+                                    {
+                                        @if (!string.IsNullOrWhiteSpace(ld.Description))
+                                        {
+                                            <div class="sts-card-desc" style="margin-top:4px;">
+                                                @if (eq.Level > 1)
+                                                {
+                                                    <span style="color:var(--teal);font-size:11px;">Lv@(ld.Level) — </span>
+                                                }
+                                                @ld.Description
+                                            </div>
+                                        }
+                                    }
+                                </div>
+                            }
+                        }
+                    }
+                }
+            </div>
+
+            <!-- Colonne droite : trait d'origine + traits -->
+            <div>
+                @if (c.OriginTraitId is not null)
+                {
+                    var originTrait = VM.GetTrait(c.OriginTraitId);
+                    var hasCert     = c.HasCertificationForOriginTrait(c.OriginTraitId);
+                    <h2 class="sts-section-title">Trait d'origine</h2>
+                    <div class="sts-trait-item" style="border-left:2px solid var(--amber);border-radius:0 6px 6px 0;">
+                        <div class="sts-trait-dot" style="background:var(--amber);"></div>
+                        <div>
+                            <div class="sts-trait-name">
+                                @(originTrait?.Name ?? c.OriginTraitId)
+                                @if (hasCert)
+                                {
+                                    <span class="sts-badge sts-badge-passive" style="margin-left:6px;">Certifié — gratuit</span>
+                                }
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(originTrait?.Description))
+                            {
+                                <div class="sts-trait-desc">@originTrait.Description</div>
+                            }
+                        </div>
+                    </div>
+                }
+
+                @if (c.EquippedTraitIds.Count > 0)
+                {
+                    <div class="sts-collapse-hdr" style="margin-top:1.25rem;" @onclick="() => _traitsOpen = !_traitsOpen">
+                        <span class="sts-section-title" style="margin:0;">Traits (@c.EquippedTraitIds.Count / @rank.Traits)</span>
+                        <svg class="sts-chevron @(_traitsOpen ? "" : "collapsed")" viewBox="0 0 16 16" fill="none">
+                            <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    @if (_traitsOpen)
+                    {
+                        @foreach (var tid in c.EquippedTraitIds)
+                        {
+                            var trait = VM.GetTrait(tid);
+                            <div class="sts-trait-item" style="margin-top:0.4rem;">
+                                <div class="sts-trait-dot"></div>
+                                <div>
+                                    <div class="sts-trait-name">
+                                        @(trait?.Name ?? tid)
+                                        @if (trait?.Category is TraitCategory cat)
+                                        {
+                                            <span class="sts-badge sts-badge-weapon" style="margin-left:6px;">@cat</span>
+                                        }
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(trait?.Description))
+                                    {
+                                        <div class="sts-trait-desc">@trait.Description</div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    }
+                }
+            </div>
+        </div>
+    }
+
+    <!-- ── Onglet Inventaire ── -->
+    @if (_activeTab == 1)
+    {
+        <div class="sts-inv-stats">
+            <div class="sts-stat-box">
+                <div class="sts-stat-label">Armes</div>
+                <div class="sts-stat-value" style="font-size:18px;">@weaponCount</div>
+            </div>
+            <div class="sts-stat-box">
+                <div class="sts-stat-label">Objets divers</div>
+                <div class="sts-stat-value" style="font-size:18px;">@itemCount</div>
+            </div>
+        </div>
+
+        @if (weapons.Count > 0)
+        {
+            <h2 class="sts-section-title" style="margin-top:1rem;">Armes</h2>
+            <div class="sts-inv-grid">
+                @foreach (var item in weapons)
+                {
+                    var isMain     = c.MainHandItemId == item.Id;
+                    var isOff      = c.OffHandItemId  == item.Id;
                     var unmastered = c.IsWeaponUnmastered(item);
 
-                    <div class="sts-ability-card" style="border-left-color:var(--text-muted);">
-                        <div class="sts-card-header">
-                            <span class="sts-card-title">@item.Name</span>
-                            @if (item.Category == ItemCategory.Weapon)
-                            {
-                                <span class="sts-badge sts-badge-weapon">Arme</span>
-                            }
-                            @if (isMain)     { <span class="sts-badge sts-badge-active">Main principale</span> }
-                            @if (isOff)      { <span class="sts-badge sts-badge-active">Main secondaire</span> }
-                            @if (unmastered) { <span class="sts-badge sts-badge-job">⚠ Palier 8</span> }
-                        </div>
-                        @if (item.LinkedAbilityId is not null)
+                    <div class="sts-inv-card @(isMain || isOff ? "sts-inv-card-equipped" : "")"
+                         @onclick="() => OpenItemModal(item, isMain, isOff, unmastered)">
+                        <span class="sts-inv-icon">⚔</span>
+                        <div class="sts-inv-name">@item.Name</div>
+                        @if (isMain)
                         {
-                            <div class="sts-card-meta"><span>Compétence : @VM.AbilityName(item.LinkedAbilityId)</span></div>
+                            <svg class="sts-inv-hand sts-inv-hand-main" viewBox="0 0 14 14" fill="none">
+                                <path d="M4 2.5C4 1.67 4.67 1 5.5 1S7 1.67 7 2.5V7M7 2.5C7 1.67 7.67 1 8.5 1S10 1.67 10 2.5V7M10 3.5C10 2.67 10.67 2 11.5 2S13 2.67 13 3.5V9C13 11.21 11.21 13 9 13H6C4.14 13 2.56 11.82 2.07 10.17L1.12 7.03A1.5 1.5 0 012.56 5.14L3.5 5.5V2.5"
+                                      stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
                         }
-                        @if (!string.IsNullOrWhiteSpace(item.Description))
+                        else if (isOff)
                         {
-                            <div class="sts-card-desc">@item.Description</div>
+                            <svg class="sts-inv-hand sts-inv-hand-off" viewBox="0 0 14 14" fill="none">
+                                <path d="M4 2.5C4 1.67 4.67 1 5.5 1S7 1.67 7 2.5V7M7 2.5C7 1.67 7.67 1 8.5 1S10 1.67 10 2.5V7M10 3.5C10 2.67 10.67 2 11.5 2S13 2.67 13 3.5V9C13 11.21 11.21 13 9 13H6C4.14 13 2.56 11.82 2.07 10.17L1.12 7.03A1.5 1.5 0 012.56 5.14L3.5 5.5V2.5"
+                                      stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        }
+                        else
+                        {
+                            <span class="sts-inv-hand-placeholder"></span>
                         }
                     </div>
                 }
-            }
-        </div>
-    </div>
+            </div>
+        }
+
+        @if (items.Count > 0)
+        {
+            <h2 class="sts-section-title" style="margin-top:1rem;">Objets divers</h2>
+            <div class="sts-inv-grid">
+                @foreach (var item in items)
+                {
+                    <div class="sts-inv-card" @onclick="() => OpenItemModal(item, false, false, false)">
+                        <span class="sts-inv-icon">◈</span>
+                        <div class="sts-inv-name">@item.Name</div>
+                        <span class="sts-inv-hand-placeholder"></span>
+                    </div>
+                }
+            </div>
+        }
+    }
 }
 
 <!-- Modale actions mobile -->
@@ -288,11 +370,61 @@ else if (VM.Character is { } c)
     </div>
 }
 
+<!-- Modale détail item -->
+@if (_showItemModal && _selectedItem is not null)
+{
+    <div class="sts-modal-backdrop" @onclick="() => _showItemModal = false"></div>
+    <div class="sts-modal">
+        <div class="sts-modal-header">
+            <h2 class="sts-modal-title">
+                @_selectedItem.Name
+                <span class="sts-badge @(_selectedItem.Category == ItemCategory.Weapon ? "sts-badge-weapon" : "sts-badge-passive")"
+                      style="margin-left:8px;font-size:10px;">
+                    @(_selectedItem.Category == ItemCategory.Weapon ? "Arme" : "Objet")
+                </span>
+            </h2>
+            <button class="sts-modal-close" @onclick="() => _showItemModal = false">✕</button>
+        </div>
+        <div class="sts-modal-body" style="display:flex;flex-direction:column;gap:6px;">
+            @if (_itemIsMain)     { <span class="sts-badge sts-badge-active" style="width:fit-content;">Main principale</span> }
+            @if (_itemIsOff)      { <span class="sts-badge sts-badge-active" style="width:fit-content;">Main secondaire</span> }
+            @if (_itemUnmastered) { <span class="sts-badge sts-badge-job" style="width:fit-content;">⚠ Palier 8 requis</span> }
+            @if (_selectedItem.LinkedAbilityId is not null)
+            {
+                <div class="sts-card-meta">
+                    <span>Compétence liée : @VM.AbilityName(_selectedItem.LinkedAbilityId)</span>
+                </div>
+            }
+            @if (!string.IsNullOrWhiteSpace(_selectedItem.Description))
+            {
+                <div class="sts-card-desc">@_selectedItem.Description</div>
+            }
+        </div>
+    </div>
+}
+
 @code {
     [Parameter] public Guid Id { get; set; }
+
     private bool _showActionsModal;
     private bool _histoireExpanded;
     private bool _exporting;
+    private int  _activeTab;
+
+    // Collapse — tout ouvert par défaut
+    private bool _certOpen   = true;
+    private bool _compOpen   = true;
+    private bool _r1Open     = true;
+    private bool _r2Open     = true;
+    private bool _r3Open     = true;
+    private bool _traitsOpen = true;
+
+    // Modale item inventaire
+    private bool           _showItemModal;
+    private CharacterItem? _selectedItem;
+    private bool           _itemIsMain;
+    private bool           _itemIsOff;
+    private bool           _itemUnmastered;
 
     protected override async Task OnInitializedAsync()
     {
@@ -305,6 +437,22 @@ else if (VM.Character is { } c)
 
         VM.OnStateChanged = StateHasChanged;
         await VM.LoadAsync(Id);
+    }
+
+    private void ToggleRang(int rang)
+    {
+        if (rang == 1)      _r1Open = !_r1Open;
+        else if (rang == 2) _r2Open = !_r2Open;
+        else                _r3Open = !_r3Open;
+    }
+
+    private void OpenItemModal(CharacterItem item, bool isMain, bool isOff, bool unmastered)
+    {
+        _selectedItem   = item;
+        _itemIsMain     = isMain;
+        _itemIsOff      = isOff;
+        _itemUnmastered = unmastered;
+        _showItemModal  = true;
     }
 
     private async Task Delete()
