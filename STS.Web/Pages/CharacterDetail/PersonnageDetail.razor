@@ -48,7 +48,9 @@ else if (VM.Character is { } c)
         {
             <img src="@VM.ImageUrl" alt="Portrait de @c.Name"
                  style="width:120px;height:120px;object-fit:cover;border-radius:10px;
-                        border:1.5px solid var(--teal-dim);flex-shrink:0;" />
+                        border:1.5px solid var(--border-strong);
+                        box-shadow:0 4px 16px rgba(0,0,0,0.45);
+                        flex-shrink:0;" />
         }
         <div style="flex:1;min-width:0;">
             <h1 class="sts-page-title">@c.Name</h1>

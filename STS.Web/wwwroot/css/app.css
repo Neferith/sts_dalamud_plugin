@@ -846,3 +846,21 @@ img {
     border: 1px solid rgba(78, 201, 160, 0.35);
     color: var(--success);
 }
+
+
+/* ── Background ambiance ─────────────────────────────────────────────────── */
+
+body {
+    background-image: linear-gradient(rgba(10, 15, 25, 0.77), rgba(10, 15, 25, 0.77)), url('/img/bg-nlrp.png');
+    background-size: cover;
+    background-position: center top;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+}
+
+/* iOS : background-attachment fixed est cassé sur Safari mobile */
+@supports (-webkit-touch-callout: none) {
+    body {
+        background-attachment: scroll;
+    }
+}

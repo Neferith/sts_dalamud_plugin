@@ -522,3 +522,15 @@
     width: 13px;
     height: 13px;
 }
+
+
+/* ── Section titles renforcés ────────────────────────────────────────────── */
+
+.sts-collapse-hdr .sts-section-title {
+    color: var(--text-secondary);
+    letter-spacing: 0.10em;
+}
+
+.sts-collapse-hdr:hover .sts-section-title {
+    color: var(--teal);
+}
