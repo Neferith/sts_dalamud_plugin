@@ -37,7 +37,6 @@ public class QuickbarWindow : Window, IDisposable
         };
         Size = new Vector2(320, 120);
         SizeCondition = ImGuiCond.FirstUseEver;
-        TriggerRefresh();
     }
 
     public void Dispose() { }
@@ -48,7 +47,7 @@ public class QuickbarWindow : Window, IDisposable
             ? ImGuiWindowFlags.None
             : ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse;
 
-        var active = _activeCharacter;
+        var active = _plugin.GetActiveCharacter.Execute();
 
         if (active is null)
         {
@@ -60,30 +59,6 @@ public class QuickbarWindow : Window, IDisposable
             DrawEditMode(active);
         else
             DrawNormalMode(active);
-    }
-
-    // ── Cache ──────────────────────────────────────────────────────────────────
-    private Character? _activeCharacter;
-    private Task? _refreshTask;
-
-    public void TriggerRefresh()
-    {
-        if (_refreshTask is { IsCompleted: false }) return;
-        _refreshTask = Task.Run(async () =>
-        {
-            try
-            {
-                var all = await _plugin.GetAllCharacters.ExecuteAsync();
-                var activeId = _plugin.Configuration.ActiveCharacterId;
-                _activeCharacter = activeId.HasValue
-                    ? all.FirstOrDefault(c => c.Id == activeId.Value)
-                    : null;
-            }
-            catch (Exception ex)
-            {
-                Plugin.Log.Warning("[STS] QuickbarWindow.TriggerRefresh échoué — {0}", ex.Message);
-            }
-        });
     }
 
     // ------------------------------------------------------------------ Mode normal
