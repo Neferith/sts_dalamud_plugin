@@ -45,6 +45,8 @@ public sealed class Plugin : IDalamudPlugin
     public Configuration Configuration { get; init; }
     public StsEngine Engine { get; init; }
 
+    public CharacterStore CharacterStore { get; init; }
+
     private readonly MainDiContainer _factory;
     public ICharacterRepository CharacterRepository { get; init; }
     public TraitRepository TraitRepository { get; private set; }
@@ -103,9 +105,10 @@ public sealed class Plugin : IDalamudPlugin
     public Plugin()
     {
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+        CharacterStore = new CharacterStore();
 
         // --- Container ---
-        IPluginFactory factory = new MainDiContainer(Configuration, PluginInterface, Log);
+        IPluginFactory factory = new MainDiContainer(CharacterStore, Configuration, PluginInterface, Log);
         _factory = (MainDiContainer)factory;
 
         // --- Engine ---
@@ -168,16 +171,11 @@ public sealed class Plugin : IDalamudPlugin
         _factory.CharacterStore.OnActiveChanged += () =>
         {
             RefreshEquippedTraits(_factory.CharacterStore.Active);
-            mainWindow?.TriggerRefresh();
+           // mainWindow?.TriggerRefresh();
           //  quickbarWindow?.TriggerRefresh();
         };
 
-        // OnListChanged : rafraîchit l'UI quand la liste change
-        _factory.CharacterStore.OnListChanged += () =>
-        {
-            mainWindow?.TriggerRefresh();
-           // quickbarWindow?.TriggerRefresh();
-        };
+
 
         // --- Auth : abonnement changement d'état + login automatique ---
         AuthState.OnAuthChanged += () =>

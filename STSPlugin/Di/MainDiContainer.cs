@@ -85,6 +85,7 @@ public class MainDiContainer : IPluginFactory
     private SetItemIconUseCase? _setItemIcon;
 
     public MainDiContainer(
+        CharacterStore characterStore,
         Configuration config,
         IDalamudPluginInterface pluginInterface,
         IPluginLog log)
@@ -93,7 +94,7 @@ public class MainDiContainer : IPluginFactory
         _assemblyDir = pluginInterface.AssemblyLocation.DirectoryName!;
         _configDir = pluginInterface.GetPluginConfigDirectory();
         _log = log;
-        CharacterStore = new CharacterStore();
+        CharacterStore = characterStore;
     }
 
     // ── Moteur ────────────────────────────────────────────────────────────────
