@@ -221,7 +221,8 @@ public sealed class Plugin : IDalamudPlugin
                     RefreshEquippedTraits();
                 }
                 // Rafraîchir l'UI
-                mainWindow.TriggerRefresh();
+                mainWindow?.TriggerRefresh();
+             //   quickbarWindow?.TriggerRefresh();
             });
         };
 

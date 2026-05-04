@@ -45,9 +45,10 @@ public static class AuthEndpoints
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Secret"]!));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-        var expires = DateTime.UtcNow.AddHours(
-            double.TryParse(configuration["Jwt:ExpirationHours"], out var h) ? h : 8);
-
+        var expires = DateTime.UtcNow + (
+            double.TryParse(configuration["Jwt:ExpirationMinutes"], out var m) ? TimeSpan.FromMinutes(m) :
+            double.TryParse(configuration["Jwt:ExpirationHours"], out var h) ? TimeSpan.FromHours(h) :
+            TimeSpan.FromHours(8));
         var claims = new[]
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
