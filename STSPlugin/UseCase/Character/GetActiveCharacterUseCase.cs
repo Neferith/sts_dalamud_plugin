@@ -18,10 +18,10 @@ public interface GetActiveCharacterUseCase
 /// <summary>Implémentation par défaut de <see cref="GetActiveCharacterUseCase"/>.</summary>
 public class DefaultGetActiveCharacterUseCase : GetActiveCharacterUseCase
 {
-    private readonly ActiveCharacterState _state;
+    private readonly CharacterStore _store;
 
-    public DefaultGetActiveCharacterUseCase(ActiveCharacterState state)
-        => _state = state;
+    public DefaultGetActiveCharacterUseCase(CharacterStore store)
+        => _store = store;
 
-    public Character? Execute() => _state.Current;
+    public Character? Execute() => _store.Active;
 }

@@ -12,26 +12,23 @@ public class DefaultSetActiveCharacterUseCase : SetActiveCharacterUseCase
 {
     private readonly Configuration _configuration;
     private readonly StsEngine _engine;
-    private readonly ActiveCharacterState _activeCharacterState;
+    private readonly CharacterStore _store;
 
     public DefaultSetActiveCharacterUseCase(
         Configuration configuration,
         StsEngine engine,
-        ActiveCharacterState activeCharacterState)
+        CharacterStore store)
     {
         _configuration = configuration;
         _engine = engine;
-        _activeCharacterState = activeCharacterState;
+        _store = store;
     }
 
     public void Execute(Character? character)
     {
         _configuration.ActiveCharacterId = character?.Id;
         _configuration.Save();
-
-        if (character != null)
-            _engine.ChangeRank(character.RankKey);
-
-        _activeCharacterState.Set(character); // notifie OnChanged
+        if (character != null) _engine.ChangeRank(character.RankKey);
+        _store.SetActive(character?.Id);
     }
 }
