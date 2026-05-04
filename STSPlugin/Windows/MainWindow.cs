@@ -492,7 +492,7 @@ public class MainWindow : Window, IDisposable
 
                 if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
                 {
-                    plugin.SetActiveCharacter.Execute(character.Id);
+                    plugin.SetActiveCharacter.Execute(character);
                     plugin.RefreshEquippedTraits();
                     _selectedId = character.Id;
                 }
@@ -521,7 +521,7 @@ public class MainWindow : Window, IDisposable
                 ImGui.PushStyleColor(ImGuiCol.Text, ColInfo);
                 if (ImGui.Button("Activer ce personnage##activate", new Vector2(avail, 0)))
                 {
-                    plugin.SetActiveCharacter.Execute(selectedId);
+                    plugin.SetActiveCharacter.Execute(selected);
                     plugin.RefreshEquippedTraits();
                     TriggerRefresh();
                 }
