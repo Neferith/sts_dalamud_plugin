@@ -1,0 +1,229 @@
+/* ── Layout ──────────────────────────────────────────────────────────────── */
+
+.rules-layout {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 2rem;
+    align-items: start;
+}
+
+/* ── Sommaire ────────────────────────────────────────────────────────────── */
+
+.rules-toc {
+    position: sticky;
+    top: 1.5rem;
+    max-height: calc(100vh - 80px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+
+    .rules-toc::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .rules-toc::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 2px;
+    }
+
+.toc-section {
+    margin-bottom: 0.25rem;
+}
+
+.toc-section-title {
+    display: block;
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    padding: 8px 10px 4px;
+}
+
+.rules-toc ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.rules-toc li {
+    margin: 0;
+}
+
+.rules-toc a {
+    display: block;
+    font-size: 13px;
+    padding: 6px 10px;
+    border-radius: 7px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    border: 1px solid transparent;
+    transition: background 0.1s, color 0.1s;
+}
+
+    .rules-toc a:hover {
+        background: var(--bg-surface);
+        color: var(--text-primary);
+        text-decoration: none;
+    }
+
+    .rules-toc a.active {
+        background: var(--teal-dim);
+        color: var(--teal);
+        border-color: var(--border);
+    }
+
+/* ── Contenu ─────────────────────────────────────────────────────────────── */
+
+.rules-content {
+    min-width: 0;
+}
+
+    .rules-content > h1 {
+        font-size: 22px;
+        font-weight: 500;
+        color: var(--moon);
+        margin: 0 0 1.25rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--border);
+    }
+
+/* ── Markdown (::deep car contenu MarkupString) ──────────────────────────── */
+
+::deep .rules-markdown {
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--text-secondary);
+}
+
+    ::deep .rules-markdown h2 {
+        font-size: 17px;
+        font-weight: 500;
+        color: var(--moon);
+        margin: 2rem 0 0.6rem;
+        padding-bottom: 0.4rem;
+        border-bottom: 1px solid var(--border);
+    }
+
+    ::deep .rules-markdown h3 {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-primary);
+        margin: 1.25rem 0 0.4rem;
+    }
+
+    ::deep .rules-markdown p {
+        margin: 0 0 0.9rem;
+    }
+
+    ::deep .rules-markdown ul,
+    ::deep .rules-markdown ol {
+        padding-left: 1.4rem;
+        margin-bottom: 0.9rem;
+    }
+
+    ::deep .rules-markdown li {
+        margin-bottom: 0.25rem;
+    }
+
+    ::deep .rules-markdown strong {
+        color: var(--text-primary);
+        font-weight: 600;
+    }
+
+    ::deep .rules-markdown em {
+        color: var(--text-muted);
+    }
+
+    ::deep .rules-markdown hr {
+        border: none;
+        border-top: 1px solid var(--border);
+        margin: 1.75rem 0;
+    }
+
+    ::deep .rules-markdown blockquote {
+        border-left: 2px solid var(--teal-mid);
+        padding: 0.4rem 1rem;
+        margin: 0.75rem 0;
+        color: var(--text-muted);
+        font-style: italic;
+    }
+
+    ::deep .rules-markdown img {
+        max-width: 60%;
+        border-radius: var(--radius-md);
+        margin: 1rem 0;
+        display: block;
+    }
+
+    ::deep .rules-markdown table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1rem 0;
+        font-size: 13px;
+    }
+
+    ::deep .rules-markdown th {
+        background: var(--bg-surface);
+        color: var(--text-primary);
+        padding: 7px 12px;
+        text-align: left;
+        border: 1px solid var(--border);
+        font-weight: 500;
+    }
+
+    ::deep .rules-markdown td {
+        padding: 6px 12px;
+        border: 1px solid var(--border);
+        color: var(--text-secondary);
+    }
+
+    ::deep .rules-markdown tr:nth-child(even) td {
+        background: rgba(255, 255, 255, 0.02);
+    }
+
+/* ── États ───────────────────────────────────────────────────────────────── */
+
+.rules-loading,
+.rules-empty {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 4rem 0;
+    font-size: 14px;
+}
+
+.rules-error {
+    padding: 0.75rem 1rem;
+    background: rgba(192, 57, 43, 0.12);
+    border: 1px solid rgba(192, 57, 43, 0.35);
+    border-radius: var(--radius-md);
+    color: #e74c3c;
+    font-size: 14px;
+}
+
+/* ── Mobile ──────────────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+    .rules-layout {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .rules-toc {
+        position: static;
+        max-height: none;
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 0.5rem 0.75rem;
+    }
+
+    .rules-content > h1 {
+        font-size: 18px;
+    }
+
+    ::deep .rules-markdown {
+        font-size: 13px;
+    }
+}
