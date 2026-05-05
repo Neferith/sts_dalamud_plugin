@@ -236,6 +236,27 @@ public static class CharacterEndpoints
         })
         .WithName("ExportCharacterPdf")
         .WithSummary("Exporte la fiche au format PDF.");
+
+
+        // GET /api/characters/{id}/export/fiche
+        group.MapGet("/{id:guid}/export/fiche", async (
+            Guid id,
+            IGetCharacterByIdUseCase getById,
+            IExportJobSheetPdfUseCase exportJobSheet,
+            ClaimsPrincipal user) =>
+        {
+            var character = await getById.ExecuteAsync(id);
+            if (character is null) return Results.NotFound();
+
+            if (!user.IsInRole("admin") && character.UserId != GetUserId(user))
+                return Results.Forbid();
+
+            var pdfBytes = await exportJobSheet.ExecuteAsync(character);
+            var safeName = character.Name.Replace(" ", "_");
+            return Results.File(pdfBytes, "application/pdf", $"{safeName}_fiche.pdf");
+        })
+        .WithName("ExportCharacterJobSheet")
+        .WithSummary("Exporte la fiche parchemin remplie du personnage au format PDF.");
     }
 
     private static Guid? GetUserId(ClaimsPrincipal user)

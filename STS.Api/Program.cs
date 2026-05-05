@@ -144,6 +144,16 @@ builder.Services.AddScoped<IExportCharacterPdfUseCase>(sp =>
         uploadDir);
 });
 
+builder.Services.AddScoped<IExportJobSheetPdfUseCase>(sp =>
+{
+    var ds = sp.GetRequiredService<DataServiceDataSource>();
+    return new ExportJobSheetPdfUseCase(
+        new DefaultTraitRepository(ds),
+        new DefaultJobRepository(ds),
+        new DefaultAbilityRepository(ds),
+        uploadDir); // même variable que IExportCharacterPdfUseCase
+});
+
 // Chemins fichiers
 var quickLinksPath = builder.Configuration["Data:QuickLinksFilePath"]
     ?? throw new InvalidOperationException("La clé Data:QuickLinksFilePath est manquante dans la configuration.");
