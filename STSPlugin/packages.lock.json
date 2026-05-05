@@ -20,7 +20,7 @@
       "sts.domain.character": {
         "type": "Project",
         "dependencies": {
-          "STS.Domain": "[10.0.0, )"
+          "STS.Domain": "[20.1.0, )"
         }
       }
     }
