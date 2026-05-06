@@ -1,3 +1,4 @@
+using QuestPDF.Drawing;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -22,9 +23,37 @@ public sealed class ExportJobSheetPdfUseCase(
     private const string AmberInk = "#8a6a1a";
 
     // ── Typographie ───────────────────────────────────────────────────────
-    // Georgia doit être installée sur l'hôte (ttf-mscorefonts-installer sur Ubuntu).
-    // Fallback : "Times New Roman" ou "DejaVu Serif".
-    private const string FontSerif = "Georgia";
+    private const string FontSerif = "IM Fell English";
+
+    /// <summary>
+    /// Enregistre les polices embarquées dans l'assembly.
+    /// À appeler une fois au démarrage de l'application (Program.cs).
+    /// </summary>
+    public static void RegisterFonts()
+    {
+        var assembly = typeof(ExportJobSheetPdfUseCase).Assembly;
+
+        // Mappe le nom de fichier (sans extension) vers le nom de famille QuestPDF
+        var fontMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["IMFellEnglish-Regular"] = "IM Fell English",
+            ["IMFellEnglish-Italic"] = "IM Fell English",
+        };
+
+        foreach (var resourceName in assembly.GetManifestResourceNames()
+                     .Where(n => n.EndsWith(".ttf", StringComparison.OrdinalIgnoreCase)))
+        {
+            // "STS.Export.Fonts.IMFellEnglish-Regular.ttf" → segments[^2] = "IMFellEnglish-Regular"
+            var segments = resourceName.Split('.');
+            var baseName = segments.Length >= 2 ? segments[^2] : resourceName;
+
+            using var stream = assembly.GetManifestResourceStream(resourceName)!;
+            if (fontMap.TryGetValue(baseName, out var familyName))
+                FontManager.RegisterFontWithCustomName(familyName, stream);
+            else
+                FontManager.RegisterFont(stream);
+        }
+    }
 
     // ── Contexte interne ──────────────────────────────────────────────────
     private sealed record SheetContext(
