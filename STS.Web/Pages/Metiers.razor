@@ -2,6 +2,7 @@
 @inject StsDataService DataService
 @inject CharacterApiService CharacterApi
 @inject IJSRuntime JS
+@inject AuthService Auth
 
 <div class="sts-page-header">
     <h1 class="sts-page-title">Métiers</h1>
@@ -62,7 +63,7 @@ else
             }
             else
             {
-                <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: flex-start;">
                     <div>
                         <h2 style="font-size: 20px; font-weight: 500; color: var(--moon); margin-bottom: 4px;">
                             @_selectedJob.Name
@@ -74,12 +75,14 @@ else
                         </div>
                     </div>
 
-                    <button class="sts-btn sts-btn-secondary"
-                            style="font-size: 12px; padding: 6px 12px; white-space: nowrap;"
-                            disabled="@_downloading"
-                            @onclick="DownloadBlankSheet">
-                        @(_downloading ? "Génération…" : "↓ Fiche vierge PDF")
-                    </button>
+                    @if (Auth.IsAuthenticated)
+                    {
+                        <button class="sts-btn sts-btn-ghost sts-btn-sm"
+                                disabled="@_downloading"
+                                @onclick="DownloadBlankSheet">
+                            @(_downloading ? "Génération…" : "↓ Fiche vierge PDF")
+                        </button>
+                    }
                 </div>
 
                 @if (_downloadError is not null)
