@@ -53,7 +53,7 @@
                         <th @onclick='() => SetSort("name")' style="cursor:pointer; user-select:none">
                             Nom @SortIcon("name")
                         </th>
-                        <th style="width:100px"></th>
+                        <th style="width:90px"></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -63,8 +63,17 @@
                             <td><code class="text-secondary">@job.Id</code></td>
                             <td class="fw-medium">@job.Name</td>
                             <td class="text-end">
-                                <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => OpenEdit(job)" title="Modifier">✏</button>
-                                <button class="btn btn-sm btn-outline-danger" @onclick="() => Delete(job)" title="Supprimer">✕</button>
+                                <div class="d-flex justify-content-end gap-2">
+                                    <button class="btn btn-sm btn-outline-secondary"
+                                            style="width:32px;"
+                                            title="Fiche vierge PDF"
+                                            disabled="@(_downloading == job.Id)"
+                                            @onclick="() => DownloadSheet(job)">
+                                        @(_downloading == job.Id ? "…" : "↓")
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-secondary" style="width:32px;" @onclick="() => OpenEdit(job)" title="Modifier">✏</button>
+                                    <button class="btn btn-sm btn-outline-danger" style="width:32px;" @onclick="() => Delete(job)" title="Supprimer">✕</button>
+                                </div>
                             </td>
                         </tr>
                     }
@@ -106,14 +115,15 @@
 }
 
 @code {
-    private List<JobDto> _jobs = [];
-    private bool _loading = true;
-    private bool _showModal;
-    private bool _editMode;
-    private bool _saving;
-    private string? _message;
-    private bool _isError;
-    private JobDto _form = new();
+    private List<JobDto> _jobs      = [];
+    private bool         _loading   = true;
+    private bool         _showModal;
+    private bool         _editMode;
+    private bool         _saving;
+    private string?      _message;
+    private bool         _isError;
+    private JobDto       _form      = new();
+    private string?      _downloading; // id du job en cours de téléchargement
 
     // ─── Filtres & tri ────────────────────────────────────────────────────────
     private string _search  = "";
@@ -161,6 +171,27 @@
         _loading = true;
         _jobs    = await Api.GetAsync<List<JobDto>>("/api/jobs") ?? [];
         _loading = false;
+    }
+
+    // ─── Export PDF ───────────────────────────────────────────────────────────
+    private async Task DownloadSheet(JobDto job)
+    {
+        _downloading = job.Id;
+        try
+        {
+            var response = await Api.GetRawAsync($"/api/jobs/{job.Id}/export/pdf");
+            if (response is null)
+            {
+                ShowError($"Erreur lors de la génération de la fiche « {job.Name} ».");
+                return;
+            }
+            var safeName = job.Name.Replace(" ", "_");
+            await JS.InvokeVoidAsync("downloadFile", $"{safeName}_fiche.pdf", "application/pdf", response);
+        }
+        finally
+        {
+            _downloading = null;
+        }
     }
 
     // ─── Modal ────────────────────────────────────────────────────────────────

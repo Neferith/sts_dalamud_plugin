@@ -1,5 +1,7 @@
-using Sts.Domain.DataSource;
+using Microsoft.AspNetCore.Mvc;
 using Sts.Api.Services;
+using Sts.Domain.DataSource;
+using STS.Export;
 
 namespace Sts.Api.Endpoints;
 
@@ -43,6 +45,22 @@ public static class JobEndpoints
             .WithSummary("Supprime un job.")
             .Produces(StatusCodes.Status204NoContent)
             .Produces(StatusCodes.Status404NotFound);
+
+        group.MapGet("/{id}/export/pdf", ExportPdf)
+            .WithName("ExportJobPdf")
+            .WithSummary("Exporte la fiche vierge du job au format PDF (parchemin).")
+            .Produces<FileContentResult>()
+            .Produces(StatusCodes.Status404NotFound);
+    }
+
+    private static async Task<IResult> ExportPdf(string id, DataService dataService, IExportJobSheetPdfUseCase exportJobSheet)
+    {
+        var job = dataService.GetJob(id);
+        if (job is null) return Results.NotFound($"Job '{id}' introuvable.");
+
+        var pdfBytes = await exportJobSheet.ExecuteAsync(id);
+        var safeName = job.Name.Replace(" ", "_");
+        return Results.File(pdfBytes, "application/pdf", $"{safeName}_fiche.pdf");
     }
 
     private static IResult GetAll(DataService dataService)

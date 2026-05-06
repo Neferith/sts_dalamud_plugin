@@ -119,6 +119,7 @@ public class ApiClient
     private bool HandleUnauthorized(HttpResponseMessage response)
     {
         if (response.StatusCode != HttpStatusCode.Unauthorized) return false;
+        _auth.ClearToken(); // purge le token pourri avant de rediriger
         _nav.NavigateTo("/login");
         return true;
     }
@@ -141,5 +142,12 @@ public class ApiClient
 
         var json = await response.Content.ReadFromJsonAsync<JsonElement>(JsonOptions);
         return (json, null);
+    }
+
+    public async Task<byte[]?> GetRawAsync(string url)
+    {
+        var response = await _http.GetAsync(url);
+        if (!response.IsSuccessStatusCode) return null;
+        return await response.Content.ReadAsByteArrayAsync();
     }
 }

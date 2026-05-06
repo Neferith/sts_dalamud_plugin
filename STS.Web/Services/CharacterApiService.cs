@@ -123,6 +123,24 @@ public class CharacterApiService(HttpClient http)
         return (await response.Content.ReadAsByteArrayAsync(), null);
     }
 
+    /// <summary>Télécharge la fiche parchemin remplie d'un personnage.</summary>
+    public async Task<(byte[]? Data, string? Error)> DownloadJobSheetAsync(Guid id)
+    {
+        var response = await http.GetAsync($"/api/characters/{id}/export/fiche");
+        if (!response.IsSuccessStatusCode)
+            return (null, $"Erreur {(int)response.StatusCode}");
+        return (await response.Content.ReadAsByteArrayAsync(), null);
+    }
+
+    /// <summary>Télécharge la fiche parchemin vierge d'un job.</summary>
+    public async Task<(byte[]? Data, string? Error)> DownloadBlankJobSheetAsync(string jobId)
+    {
+        var response = await http.GetAsync($"/api/jobs/{jobId}/export/pdf");
+        if (!response.IsSuccessStatusCode)
+            return (null, $"Erreur {(int)response.StatusCode}");
+        return (await response.Content.ReadAsByteArrayAsync(), null);
+    }
+
     /// <summary>Construit l'URL absolue d'une URL relative renvoyée par l'API.</summary>
     public string AbsoluteImageUrl(string relativeUrl)
         => new Uri(http.BaseAddress!, relativeUrl).ToString();
