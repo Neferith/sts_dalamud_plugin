@@ -144,6 +144,21 @@ builder.Services.AddScoped<IExportCharacterPdfUseCase>(sp =>
         uploadDir);
 });
 
+builder.Services.AddScoped<IExportJobSheetPdfUseCase>(sp =>
+{
+    var ds = sp.GetRequiredService<DataServiceDataSource>();
+    return new ExportJobSheetPdfUseCase(
+        new DefaultTraitRepository(ds),
+        new DefaultJobRepository(ds),
+        new DefaultAbilityRepository(ds),
+        uploadDir); // même variable que IExportCharacterPdfUseCase
+});
+
+ExportJobSheetPdfUseCase.RegisterFonts();
+
+
+
+
 // Chemins fichiers
 var quickLinksPath = builder.Configuration["Data:QuickLinksFilePath"]
     ?? throw new InvalidOperationException("La clé Data:QuickLinksFilePath est manquante dans la configuration.");
@@ -249,6 +264,11 @@ builder.Services.AddSwaggerGen(options =>
 // ─── App ──────────────────────────────────────────────────────────────────────
 
 var app = builder.Build();
+
+var logger = app.Logger;
+logger.LogError("Fonts embarquées : {Fonts}",
+    string.Join(", ", typeof(ExportJobSheetPdfUseCase).Assembly
+        .GetManifestResourceNames()));
 
 // Appliquer les migrations automatiquement au démarrage
 using (var scope = app.Services.CreateScope())

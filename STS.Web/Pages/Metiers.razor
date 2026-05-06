@@ -1,5 +1,8 @@
 @page "/metiers"
 @inject StsDataService DataService
+@inject CharacterApiService CharacterApi
+@inject IJSRuntime JS
+@inject AuthService Auth
 
 <div class="sts-page-header">
     <h1 class="sts-page-title">Métiers</h1>
@@ -60,16 +63,32 @@ else
             }
             else
             {
-                <div style="margin-bottom: 1.5rem;">
-                    <h2 style="font-size: 20px; font-weight: 500; color: var(--moon); margin-bottom: 4px;">
-                        @_selectedJob.Name
-                    </h2>
-                    <div style="display: flex; gap: 10px; font-size: 12px; color: var(--text-muted);">
-                        <span>@(_traitsByJob.TryGetValue(_selectedJob.Id, out var tc) ? tc.Count : 0) trait(s)</span>
-                        <span class="sts-card-meta-dot" style="align-self: center;"></span>
-                        <span>@(_abilitiesByJob.TryGetValue(_selectedJob.Id, out var ac) ? ac.Count : 0) capacité(s)</span>
+                    <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <h2 style="font-size: 20px; font-weight: 500; color: var(--moon); margin-bottom: 4px;">
+                            @_selectedJob.Name
+                        </h2>
+                        <div style="display: flex; gap: 10px; font-size: 12px; color: var(--text-muted);">
+                            <span>@(_traitsByJob.TryGetValue(_selectedJob.Id, out var tc) ? tc.Count : 0) trait(s)</span>
+                            <span class="sts-card-meta-dot" style="align-self: center;"></span>
+                            <span>@(_abilitiesByJob.TryGetValue(_selectedJob.Id, out var ac) ? ac.Count : 0) capacité(s)</span>
+                        </div>
                     </div>
+
+                    @if (Auth.IsAuthenticated)
+                    {
+                        <button class="sts-btn sts-btn-ghost sts-btn-sm"
+                                disabled="@_downloading"
+                                @onclick="DownloadBlankSheet">
+                            @(_downloading ? "Génération…" : "↓ Fiche vierge PDF")
+                        </button>
+                    }
                 </div>
+
+                @if (_downloadError is not null)
+                {
+                    <p style="color: #e34b4b; font-size: 12px; margin-bottom: 12px;">@_downloadError</p>
+                }
 
                 @if (_traitsByJob.TryGetValue(_selectedJob.Id, out var traits) && traits.Count > 0)
                 {
@@ -163,8 +182,10 @@ else
     private JobData?                              _selectedJob    = null;
     private bool                                  _sidebarOpen    = false;
 
-    private bool    _loading = true;
-    private string? _error   = null;
+    private bool    _loading       = true;
+    private string? _error         = null;
+    private bool    _downloading   = false;
+    private string? _downloadError = null;
 
     protected override async Task OnInitializedAsync()
     {
@@ -195,13 +216,36 @@ else
         }
     }
 
+    private async Task DownloadBlankSheet()
+    {
+        if (_selectedJob is null) return;
+
+        _downloading   = true;
+        _downloadError = null;
+
+        var (data, error) = await CharacterApi.DownloadBlankJobSheetAsync(_selectedJob.Id);
+
+        if (error is not null)
+        {
+            _downloadError = error;
+        }
+        else if (data is not null)
+        {
+            var fileName = $"{_selectedJob.Name.Replace(" ", "_")}_fiche.pdf";
+            await JS.InvokeVoidAsync("downloadFile", fileName, "application/pdf", data);
+        }
+
+        _downloading = false;
+    }
+
     private void SelectJob(string jobId)
     {
-        _selectedJob = _selectedJob?.Id == jobId
+        _selectedJob   = _selectedJob?.Id == jobId
             ? null
             : _jobs.FirstOrDefault(j => j.Id == jobId);
         _expanded.Clear();
-        _sidebarOpen = false; // ferme la sidebar sur mobile après sélection
+        _downloadError = null;
+        _sidebarOpen   = false;
     }
 
     private void ToggleExpand(string id)

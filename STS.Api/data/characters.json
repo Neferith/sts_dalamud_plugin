@@ -6,7 +6,7 @@
     "rankKey": 1,
     "jobId": "machiniste",
     "race": 0,
-    "histoire": " MOCK 7 Les v\u00E9ritables origines d\u2019Eleanor sont inconnues. Elle avouera facilement \u00EAtre amn\u00E9sique et avoir un passif avec l\u2019empire.\nPendant plusieurs ann\u00E9es, elle a travaill\u00E9 pour un groupe de chasseurs de cr\u00E9ature du n\u00E9ant. Elle-m\u00EAme pr\u00E9cisera n\u2019\u00EAtre que peu instruite sur le sujet, ses connaissances en la mati\u00E8re se r\u00E9sument \u00E0 l\u2019exp\u00E9rience acquise au cours de ses missions et le savoir partag\u00E9 par ses co\u00E9quipiers. Son travail consistait principalement \u00E0 jouer son r\u00F4le d\u2019\u00E9claireuse et de tireuse d\u2019\u00E9lite pour le groupe. Le groupe s\u2019est s\u00E9par\u00E9, il y a plus de trois ans \u00E0 pr\u00E9sent, mais elle demeure tr\u00E8s li\u00E9e \u00E0 la leadeuse de son ancien groupe, Elisa Odeclaire.\nDepuis lors, elle a surtout vivot\u00E9, poursuivi son entra\u00EEnement toujours dans l\u2019objectif de chercher la perfection dans ses domaines de comp\u00E9tences.  Avec le temps, elle a aussi acquis une solide connaissance dans tout ce qui est les m\u00E9canismes de pr\u00E9cision.  Sa passion pour la fabrication d\u2019horloges, de bo\u00EEtes \u00E0 musique ou de tout un tas d\u2019inventions, frise parfois \u00E0 l\u2019obsessionnel. Quand elle a une id\u00E9e en t\u00EAte, elle serait du genre \u00E0 ne plus regarder le temps passer.\nElle a une fille aussi. Une jeune rousse aux yeux verts de dix ans environ. Les gens sont parfois surpris d\u2019apprendre qu\u2019elle a le m\u00EAme pr\u00E9nom que sa fille.",
+    "histoire": "Les v\u00E9ritables origines d\u2019Eleanor sont inconnues. Elle avouera facilement \u00EAtre amn\u00E9sique et avoir un passif avec l\u2019empire.\nPendant plusieurs ann\u00E9es, elle a travaill\u00E9 pour un groupe de chasseurs de cr\u00E9ature du n\u00E9ant. Elle-m\u00EAme pr\u00E9cisera n\u2019\u00EAtre que peu instruite sur le sujet, ses connaissances en la mati\u00E8re se r\u00E9sument \u00E0 l\u2019exp\u00E9rience acquise au cours de ses missions et le savoir partag\u00E9 par ses co\u00E9quipiers. Son travail consistait principalement \u00E0 jouer son r\u00F4le d\u2019\u00E9claireuse et de tireuse d\u2019\u00E9lite pour le groupe. Le groupe s\u2019est s\u00E9par\u00E9, il y a plus de trois ans \u00E0 pr\u00E9sent, mais elle demeure tr\u00E8s li\u00E9e \u00E0 la leadeuse de son ancien groupe, Elisa Odeclaire.\nDepuis lors, elle a surtout vivot\u00E9, poursuivi son entra\u00EEnement toujours dans l\u2019objectif de chercher la perfection dans ses domaines de comp\u00E9tences.  Avec le temps, elle a aussi acquis une solide connaissance dans tout ce qui est les m\u00E9canismes de pr\u00E9cision.  Sa passion pour la fabrication d\u2019horloges, de bo\u00EEtes \u00E0 musique ou de tout un tas d\u2019inventions, frise parfois \u00E0 l\u2019obsessionnel. Quand elle a une id\u00E9e en t\u00EAte, elle serait du genre \u00E0 ne plus regarder le temps passer.\nElle a une fille aussi. Une jeune rousse aux yeux verts de dix ans environ. Les gens sont parfois surpris d\u2019apprendre qu\u2019elle a le m\u00EAme pr\u00E9nom que sa fille.",
     "reputationLevel": 0,
     "userId": "b1e4847e-9950-4340-9ec7-cf00b4ee8abd",
     "originTraitId": null,
@@ -58,6 +58,10 @@
       {
         "abilityId": "sceptre_arcanique",
         "level": 2
+      },
+      {
+        "abilityId": "dague",
+        "level": 1
       }
     ],
     "certifications": [
@@ -198,20 +202,20 @@
     ],
     "traitSlots": 3,
     "freeTraitSlots": 0,
-    "spentSkillPoints": 6,
-    "remainingSkillPoints": 1
+    "spentSkillPoints": 7,
+    "remainingSkillPoints": 0
   },
   {
     "id": "e7333c28-66fd-47be-ba08-f0edeef13ff5",
-    "imageUrl": null,
+    "imageUrl": "/api/characters/e7333c28-66fd-47be-ba08-f0edeef13ff5/image",
     "name": "Adrila Messor",
     "rankKey": 2,
     "jobId": "faucheur",
     "race": 0,
-    "histoire": "",
+    "histoire": "Issue d\u0027une ancienne famille de Faucheurs, Adrila aura eu une enfance presque normale en Garlemald. Fra\u00EEchement sortie d\u0027\u00E9cole d\u0027officier et en possession d\u0027un cristal de faucheur h\u00E9rit\u00E9 de sa famille, elle passa de nombreuses ann\u00E9es en Ala Mhigo pendant l\u0027occupation, \u00E0 remplir diverses missions d\u0027espionnage et d\u0027infiltration. Apr\u00E8s la reprise d\u0027Ala Mhigo par l\u0027alliance \u00E9orz\u00E9enne, la faucheuse s\u0027est imm\u00E9diatement enfuie avant d\u0027\u00EAtre renvoy\u00E9e au front pendant le conflit de Ghimlyt. Marqu\u00E9e par ce qu\u0027elle consid\u00E9ra comme une guerre insens\u00E9e et excessive, elle fut rapidement r\u00E9affect\u00E9e \u00E0 l\u0027ambassade garlemaldaise de Kugane pour r\u00E9cup\u00E9rer de ses \u00E9preuves, jusqu\u0027\u00E0 la chute de l\u0027Empire. Depuis, l\u0027imp\u00E9riale erre loin de son pays, cherchant \u00E0 se faire une place dans un monde qui n\u0027appr\u00E9cie pas les siens, et mettant \u00E0 profit ses comp\u00E9tences en espionnage et commandement dans le but de se faire un nom.",
     "reputationLevel": 0,
     "userId": "bbc016e5-6582-4221-90fd-bee6e5315459",
-    "originTraitId": null,
+    "originTraitId": "urbain",
     "equippedTraitIds": [],
     "customActions": [],
     "quickbarActionIds": [],
@@ -224,16 +228,40 @@
       {
         "abilityId": "invocation_avatar",
         "level": 2
+      },
+      {
+        "abilityId": "harpe",
+        "level": 2
+      },
+      {
+        "abilityId": "intrusion",
+        "level": 2
+      },
+      {
+        "abilityId": "Arr\u00EAt de Mort",
+        "level": 1
+      },
+      {
+        "abilityId": " Blason Arcanique",
+        "level": 1
       }
     ],
-    "certifications": [],
+    "certifications": [
+      {
+        "id": "4250c405-3d83-4d9a-8bea-ed479d19ba51",
+        "name": "Faucheur",
+        "linkedOriginTraitId": null,
+        "linkedAbilityId": "faux",
+        "freePoints": 3
+      }
+    ],
     "inventory": [],
     "mainHandItemId": null,
     "offHandItemId": null,
     "equippedWeapons": [],
     "traitSlots": 4,
     "freeTraitSlots": 4,
-    "spentSkillPoints": 5,
-    "remainingSkillPoints": 2
+    "spentSkillPoints": 8,
+    "remainingSkillPoints": 0
   }
 ]

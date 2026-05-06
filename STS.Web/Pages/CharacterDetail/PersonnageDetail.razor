@@ -18,6 +18,7 @@
             <a href="/personnages/@Id/editer" class="sts-btn sts-btn-primary sts-btn-sm">✎ Éditer</a>
             <button class="sts-btn sts-btn-ghost sts-btn-sm" @onclick="ExportDiscord" disabled="@_exporting">⬇ Discord</button>
             <button class="sts-btn sts-btn-ghost sts-btn-sm" @onclick="ExportPdf" disabled="@_exporting">⬇ PDF</button>
+            <button class="sts-btn sts-btn-ghost sts-btn-sm" @onclick="ExportFiche" disabled="@_exporting">⬇ Fiche</button>
             <button class="sts-btn sts-btn-ghost sts-btn-sm sts-btn-danger" @onclick="Delete">Supprimer</button>
         </div>
         <div class="sts-actions-mobile" style="margin-left:auto;">
@@ -365,6 +366,9 @@ else if (VM.Character is { } c)
                 <button class="sts-mobile-btn sts-mobile-btn-ghost"
                         @onclick="() => { _showActionsModal = false; _ = ExportPdf(); }"
                         disabled="@_exporting">⬇ Export PDF</button>
+                <button class="sts-mobile-btn sts-mobile-btn-ghost"
+                        @onclick="() => { _showActionsModal = false; _ = ExportFiche(); }"
+                        disabled="@_exporting">⬇ Fiche PDF</button>
                 <button class="sts-mobile-btn sts-mobile-btn-danger"
                         @onclick="() => { _showActionsModal = false; _ = Delete(); }">Supprimer</button>
             </div>
@@ -490,6 +494,20 @@ else if (VM.Character is { } c)
             if (data is not null)
                 await JS.InvokeVoidAsync("downloadFile",
                     $"{VM.Character!.Name.Replace(" ", "_")}.pdf",
+                    "application/pdf", data);
+        }
+        finally { _exporting = false; StateHasChanged(); }
+    }
+
+    private async Task ExportFiche()
+    {
+        _exporting = true; StateHasChanged();
+        try
+        {
+            var (data, _) = await Api.DownloadJobSheetAsync(Id);
+            if (data is not null)
+                await JS.InvokeVoidAsync("downloadFile",
+                    $"{VM.Character!.Name.Replace(" ", "_")}_fiche.pdf",
                     "application/pdf", data);
         }
         finally { _exporting = false; StateHasChanged(); }
