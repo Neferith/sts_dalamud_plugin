@@ -1,3 +1,4 @@
+using Sts.Domain.Content.Models;
 using Sts.Domain.Content.Repositories;
 using System;
 using System.Collections.Generic;
