@@ -31,6 +31,8 @@ public sealed class HomeCardsViewModel(
     public string FormLinkLabel { get; set; } = string.Empty;
     public string FormAccent { get; set; } = "teal";
     public int FormOrder { get; set; }
+
+    public bool FormIsFeatured { get; set; }
     public bool FormIsVisible { get; set; } = true;
 
     public Action? OnStateChanged { get; set; }
@@ -71,6 +73,7 @@ public sealed class HomeCardsViewModel(
         FormLinkLabel = card.LinkLabel ?? string.Empty;
         FormAccent = card.Accent;
         FormOrder = card.Order;
+        FormIsFeatured = card.IsFeatured;
         FormIsVisible = card.IsVisible;
         ShowForm = true;
         Success = null;
@@ -97,6 +100,7 @@ public sealed class HomeCardsViewModel(
                 LinkLabel = string.IsNullOrWhiteSpace(FormLinkLabel) ? null : FormLinkLabel,
                 Accent = FormAccent,
                 Order = FormOrder,
+                IsFeatured = FormIsFeatured,
                 IsVisible = FormIsVisible,
             };
 

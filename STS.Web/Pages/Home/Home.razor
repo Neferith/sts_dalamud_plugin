@@ -52,7 +52,7 @@ else
             <div class="home-cards-grid">
                 @foreach (var card in ViewModel.HomeCards)
                 {
-                    <div class="home-card home-card-accent-@card.Accent">
+                    <div class="home-card home-card-accent-@card.Accent @(card.IsFeatured ? "home-card-featured" : "")">
                         @if (!string.IsNullOrWhiteSpace(card.Icon))
                         {
                             <span class="home-card-icon">@card.Icon</span>

@@ -8,6 +8,7 @@
     "LinkLabel": "Explorer les r\u00E8gles",
     "Accent": "teal",
     "Order": 0,
+    "IsFeatured": false,
     "IsVisible": true
   },
   {
@@ -19,6 +20,7 @@
     "LinkLabel": null,
     "Accent": "ice",
     "Order": 1,
+    "IsFeatured": false,
     "IsVisible": true
   },
   {
@@ -30,6 +32,7 @@
     "LinkLabel": "Nous rejoindre",
     "Accent": "amber",
     "Order": 2,
+    "IsFeatured": true,
     "IsVisible": true
   }
 ]

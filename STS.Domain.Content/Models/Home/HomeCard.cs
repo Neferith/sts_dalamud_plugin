@@ -28,5 +28,7 @@ public record HomeCard
     /// <summary>Ordre d'affichage.</summary>
     public int Order { get; init; }
 
+    public bool IsFeatured { get; init; } = false;
+
     public bool IsVisible { get; init; } = true;
 }

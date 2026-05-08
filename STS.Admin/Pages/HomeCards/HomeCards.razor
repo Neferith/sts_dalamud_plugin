@@ -137,6 +137,11 @@
                         </div>
                         <div class="col-4 d-flex align-items-end pb-1">
                             <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="chkFeatured"
+                                       @bind="ViewModel.FormIsFeatured" />
+                                <label class="form-check-label" for="chkFeatured">Mis en avant</label>
+                            </div>
+                            <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="chkVisible"
                                        @bind="ViewModel.FormIsVisible" />
                                 <label class="form-check-label" for="chkVisible">Visible</label>
