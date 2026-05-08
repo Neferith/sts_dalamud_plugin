@@ -7,7 +7,7 @@ public record SiteSettings
     public string HeroTitle { get; init; } = "Nouvelle Lune";
 
     /// <summary>Accroche courte affichée sous le titre hero.</summary>
-    public string HeroTagline { get; init; } = "Compagnie Libre · Final Fantasy XIV";
+    public string HeroTagline { get; init; } = "Protéger Eorzéa. Former les aventuriers de demain.";
 
     /// <summary>Texte de présentation de la guilde.</summary>
     public string HeroText { get; init; } = string.Empty;

@@ -166,11 +166,34 @@ var quickLinksPath = builder.Configuration["Data:QuickLinksFilePath"]
 var siteSettingsPath = builder.Configuration["Data:SiteSettingsFilePath"]
     ?? throw new InvalidOperationException("La clé Data:SiteSettingsFilePath est manquante dans la configuration.");
 
+var homeCardsPath = builder.Configuration["Data:HomeCardsFilePath"]
+    ?? throw new InvalidOperationException("La clé Data:HomeCardsFilePath est manquante dans la configuration.");
+
+builder.Services.AddSingleton<IHomeCardDataSource>(_ => new JsonHomeCardDataSource(homeCardsPath));
+builder.Services.AddSingleton<IHomeCardRepository, HomeCardRepository>();
+builder.Services.AddSingleton<IHomeCardReadRepository>(sp => sp.GetRequiredService<IHomeCardRepository>());
+builder.Services.AddScoped<IGetHomeCardsUseCase, GetHomeCardsUseCase>();
+builder.Services.AddScoped<IGetVisibleHomeCardsUseCase, GetVisibleHomeCardsUseCase>();
+builder.Services.AddScoped<ICreateHomeCardUseCase, CreateHomeCardUseCase>();
+builder.Services.AddScoped<IUpdateHomeCardUseCase, UpdateHomeCardUseCase>();
+builder.Services.AddScoped<IDeleteHomeCardUseCase, DeleteHomeCardUseCase>();
+
 // Repositories
 builder.Services.AddSingleton<IQuickLinksRepository>(
     new QuickLinksRepository(quickLinksPath));
-builder.Services.AddSingleton<ISiteSettingsRepository>(
-    new SiteSettingsRepository(siteSettingsPath));
+
+
+//builder.Services.AddScoped<IRulesDataSource, SqliteRulesDataSource>();
+//builder.Services.AddScoped<IRulesRepository, RulesRepository>();
+
+//builder.Services.AddScoped<ISiteSettingsDataSource, JsonSiteSettingsDataSource>();
+
+builder.Services.AddSingleton<ISiteSettingsDataSource>(provider =>
+{
+    return new JsonSiteSettingsDataSource(siteSettingsPath);
+});
+builder.Services.AddSingleton<ISiteSettingsRepository, SiteSettingsRepository>();
+   
 // Repositories lecture seule — pointent vers les mêmes implémentations
 builder.Services.AddSingleton<IQuickLinksReadRepository>(sp =>
     sp.GetRequiredService<IQuickLinksRepository>());
@@ -333,6 +356,7 @@ app.MapActionEndpoints();   // CRUD  /api/actions       (auth requis)
 app.MapImageEndpoints();
 app.MapQuickLinksEndpoints();   // GET /api/quick-links (public) + CRUD (auth)
 app.MapSiteSettingsEndpoints(); // GET /api/site-settings (public) + PUT (auth)
+app.MapHomeCardEndpoints(); // CRUD /api/home-cards (auth requis, GET /api/home-cards visible publiquement)
 app.MapDiscordMappingsEndpoints(); // ← supprimer si Discord désactivé
 
 app.MapFallbackToFile("index.html");

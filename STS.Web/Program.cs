@@ -34,6 +34,7 @@ builder.Services.AddScoped<StsDataService>();
 // Repositories lecture seule
 builder.Services.AddScoped<IQuickLinksReadRepository, QuickLinksPublicRepository>();
 builder.Services.AddScoped<ISiteSettingsReadRepository, SiteSettingsPublicRepository>();
+builder.Services.AddScoped<IHomeCardReadRepository, HomeCardPublicRepository>();
 
 builder.Services.AddScoped<TraitRepository>(sp =>
     new DefaultTraitRepository(sp.GetRequiredService<IDataSource>()));
@@ -47,6 +48,7 @@ builder.Services.AddScoped<ActionRepository>(sp =>
 // Use cases lecture
 builder.Services.AddScoped<IGetVisibleQuickLinksUseCase, GetVisibleQuickLinksUseCase>();
 builder.Services.AddScoped<IGetSiteSettingsUseCase, GetSiteSettingsUseCase>();
+builder.Services.AddScoped<IGetVisibleHomeCardsUseCase, GetVisibleHomeCardsUseCase>();
 
 builder.Services.AddScoped<AuthService>();
 

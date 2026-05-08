@@ -22,6 +22,11 @@ builder.Services.AddScoped<IQuickLinksReadRepository>(sp =>
 builder.Services.AddScoped<ISiteSettingsReadRepository>(sp =>
     sp.GetRequiredService<ISiteSettingsRepository>());
 
+builder.Services.AddScoped<IHomeCardRepository, HomeCardRemoteRepository>();
+builder.Services.AddScoped<IHomeCardReadRepository>(sp =>
+    sp.GetRequiredService<IHomeCardRepository>());
+
+
 // Use cases — mêmes implémentations que STS.Api, repo différent
 builder.Services.AddScoped<IGetQuickLinksUseCase, GetQuickLinksUseCase>();
 builder.Services.AddScoped<IGetVisibleQuickLinksUseCase, GetVisibleQuickLinksUseCase>();
@@ -31,11 +36,18 @@ builder.Services.AddScoped<IDeleteQuickLinkUseCase, DeleteQuickLinkUseCase>();
 builder.Services.AddScoped<IGetSiteSettingsUseCase, GetSiteSettingsUseCase>();
 builder.Services.AddScoped<IUpdateSiteSettingsUseCase, UpdateSiteSettingsUseCase>();
 
+builder.Services.AddScoped<IGetHomeCardsUseCase, GetHomeCardsUseCase>();
+builder.Services.AddScoped<IGetVisibleHomeCardsUseCase, GetVisibleHomeCardsUseCase>();
+builder.Services.AddScoped<ICreateHomeCardUseCase, CreateHomeCardUseCase>();
+builder.Services.AddScoped<IUpdateHomeCardUseCase, UpdateHomeCardUseCase>();
+builder.Services.AddScoped<IDeleteHomeCardUseCase, DeleteHomeCardUseCase>();
+
 // ViewModels
 builder.Services.AddScoped<QuickLinksViewModel>();
 builder.Services.AddScoped<SiteSettingsViewModel>();
 builder.Services.AddScoped<UsersViewModel>();
 builder.Services.AddScoped<CharactersViewModel>();
+builder.Services.AddScoped<HomeCardsViewModel>();
 
 // En prod, STS.Api sert l'app donc même origine — BaseAddress est correct.
 // En dev, lancer STS.Api (qui sert aussi le WASM) plutôt que le DevServer standalone.

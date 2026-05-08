@@ -850,18 +850,33 @@ img {
 
 /* ── Background ambiance ─────────────────────────────────────────────────── */
 
+@keyframes bg-drift {
+    0% {
+        background-position: center top;
+    }
+
+    50% {
+        background-position: center 2%;
+    }
+
+    100% {
+        background-position: center top;
+    }
+}
+
 body {
     background-image: linear-gradient(rgba(10, 15, 25, 0.77), rgba(10, 15, 25, 0.77)), url('/img/bg-nlrp.png');
     background-size: cover;
     background-position: center top;
     background-attachment: fixed;
     background-repeat: no-repeat;
+    animation: bg-drift 60s ease-in-out infinite;
 }
 
-/* iOS : background-attachment fixed est cassé sur Safari mobile */
 @supports (-webkit-touch-callout: none) {
     body {
         background-attachment: scroll;
+        animation: none; /* ← désactive sur iOS */
     }
 }
 
@@ -951,3 +966,4 @@ body {
         gap: 1.25rem;
     }
 }
+
