@@ -144,6 +144,12 @@ builder.Services.AddScoped<IExportCharacterPdfUseCase>(sp =>
         uploadDir);
 });
 
+// Résoudre imageStoragePath en absolu
+var imageStoragePath = builder.Configuration["Images:StoragePath"] ?? "images";
+if (!Path.IsPathRooted(imageStoragePath))
+    imageStoragePath = Path.Combine(builder.Environment.ContentRootPath, imageStoragePath);
+
+
 builder.Services.AddScoped<IExportJobSheetPdfUseCase>(sp =>
 {
     var ds = sp.GetRequiredService<DataServiceDataSource>();
@@ -151,7 +157,8 @@ builder.Services.AddScoped<IExportJobSheetPdfUseCase>(sp =>
         new DefaultTraitRepository(ds),
         new DefaultJobRepository(ds),
         new DefaultAbilityRepository(ds),
-        uploadDir); // même variable que IExportCharacterPdfUseCase
+        uploadDir,
+        imageStoragePath); // même variable que IExportCharacterPdfUseCase
 });
 
 ExportJobSheetPdfUseCase.RegisterFonts();

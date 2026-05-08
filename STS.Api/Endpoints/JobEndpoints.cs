@@ -51,23 +51,6 @@ public static class JobEndpoints
             .WithSummary("Exporte la fiche vierge du job au format PDF (parchemin).")
             .Produces<FileContentResult>()
             .Produces(StatusCodes.Status404NotFound);
-
-        // ── Icône ────────────────────────────────────────────────────────────
-
-        group.MapPost("/{id}/icon", UploadIcon)
-            .WithName("UploadJobIcon")
-            .WithSummary("Upload ou remplace l'icône d'un job (PNG, JPG ou WebP, 2 Mo max).")
-            .DisableAntiforgery()
-            .Produces<object>()
-            .Produces(StatusCodes.Status400BadRequest)
-            .Produces(StatusCodes.Status404NotFound);
-
-        group.MapGet("/{id}/icon", GetIcon)
-            .WithName("GetJobIcon")
-            .WithSummary("Retourne le fichier image de l'icône du job.")
-            .AllowAnonymous()
-            .Produces<FileContentResult>()
-            .Produces(StatusCodes.Status404NotFound);
     }
 
     // ── Handlers CRUD ────────────────────────────────────────────────────────
@@ -97,7 +80,6 @@ public static class JobEndpoints
     {
         if (string.IsNullOrWhiteSpace(job.Id))
             return Results.BadRequest("L'identifiant du job est requis.");
-
         if (string.IsNullOrWhiteSpace(job.Name))
             return Results.BadRequest("Le nom du job est requis.");
 
@@ -124,66 +106,5 @@ public static class JobEndpoints
         return ok
             ? Results.NoContent()
             : Results.NotFound($"Job '{id}' introuvable.");
-    }
-
-    // ── Handlers icône ───────────────────────────────────────────────────────
-
-    private static async Task<IResult> UploadIcon(
-        string id, IFormFile file, DataService dataService, IConfiguration config)
-    {
-        var job = dataService.GetJob(id);
-        if (job is null) return Results.NotFound($"Job '{id}' introuvable.");
-
-        var allowed = new[] { "image/jpeg", "image/png", "image/webp" };
-        if (!allowed.Contains(file.ContentType))
-            return Results.BadRequest("Format non supporté (PNG, JPG ou WebP uniquement).");
-
-        if (file.Length > 2 * 1024 * 1024)
-            return Results.BadRequest("Fichier trop volumineux (2 Mo max).");
-
-        var ext = Path.GetExtension(file.FileName).ToLowerInvariant() switch
-        {
-            ".jpg" or ".jpeg" => ".jpg",
-            ".webp" => ".webp",
-            _ => ".png"
-        };
-
-        var uploadDir = config["UploadDir"] ?? "/data/uploads";
-        var iconsDir = Path.Combine(uploadDir, "jobs");
-        Directory.CreateDirectory(iconsDir);
-
-        // Supprime l'ancienne icône quelle que soit son extension
-        foreach (var old in Directory.GetFiles(iconsDir, $"{id}.*"))
-            File.Delete(old);
-
-        var filePath = Path.Combine(iconsDir, $"{id}{ext}");
-        await using var stream = File.Create(filePath);
-        await file.CopyToAsync(stream);
-
-        job.IconUrl = $"jobs/{id}{ext}";
-        dataService.UpdateJob(id, job);
-
-        return Results.Ok(new { iconUrl = job.IconUrl });
-    }
-
-    private static IResult GetIcon(string id, DataService dataService, IConfiguration config)
-    {
-        var job = dataService.GetJob(id);
-        if (job?.IconUrl is null) return Results.NotFound();
-
-        var uploadDir = config["UploadDir"] ?? "/data/uploads";
-        var filePath = Path.Combine(uploadDir, job.IconUrl.Replace('/', Path.DirectorySeparatorChar));
-
-        if (!File.Exists(filePath)) return Results.NotFound();
-
-        var ext = Path.GetExtension(filePath).ToLowerInvariant();
-        var contentType = ext switch
-        {
-            ".jpg" => "image/jpeg",
-            ".webp" => "image/webp",
-            _ => "image/png"
-        };
-
-        return Results.File(File.ReadAllBytes(filePath), contentType, enableRangeProcessing: false);
     }
 }

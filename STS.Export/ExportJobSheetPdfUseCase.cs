@@ -13,7 +13,8 @@ public sealed class ExportJobSheetPdfUseCase(
     TraitRepository traits,
     JobRepository jobs,
     AbilityRepository abilities,
-    string uploadDir) : IExportJobSheetPdfUseCase
+    string uploadDir,
+    string imageStoragePath) : IExportJobSheetPdfUseCase
 {
     // ── Palette parchemin ─────────────────────────────────────────────────
     private const string Parchment = "#f7f0e0";
@@ -115,13 +116,11 @@ public sealed class ExportJobSheetPdfUseCase(
             ? Directory.GetFiles(uploadDir, $"{character.Id}.*").FirstOrDefault()
             : null;
         var baseUploadDir = Path.GetDirectoryName(uploadDir) ?? uploadDir;
-        var jobIconDir = Path.Combine(baseUploadDir, "jobs");
+        var jobIconDir = Path.Combine(uploadDir, "jobs");
         Console.WriteLine($"[ExportPdf] uploadDir={uploadDir}");
         Console.WriteLine($"[ExportPdf] jobIconDir={jobIconDir} exists={Directory.Exists(jobIconDir)}");
         Console.WriteLine($"[ExportPdf] job.Id={job?.Id} job.IconUrl={job?.IconUrl}");
-        var jobIconPath = job?.IconUrl is not null && Directory.Exists(jobIconDir)
-            ? Directory.GetFiles(jobIconDir, $"{job.Id}.*").FirstOrDefault()
-            : null;
+        var jobIconPath = ResolveIconPath(job?.IconUrl);
         Console.WriteLine($"[ExportPdf] jobIconPath={jobIconPath ?? "NULL"}");
 
 
@@ -149,6 +148,23 @@ public sealed class ExportJobSheetPdfUseCase(
             ImagePath: imagePath,
             JobIconPath: jobIconPath
         );
+    }
+
+
+    /// <summary>
+    /// Résout l'URL d'une icône de galerie en chemin fichier local.
+    /// Extrait le nom de fichier de l'URL et le cherche dans imageStoragePath.
+    /// </summary>
+    private string? ResolveIconPath(string? iconUrl)
+    {
+        if (iconUrl is null) return null;
+        try
+        {
+            var fileName = Path.GetFileName(new Uri(iconUrl).LocalPath);
+            var path = Path.Combine(imageStoragePath, fileName);
+            return File.Exists(path) ? path : null;
+        }
+        catch { return null; }
     }
 
     // ── Document ──────────────────────────────────────────────────────────

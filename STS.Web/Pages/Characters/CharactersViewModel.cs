@@ -21,15 +21,11 @@ public sealed class CharactersViewModel(
         => jobId is null ? string.Empty : jobs.GetById(jobId)?.Name ?? jobId;
 
     /// <summary>
-    /// URL absolue de l'icône du job, ou null si le job n'existe pas
-    /// ou n'a pas encore d'icône uploadée.
+    /// URL de l'icône du job, telle que stockée dans la galerie d'images.
+    /// Null si le job n'existe pas ou n'a pas d'icône.
     /// </summary>
     public string? JobIconUrl(string? jobId)
-    {
-        if (jobId is null) return null;
-        var job = jobs.GetById(jobId);
-        return job?.IconUrl is null ? null : api.AbsoluteJobIconUrl(jobId);
-    }
+        => jobId is null ? null : jobs.GetById(jobId)?.IconUrl;
 
     public bool IsLoading { get; private set; }
     public string? Error { get; private set; }
