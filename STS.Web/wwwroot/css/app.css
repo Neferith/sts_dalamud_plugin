@@ -20,8 +20,8 @@
     --purple: #9b6fd4;
     --success: #4ec9a0;
     --text-primary: #e8f0f8;
-    --text-secondary: #8ca5be;
-    --text-muted: #4d6680;
+    --text-secondary: #a8c2d8;
+    --text-muted: #6a8aaa;
     --radius-sm: 6px;
     --radius-md: 8px;
     --radius-lg: 12px;
@@ -203,7 +203,7 @@ code {
 
 .sts-page-sub {
     font-size: 13px;
-    color: var(--text-muted);
+    color: var(--text-secondary);
 }
 
 /* --- Cards ------------------------------------ */
@@ -259,9 +259,9 @@ code {
 }
 
 .sts-card-desc {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--text-secondary);
-    line-height: 1.6;
+    line-height: 1.65;
     margin: 0;
 }
 
@@ -269,7 +269,7 @@ code {
     display: flex;
     gap: 10px;
     margin-top: 7px;
-    font-size: 11px;
+    font-size: 12px;
     color: var(--text-muted);
     align-items: center;
 }
@@ -322,7 +322,7 @@ code {
     padding: 2px 7px;
     border-radius: 5px;
     background: rgba(255, 255, 255, 0.05);
-    color: var(--text-muted);
+    color: var(--text-secondary);
     border: 1px solid var(--border);
     margin-left: auto;
 }
@@ -397,7 +397,7 @@ code {
 }
 
 .sts-sidebar-item {
-    font-size: 13px;
+    font-size: 13.5px;
     padding: 7px 10px;
     border-radius: 7px;
     cursor: pointer;
@@ -850,18 +850,33 @@ img {
 
 /* ── Background ambiance ─────────────────────────────────────────────────── */
 
+@keyframes bg-drift {
+    0% {
+        background-position: center top;
+    }
+
+    50% {
+        background-position: center 2%;
+    }
+
+    100% {
+        background-position: center top;
+    }
+}
+
 body {
     background-image: linear-gradient(rgba(10, 15, 25, 0.77), rgba(10, 15, 25, 0.77)), url('/img/bg-nlrp.png');
     background-size: cover;
     background-position: center top;
     background-attachment: fixed;
     background-repeat: no-repeat;
+    animation: bg-drift 60s ease-in-out infinite;
 }
 
-/* iOS : background-attachment fixed est cassé sur Safari mobile */
 @supports (-webkit-touch-callout: none) {
     body {
         background-attachment: scroll;
+        animation: none; /* ← désactive sur iOS */
     }
 }
 
@@ -951,3 +966,4 @@ body {
         gap: 1.25rem;
     }
 }
+

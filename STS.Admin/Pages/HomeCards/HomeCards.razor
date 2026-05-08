@@ -1,0 +1,173 @@
+@page "/home-cards"
+@using Sts.Domain.Content.Models
+@using STS.Admin.ViewModels
+@inject HomeCardsViewModel ViewModel
+@inject AuthService Auth
+@inject NavigationManager Nav
+
+<PageTitle>Cartes home — STS Admin</PageTitle>
+
+<div class="p-4" style="max-width:760px">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+            <h2 class="mb-0">Cartes home</h2>
+            <small class="text-muted">Cartes de présentation affichées sur la page d'accueil.</small>
+        </div>
+        @if (!ViewModel.ShowForm)
+        {
+            <button class="btn btn-primary btn-sm" @onclick="ViewModel.StartCreate">
+                + Nouvelle carte
+            </button>
+        }
+    </div>
+
+    <Alert Message="@ViewModel.Error"   IsError="true"  OnDismiss="() => {}" />
+    <Alert Message="@ViewModel.Success" IsError="false" OnDismiss="() => {}" />
+
+    @if (ViewModel.IsLoading)
+    {
+        <div class="text-center py-5"><div class="spinner-border text-secondary"></div></div>
+    }
+    else
+    {
+        @if (ViewModel.Cards.Count == 0 && !ViewModel.ShowForm)
+        {
+            <div class="text-muted text-center py-5">Aucune carte. Créez-en une.</div>
+        }
+        else
+        {
+            <div class="card mb-3">
+                <table class="table table-sm mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width:40px">#</th>
+                            <th style="width:32px"></th>
+                            <th>Titre</th>
+                            <th style="width:80px">Accent</th>
+                            <th style="width:70px">Visible</th>
+                            <th style="width:100px"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var card in ViewModel.Cards.OrderBy(c => c.Order))
+                        {
+                            <tr>
+                                <td class="text-muted">@card.Order</td>
+                                <td>@card.Icon</td>
+                                <td>
+                                    <span class="fw-medium">@card.Title</span>
+                                    <div class="text-muted small">@card.Description[..Math.Min(60, card.Description.Length)]…</div>
+                                </td>
+                                <td><span class="badge bg-secondary">@card.Accent</span></td>
+                                <td>
+                                    @if (card.IsVisible)
+                                    { <span class="badge bg-success">Oui</span> }
+                                    else
+                                    { <span class="badge bg-secondary">Non</span> }
+                                </td>
+                                <td class="text-end">
+                                    <button class="btn btn-outline-secondary btn-sm me-1"
+                                            @onclick="() => ViewModel.StartEdit(card)">
+                                        Éditer
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-sm"
+                                            @onclick="() => ViewModel.DeleteAsync(card.Id)">
+                                        ✕
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+        @if (ViewModel.ShowForm)
+        {
+            <div class="card">
+                <div class="card-header fw-medium">
+                    @(ViewModel.IsEditing ? "Modifier la carte" : "Nouvelle carte")
+                </div>
+                <div class="card-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-8">
+                            <label class="form-label fw-medium">Titre <span class="text-danger">*</span></label>
+                            <input class="form-control" placeholder="ex: Le système STS"
+                                   @bind="ViewModel.FormTitle" />
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label fw-medium">Icône</label>
+                            <input class="form-control" placeholder="ex: 🎲"
+                                   @bind="ViewModel.FormIcon" />
+                            <div class="form-text">Emoji ou unicode.</div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Description <span class="text-danger">*</span></label>
+                        <textarea class="form-control" rows="2"
+                                  placeholder="Description courte (1-2 lignes)…"
+                                  @bind="ViewModel.FormDescription"></textarea>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-8">
+                            <label class="form-label fw-medium">URL du lien</label>
+                            <input class="form-control" placeholder="ex: /regles"
+                                   @bind="ViewModel.FormLinkUrl" />
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label fw-medium">Libellé du lien</label>
+                            <input class="form-control" placeholder="ex: Explorer →"
+                                   @bind="ViewModel.FormLinkLabel" />
+                        </div>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-4">
+                            <label class="form-label fw-medium">Accent</label>
+                            <select class="form-select" @bind="ViewModel.FormAccent">
+                                <option value="teal">Teal</option>
+                                <option value="ice">Ice</option>
+                                <option value="amber">Amber</option>
+                                <option value="purple">Purple</option>
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label fw-medium">Ordre</label>
+                            <input type="number" class="form-control"
+                                   @bind="ViewModel.FormOrder" />
+                        </div>
+                        <div class="col-4 d-flex align-items-end pb-1">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="chkFeatured"
+                                       @bind="ViewModel.FormIsFeatured" />
+                                <label class="form-check-label" for="chkFeatured">Mis en avant</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="chkVisible"
+                                       @bind="ViewModel.FormIsVisible" />
+                                <label class="form-check-label" for="chkVisible">Visible</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex justify-content-between">
+                    <button class="btn btn-outline-secondary" @onclick="ViewModel.Cancel">
+                        Annuler
+                    </button>
+                    <button class="btn btn-primary" @onclick="ViewModel.SaveAsync"
+                            disabled="@ViewModel.IsSaving">
+                        @(ViewModel.IsSaving ? "Sauvegarde…" : (ViewModel.IsEditing ? "Mettre à jour" : "Créer"))
+                    </button>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Auth.IsAuthenticated) { Nav.NavigateTo("/login"); return; }
+        ViewModel.OnStateChanged = StateHasChanged;
+        await ViewModel.LoadAsync();
+    }
+}
