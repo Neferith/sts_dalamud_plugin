@@ -15,7 +15,8 @@
 
 Objectif : fiche personnage complète et utilisable en event.
 
-- [ ] **Image de personnage** — upload depuis STS.Web et STS.Admin, affichée sur la fiche
+- [- [x] `RemoteJsonDataSource` + `CachedDataSource` — consommation de l'API
+] **Image de personnage** — upload depuis STS.Web et STS.Admin, affichée sur la fiche
 - [ ] **Stats visibles** — rang, palier, rerolls, réputation, avoirs de compagnie
 - [ ] **Capacités par rang** — liste rang 1, rang 2, rang 3 avec descriptions
 - [ ] **Traits** — liste des traits équipés avec descriptions (déjà partiellement présent)

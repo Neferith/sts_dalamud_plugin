@@ -1,4 +1,4 @@
-using Sts.Domain.Content;
+using Sts.Domain.Content.Models;
 using Sts.Domain.Content.Repositories;
 using System.Net.Http.Json;
 

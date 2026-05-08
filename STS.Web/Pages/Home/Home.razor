@@ -1,79 +1,85 @@
 @namespace STS.Web.Pages.Home
 @page "/"
 @using Sts.Domain.Content
+@using Sts.Domain.Content.Models
 @inject HomeViewModel ViewModel
 
 <PageTitle>Nouvelle Lune — Accueil</PageTitle>
 
 @if (ViewModel.IsLoading)
 {
-    <div class="rules-loading">
-        <p>Chargement…</p>
-    </div>
+    <div class="rules-loading"><p>Chargement…</p></div>
 }
 else if (ViewModel.Error is not null)
 {
-    <div class="rules-error">
-        <p>@ViewModel.Error</p>
-    </div>
+    <div class="rules-error"><p>@ViewModel.Error</p></div>
 }
 else
 {
-    <!-- ── Hero ──────────────────────────────────────────────────────────── -->
     <section class="home-hero">
-    <div class="home-hero-inner">
-        <div>
+        <div class="home-hero-inner">
             <div class="home-hero-logo">
                 <img src="img/logo_home.png" alt="Logo Nouvelle Lune" />
             </div>
             <p class="home-hero-kicker">Compagnie Libre · Final Fantasy XIV</p>
             <h1 class="home-hero-title">@ViewModel.Settings.HeroTitle</h1>
-            @if (!string.IsNullOrWhiteSpace(ViewModel.Settings.HeroText))
+            @if (!string.IsNullOrWhiteSpace(ViewModel.Settings.HeroTagline))
             {
-                <p class="home-hero-text">@ViewModel.Settings.HeroText</p>
+                <p class="home-hero-tagline">@ViewModel.Settings.HeroTagline</p>
             }
             <div class="home-hero-meta">
                 @if (!string.IsNullOrWhiteSpace(ViewModel.Settings.World))
                 {
-                    <span class="home-hero-meta-item">
+                    <span class="home-hero-pill">
                         <span class="home-hero-meta-label">Monde</span>
                         @ViewModel.Settings.World
                     </span>
                 }
                 @if (!string.IsNullOrWhiteSpace(ViewModel.Settings.DataCenter))
                 {
-                    <span class="home-hero-meta-sep">·</span>
-                    <span class="home-hero-meta-item">
+                    <span class="home-hero-pill">
                         <span class="home-hero-meta-label">Data Center</span>
                         @ViewModel.Settings.DataCenter
                     </span>
                 }
             </div>
         </div>
-
-        <!-- Carte identité — visible uniquement ≥ 1280px via CSS grid -->
-        <div class="home-hero-identity">
-            @if (!string.IsNullOrWhiteSpace(ViewModel.Settings.World))
-            {
-                <div class="home-hero-identity-item">
-                    <p class="home-hero-meta-label">Monde</p>
-                    <p class="home-hero-title" style="font-size:16px;margin:0">@ViewModel.Settings.World</p>
-                </div>
-            }
-            @if (!string.IsNullOrWhiteSpace(ViewModel.Settings.DataCenter))
-            {
-                <div class="home-hero-identity-item">
-                    <p class="home-hero-meta-label">Data Center</p>
-                    <p class="home-hero-title" style="font-size:16px;margin:0">@ViewModel.Settings.DataCenter</p>
-                </div>
-            }
-        </div>
-        </div>
     </section>
 
-    <!-- ── Liens rapides ─────────────────────────────────────────────────── -->
-    <div class="home-links-grid">
+    @if (ViewModel.HomeCards.Count > 0)
+    {
+        <section class="home-cards-section">
+            <div class="home-cards-grid">
+                @foreach (var card in ViewModel.HomeCards)
+                {
+                    <div class="home-card home-card-accent-@card.Accent @(card.IsFeatured ? "home-card-featured" : "")">
+                        @if (!string.IsNullOrWhiteSpace(card.Icon))
+                        {
+                            <span class="home-card-icon">@card.Icon</span>
+                        }
+                        <h3 class="home-card-title">@card.Title</h3>
+                        <p class="home-card-desc">@card.Description</p>
+                        @if (!string.IsNullOrWhiteSpace(card.LinkUrl) && !string.IsNullOrWhiteSpace(card.LinkLabel))
+                        {
+                            <a class="home-card-link" href="@card.LinkUrl">@card.LinkLabel →</a>
+                        }
+                    </div>
+                }
+            </div>
+        </section>
+    }
 
+    @if (!string.IsNullOrWhiteSpace(ViewModel.Settings.HeroText))
+    {
+        <section class="home-lore-section">
+            <div class="home-lore-box">
+                <p class="home-lore-label">Présentation</p>
+                <p class="home-lore-text">@ViewModel.Settings.HeroText</p>
+            </div>
+        </section>
+    }
+
+    <div class="home-links-grid">
         @if (ViewModel.RecruitmentLinks.Count > 0)
         {
             <div class="home-links-col">
@@ -85,13 +91,9 @@ else
                             @if (!string.IsNullOrWhiteSpace(link.Icon))
                             {
                                 @if (link.Icon.StartsWith("fa"))
-                                {
-                                    <i class="@link.Icon home-ql-icon-fa"></i>
-                                }
+                                { <i class="@link.Icon home-ql-icon-fa"></i> }
                                 else
-                                {
-                                    <span class="home-ql-icon">@link.Icon</span>
-                                }
+                                { <span class="home-ql-icon">@link.Icon</span> }
                             }
                             <span class="home-ql-label">@link.Label</span>
                         </a>
@@ -99,7 +101,6 @@ else
                 </div>
             </div>
         }
-
         @if (ViewModel.ResourceLinks.Count > 0)
         {
             <div class="home-links-col">
@@ -118,7 +119,6 @@ else
                 </div>
             </div>
         }
-
     </div>
 }
 

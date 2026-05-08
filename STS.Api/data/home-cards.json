@@ -1,0 +1,38 @@
+[
+  {
+    "Id": "387e29fc-ec8a-46fd-91a4-b3ee7bb62cc5",
+    "Title": "Le syst\u00E8me STS",
+    "Description": "Traits, capacit\u00E9s, jets de d\u00E9s et progression de personnage. Un syst\u00E8me de jeu sur table int\u00E9gr\u00E9 \u00E0 votre aventure.",
+    "Icon": "\uD83C\uDFB2",
+    "LinkUrl": "/regles",
+    "LinkLabel": "Explorer les r\u00E8gles",
+    "Accent": "teal",
+    "Order": 0,
+    "IsFeatured": false,
+    "IsVisible": true
+  },
+  {
+    "Id": "f61bc134-f504-41e6-9834-8cb39902f175",
+    "Title": "Les aventuriers",
+    "Description": "D\u00E9couvrez les membres actifs de la Nouvelle Lune et leurs personnages.",
+    "Icon": "\u2694\uFE0F",
+    "LinkUrl": null,
+    "LinkLabel": null,
+    "Accent": "ice",
+    "Order": 1,
+    "IsFeatured": false,
+    "IsVisible": true
+  },
+  {
+    "Id": "4937f6bc-cd37-4715-bc3d-416075ea43b1",
+    "Title": "Rejoindre la guilde",
+    "Description": "La Nouvelle Lune recrute aventuriers et novices sur Ragnarok. Rejoins-nous sur Discord pour candidater.",
+    "Icon": "\u2726",
+    "LinkUrl": null,
+    "LinkLabel": "Nous rejoindre",
+    "Accent": "amber",
+    "Order": 2,
+    "IsFeatured": true,
+    "IsVisible": true
+  }
+]

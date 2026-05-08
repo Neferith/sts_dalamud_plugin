@@ -1,4 +1,4 @@
-using Sts.Domain.Content;
+using Sts.Domain.Content.Models;
 using Sts.Domain.Content.UseCases;
 
 namespace STS.Admin.ViewModels;
@@ -16,6 +16,7 @@ public sealed class SiteSettingsViewModel(
     // ── Champs du formulaire ─────────────────────────────────────────────────
 
     public string FormHeroTitle { get; set; } = string.Empty;
+    public string FormHeroTagline { get; set; } = string.Empty;
     public string FormHeroText { get; set; } = string.Empty;
     public string FormWorld { get; set; } = string.Empty;
     public string FormDataCenter { get; set; } = string.Empty;
@@ -34,6 +35,7 @@ public sealed class SiteSettingsViewModel(
         {
             var settings = await get.ExecuteAsync();
             FormHeroTitle = settings.HeroTitle;
+            FormHeroTagline = settings.HeroTagline;
             FormHeroText = settings.HeroText;
             FormWorld = settings.World;
             FormDataCenter = settings.DataCenter;
@@ -61,6 +63,7 @@ public sealed class SiteSettingsViewModel(
             var settings = new SiteSettings
             {
                 HeroTitle = FormHeroTitle,
+                HeroTagline = FormHeroTagline,
                 HeroText = FormHeroText,
                 World = FormWorld,
                 DataCenter = FormDataCenter,

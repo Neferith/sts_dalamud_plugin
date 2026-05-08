@@ -1,3 +1,4 @@
+using Sts.Domain.Content.Models;
 using Sts.Domain.Content.Repositories;
 
 namespace Sts.Domain.Content.UseCases;
