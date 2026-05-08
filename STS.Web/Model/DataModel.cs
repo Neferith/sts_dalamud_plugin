@@ -1,7 +1,7 @@
 using System.Text.Json.Serialization;
 
 namespace STS.Web.Models;
-
+/*
 public class DataModel
 {
     [JsonPropertyName("jobs")]
@@ -112,3 +112,4 @@ public class ActionData
     [JsonPropertyName("requirements")]
     public List<string> Requirements { get; set; } = [];
 }
+*/

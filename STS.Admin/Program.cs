@@ -8,6 +8,7 @@ using Sts.Domain.Content.Repositories;
 using Sts.Domain.Content.UseCases;
 using STS.Admin.Repositories;
 using STS.Admin.ViewModels;
+using Sts.Domain.DataSource;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");

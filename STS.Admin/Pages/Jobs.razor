@@ -3,6 +3,7 @@
 @inject AuthService Auth
 @inject NavigationManager Nav
 @inject IJSRuntime JS
+@using Microsoft.AspNetCore.Components.Forms
 
 <PageTitle>Jobs — STS Admin</PageTitle>
 
@@ -47,6 +48,7 @@
             <table class="table table-hover mb-0">
                 <thead class="table-dark">
                     <tr>
+                        <th style="width:48px"></th>
                         <th @onclick='() => SetSort("id")' style="cursor:pointer; user-select:none">
                             Identifiant @SortIcon("id")
                         </th>
@@ -60,9 +62,22 @@
                     @foreach (var job in Filtered)
                     {
                         <tr>
-                            <td><code class="text-secondary">@job.Id</code></td>
-                            <td class="fw-medium">@job.Name</td>
-                            <td class="text-end">
+                            <td class="align-middle">
+                                @if (job.IconUrl is not null)
+                                {
+                                    <img src="/api/jobs/@job.Id/icon"
+                                         style="width:32px;height:32px;object-fit:contain;border-radius:4px;"
+                                         alt="@job.Name" />
+                                }
+                                else
+                                {
+                                    <div style="width:32px;height:32px;border-radius:4px;
+                                                background:#f8f9fa;border:1px dashed #dee2e6;"></div>
+                                }
+                            </td>
+                            <td class="align-middle"><code class="text-secondary">@job.Id</code></td>
+                            <td class="align-middle fw-medium">@job.Name</td>
+                            <td class="text-end align-middle">
                                 <div class="d-flex justify-content-end gap-2">
                                     <button class="btn btn-sm btn-outline-secondary"
                                             style="width:32px;"
@@ -102,11 +117,61 @@
                         <label class="form-label">Nom affiché</label>
                         <input class="form-control" @bind="_form.Name" placeholder="ex: Guerrier" />
                     </div>
+
+                    <!-- Icône -->
+                    <div class="mb-3">
+                        <label class="form-label">Icône</label>
+                        @if (!_editMode)
+                        {
+                            <p class="text-muted" style="font-size:13px; margin-bottom:6px;">
+                                Sauvegardez d'abord le job, puis revenez pour uploader l'icône.
+                            </p>
+                        }
+                        else
+                        {
+                            <div class="d-flex align-items-center gap-3">
+                                <!-- Preview -->
+                                @if (_stagedIconPreview is not null)
+                                {
+                                    <img src="@_stagedIconPreview"
+                                         style="width:52px;height:52px;object-fit:contain;
+                                                border-radius:6px;border:1px solid #dee2e6;flex-shrink:0;" />
+                                }
+                                else if (_form.IconUrl is not null)
+                                {
+                                    <img src="/api/jobs/@_form.Id/icon"
+                                         style="width:52px;height:52px;object-fit:contain;
+                                                border-radius:6px;border:1px solid #dee2e6;flex-shrink:0;" />
+                                }
+                                else
+                                {
+                                    <div style="width:52px;height:52px;border-radius:6px;
+                                                border:1px dashed #dee2e6;background:#f8f9fa;
+                                                display:flex;align-items:center;justify-content:center;
+                                                color:#adb5bd;font-size:22px;flex-shrink:0;">?</div>
+                                }
+                                <div class="flex-grow-1">
+                                    <InputFile OnChange="OnIconFileChanged"
+                                               accept=".jpg,.jpeg,.png,.webp"
+                                               class="form-control form-control-sm" />
+                                    <small class="text-muted">PNG, JPG ou WebP · 2 Mo max</small>
+                                    @if (_stagedIconFile is not null)
+                                    {
+                                        <div class="text-success" style="font-size:12px;margin-top:3px;">
+                                            ✓ @_stagedIconFile.Name — sera uploadée à la sauvegarde
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" @onclick="CloseModal">Annuler</button>
-                    <button class="btn btn-primary" @onclick="Save" disabled="@_saving">
-                        @(_saving ? "Sauvegarde…" : "Sauvegarder")
+                    <button class="btn btn-primary" @onclick="Save" disabled="@(_saving || _uploadingIcon)">
+                        @if (_uploadingIcon) { <span>Upload icône…</span> }
+                        else if (_saving) { <span>Sauvegarde…</span> }
+                        else { <span>Sauvegarder</span> }
                     </button>
                 </div>
             </div>
@@ -123,7 +188,11 @@
     private string?      _message;
     private bool         _isError;
     private JobDto       _form      = new();
-    private string?      _downloading; // id du job en cours de téléchargement
+    private string?      _downloading;
+
+    private IBrowserFile? _stagedIconFile;
+    private string?       _stagedIconPreview;
+    private bool          _uploadingIcon;
 
     // ─── Filtres & tri ────────────────────────────────────────────────────────
     private string _search  = "";
@@ -194,9 +263,69 @@
         }
     }
 
+    // ─── Icône ────────────────────────────────────────────────────────────────
+    private async Task OnIconFileChanged(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file is null) return;
+        _stagedIconFile = file;
+
+        // Preview local (data URL) pour les fichiers ≤ 256 Ko
+        const long maxPreview = 256 * 1024;
+        if (file.Size <= maxPreview)
+        {
+            var buf = new byte[file.Size];
+            await using var s = file.OpenReadStream(maxPreview);
+            _ = await s.ReadAsync(buf);
+            _stagedIconPreview = $"data:{file.ContentType};base64,{Convert.ToBase64String(buf)}";
+        }
+        else
+        {
+            _stagedIconPreview = null;
+        }
+    }
+
+    private async Task UploadStagedIcon(string jobId)
+    {
+        if (_stagedIconFile is null) return;
+        _uploadingIcon = true;
+        try
+        {
+            // Bufferiser AVANT toute notification Blazor pour éviter JSException _blazorFilesById
+            const long maxSize = 2 * 1024 * 1024;
+            var ms = new MemoryStream();
+            await using (var stream = _stagedIconFile.OpenReadStream(maxSize))
+                await stream.CopyToAsync(ms);
+            ms.Position = 0;
+
+            var error = await Api.UploadJobIconAsync(jobId, ms, _stagedIconFile.Name, _stagedIconFile.ContentType);
+            if (error is not null) ShowError($"Icône : {error}");
+
+            _stagedIconFile    = null;
+            _stagedIconPreview = null;
+        }
+        finally { _uploadingIcon = false; }
+    }
+
     // ─── Modal ────────────────────────────────────────────────────────────────
-    private void OpenCreate() { _form = new JobDto(); _editMode = false; _showModal = true; }
-    private void OpenEdit(JobDto job) { _form = job.Clone(); _editMode = true; _showModal = true; }
+    private void OpenCreate()
+    {
+        _form = new JobDto();
+        _editMode = false;
+        _showModal = true;
+        _stagedIconFile    = null;
+        _stagedIconPreview = null;
+    }
+
+    private void OpenEdit(JobDto job)
+    {
+        _form = job.Clone();
+        _editMode = true;
+        _showModal = true;
+        _stagedIconFile    = null;
+        _stagedIconPreview = null;
+    }
+
     private void CloseModal() => _showModal = false;
 
     private async Task Save()
@@ -209,8 +338,16 @@
             string? error;
             if (_editMode) (_, error) = await Api.PutAsync<JobDto>($"/api/jobs/{_form.Id}", _form);
             else           (_, error) = await Api.PostAsync<JobDto>("/api/jobs", _form);
-            if (error is not null) ShowError(error);
-            else { ShowSuccess(_editMode ? "Job modifié." : "Job créé."); CloseModal(); await Load(); }
+
+            if (error is not null) { ShowError(error); return; }
+
+            // Upload de l'icône après création/mise à jour réussie
+            if (_stagedIconFile is not null)
+                await UploadStagedIcon(_form.Id);
+
+            ShowSuccess(_editMode ? "Job modifié." : "Job créé.");
+            CloseModal();
+            await Load();
         }
         finally { _saving = false; }
     }
