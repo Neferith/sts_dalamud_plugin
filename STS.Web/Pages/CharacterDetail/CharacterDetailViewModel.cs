@@ -34,6 +34,17 @@ public sealed class CharacterDetailViewModel(
     public string JobName(string? jobId)
         => jobId is null ? "Aucun" : jobs.GetById(jobId)?.Name ?? jobId;
 
+    /// <summary>
+    /// URL absolue de l'icône du job, ou null si le job n'existe pas
+    /// ou n'a pas encore d'icône uploadée.
+    /// </summary>
+    public string? JobIconUrl(string? jobId)
+    {
+        if (jobId is null) return null;
+        var job = jobs.GetById(jobId);
+        return job?.IconUrl is null ? null : api.AbsoluteJobIconUrl(jobId);
+    }
+
     public Trait? GetTrait(string traitId)
         => traits.GetById(traitId);
 

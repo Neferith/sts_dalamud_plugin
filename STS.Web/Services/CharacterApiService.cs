@@ -1,8 +1,8 @@
+using Sts.Domain;
+using Sts.Domain.Character;
+using System.Net.Http.Headers; // à ajouter en haut
 using System.Net.Http.Json;
 using System.Text.Json;
-using Sts.Domain.Character;
-using Sts.Domain;
-using System.Net.Http.Headers; // à ajouter en haut
 
 namespace STS.Web.Services;
 
@@ -140,6 +140,10 @@ public class CharacterApiService(HttpClient http)
             return (null, $"Erreur {(int)response.StatusCode}");
         return (await response.Content.ReadAsByteArrayAsync(), null);
     }
+
+    /// <summary>Construit l'URL absolue de l'icône d'un job via l'endpoint API.</summary>
+    public string AbsoluteJobIconUrl(string jobId)
+        => $"{http.BaseAddress}api/jobs/{jobId}/icon";
 
     /// <summary>Construit l'URL absolue d'une URL relative renvoyée par l'API.</summary>
     public string AbsoluteImageUrl(string relativeUrl)

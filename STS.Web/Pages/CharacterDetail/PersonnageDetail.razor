@@ -66,6 +66,11 @@ else if (VM.Character is { } c)
                 @if (c.JobId is not null)
                 {
                     <span class="sts-card-meta-dot"></span>
+                    @if (VM.JobIconUrl(c.JobId) is { } jobIcon)
+                    {
+                        <img src="@jobIcon"
+                             style="width:18px;height:18px;object-fit:contain;vertical-align:middle;margin-right:3px;" />
+                    }
                     <span>@VM.JobName(c.JobId)</span>
                 }
             </div>
