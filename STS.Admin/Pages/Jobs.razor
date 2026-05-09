@@ -1,4 +1,5 @@
 @page "/jobs"
+@using Microsoft.AspNetCore.Components.Forms
 @inject ApiClient Api
 @inject AuthService Auth
 @inject NavigationManager Nav
@@ -47,6 +48,7 @@
             <table class="table table-hover mb-0">
                 <thead class="table-dark">
                     <tr>
+                        <th style="width:48px"></th>
                         <th @onclick='() => SetSort("id")' style="cursor:pointer; user-select:none">
                             Identifiant @SortIcon("id")
                         </th>
@@ -60,9 +62,22 @@
                     @foreach (var job in Filtered)
                     {
                         <tr>
-                            <td><code class="text-secondary">@job.Id</code></td>
-                            <td class="fw-medium">@job.Name</td>
-                            <td class="text-end">
+                            <td class="align-middle">
+                                @if (job.IconUrl is not null)
+                                {
+                                    <img src="@job.IconUrl"
+                                         style="width:32px;height:32px;object-fit:contain;border-radius:4px;"
+                                         alt="@job.Name" />
+                                }
+                                else
+                                {
+                                    <div style="width:32px;height:32px;border-radius:4px;
+                                                background:#f8f9fa;border:1px dashed #dee2e6;"></div>
+                                }
+                            </td>
+                            <td class="align-middle"><code class="text-secondary">@job.Id</code></td>
+                            <td class="align-middle fw-medium">@job.Name</td>
+                            <td class="text-end align-middle">
                                 <div class="d-flex justify-content-end gap-2">
                                     <button class="btn btn-sm btn-outline-secondary"
                                             style="width:32px;"
@@ -71,8 +86,10 @@
                                             @onclick="() => DownloadSheet(job)">
                                         @(_downloading == job.Id ? "…" : "↓")
                                     </button>
-                                    <button class="btn btn-sm btn-outline-secondary" style="width:32px;" @onclick="() => OpenEdit(job)" title="Modifier">✏</button>
-                                    <button class="btn btn-sm btn-outline-danger" style="width:32px;" @onclick="() => Delete(job)" title="Supprimer">✕</button>
+                                    <button class="btn btn-sm btn-outline-secondary" style="width:32px;"
+                                            @onclick="() => OpenEdit(job)" title="Modifier">✏</button>
+                                    <button class="btn btn-sm btn-outline-danger" style="width:32px;"
+                                            @onclick="() => Delete(job)" title="Supprimer">✕</button>
                                 </div>
                             </td>
                         </tr>
@@ -83,6 +100,7 @@
     }
 </div>
 
+<!-- ── Modal job ─────────────────────────────────────────────────────────── -->
 @if (_showModal)
 {
     <div class="modal-backdrop fade show"></div>
@@ -96,11 +114,60 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Identifiant <small class="text-muted">(unique, sans espaces ni accents)</small></label>
-                        <input class="form-control font-monospace" @bind="_form.Id" disabled="@_editMode" placeholder="ex: guerrier" />
+                        <input class="form-control font-monospace" @bind="_form.Id"
+                               disabled="@_editMode" placeholder="ex: guerrier" />
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Nom affiché</label>
                         <input class="form-control" @bind="_form.Name" placeholder="ex: Guerrier" />
+                    </div>
+
+                    <!-- Icône depuis la galerie -->
+                    <!-- Icône -->
+                    <div class="mb-3">
+                        <label class="form-label">Icône</label>
+                        <div class="d-flex align-items-center gap-3">
+                            @if (_form.IconUrl is not null)
+                            {
+                                <img src="@_form.IconUrl"
+                                     style="width:52px;height:52px;object-fit:contain;
+                                            border-radius:6px;border:1px solid #dee2e6;flex-shrink:0;" />
+                            }
+                            else
+                            {
+                                <div style="width:52px;height:52px;border-radius:6px;border:1px dashed #dee2e6;
+                                            background:#f8f9fa;display:flex;align-items:center;
+                                            justify-content:center;color:#adb5bd;font-size:22px;flex-shrink:0;">?</div>
+                            }
+                            <div class="d-flex flex-column gap-1 flex-grow-1">
+                                <div class="d-flex gap-2 align-items-center">
+                                    <InputFile OnChange="UploadIcon" accept=".jpg,.jpeg,.png,.webp"
+                                               class="form-control form-control-sm"
+                                               disabled="@_uploadingIcon" />
+                                    @if (_uploadingIcon)
+                                    {
+                                        <div class="spinner-border spinner-border-sm text-secondary flex-shrink-0"></div>
+                                    }
+                                </div>
+                                @if (_iconUploadError is not null)
+                                {
+                                    <small class="text-danger">@_iconUploadError</small>
+                                }
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                                            @onclick="OpenImagePicker">
+                                        📂 Galerie
+                                    </button>
+                                    @if (_form.IconUrl is not null)
+                                    {
+                                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                                @onclick="() => _form.IconUrl = null">
+                                            ✕ Retirer
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -108,6 +175,56 @@
                     <button class="btn btn-primary" @onclick="Save" disabled="@_saving">
                         @(_saving ? "Sauvegarde…" : "Sauvegarder")
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- ── Modal sélecteur d'images ──────────────────────────────────────────── -->
+@if (_showImagePicker)
+{
+    <div class="modal-backdrop fade show" style="z-index:1060;"></div>
+    <div class="modal fade show d-block" tabindex="-1" style="z-index:1070;">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Choisir une icône</h5>
+                    <button type="button" class="btn-close"
+                            @onclick="() => _showImagePicker = false"></button>
+                </div>
+                <div class="modal-body">
+                    @if (_loadingImages)
+                    {
+                        <div class="text-center py-3">
+                            <div class="spinner-border text-secondary"></div>
+                        </div>
+                    }
+                    else if (_galleryImages.Count == 0)
+                    {
+                        <p class="text-muted text-center py-3">
+                            Aucune image dans la galerie.<br />
+                            <small>Uploadez des images via la section Galerie.</small>
+                        </p>
+                    }
+                    else
+                    {
+                        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px;">
+                            @foreach (var img in _galleryImages)
+                            {
+                                var imgUrl = img.Url;
+                                var isSelected = _form.IconUrl == imgUrl;
+                                <div style="cursor:pointer;border:2px solid @(isSelected ? "#0d6efd" : "transparent");
+                                            border-radius:6px;padding:4px;transition:border-color .15s;
+                                            background:@(isSelected ? "#e7f1ff" : "transparent")"
+                                     @onclick="() => SelectImage(imgUrl)"
+                                     title="@imgUrl">
+                                    <img src="@imgUrl"
+                                         style="width:100%;aspect-ratio:1/1;object-fit:contain;" />
+                                </div>
+                            }
+                        </div>
+                    }
                 </div>
             </div>
         </div>
@@ -123,7 +240,15 @@
     private string?      _message;
     private bool         _isError;
     private JobDto       _form      = new();
-    private string?      _downloading; // id du job en cours de téléchargement
+    private string?      _downloading;
+
+    // Sélecteur galerie
+    private bool          _showImagePicker;
+    private bool          _loadingImages;
+    private List<ImageDto>  _galleryImages = [];
+
+    private bool    _uploadingIcon;
+    private string? _iconUploadError;
 
     // ─── Filtres & tri ────────────────────────────────────────────────────────
     private string _search  = "";
@@ -188,10 +313,42 @@
             var safeName = job.Name.Replace(" ", "_");
             await JS.InvokeVoidAsync("downloadFile", $"{safeName}_fiche.pdf", "application/pdf", response);
         }
-        finally
+        finally { _downloading = null; }
+    }
+
+    // ─── Sélecteur galerie ────────────────────────────────────────────────────
+    private async Task OpenImagePicker()
+    {
+        _showImagePicker = true;
+        _loadingImages   = true;
+        _galleryImages   = await Api.GetAsync<List<ImageDto>>("/api/images") ?? [];
+        _loadingImages   = false;
+    }
+
+    private void SelectImage(string url)
+    {
+        _form.IconUrl    = url;
+        _showImagePicker = false;
+    }
+
+    private async Task UploadIcon(InputFileChangeEventArgs e)
+    {
+        _iconUploadError = null;
+        _uploadingIcon   = true;
+        try
         {
-            _downloading = null;
+            var file    = e.File;
+            var content = new MultipartFormDataContent();
+            var stream  = file.OpenReadStream(maxAllowedSize: 2 * 1024 * 1024);
+            content.Add(new StreamContent(stream), "file", file.Name);
+
+            var (data, error) = await Api.PostFormAsync("/api/images", content);
+            if (error is not null)
+                _iconUploadError = error;
+            else
+                _form.IconUrl = data?.GetProperty("url").GetString();
         }
+        finally { _uploadingIcon = false; }
     }
 
     // ─── Modal ────────────────────────────────────────────────────────────────

@@ -124,6 +124,23 @@ public class ApiClient
         return true;
     }
 
+    // ─── Upload ───────────────────────────────────────────────────────────────────
+
+    public async Task<string?> UploadJobIconAsync(string jobId, Stream stream, string fileName, string contentType)
+    {
+        SetAuthHeader();
+        using var content = new MultipartFormDataContent();
+        var fileContent = new StreamContent(stream);
+        fileContent.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+        content.Add(fileContent, "file", fileName);
+
+        var response = await _http.PostAsync($"/api/jobs/{jobId}/icon", content);
+        if (HandleUnauthorized(response)) return "Non autorisé.";
+        if (!response.IsSuccessStatusCode)
+            return await ReadError(response);
+        return null;
+    }
+
     private static async Task<string> ReadError(HttpResponseMessage response)
     {
         var body = await response.Content.ReadAsStringAsync();

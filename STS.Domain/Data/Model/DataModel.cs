@@ -27,6 +27,13 @@ public class JobData
 
     [JsonPropertyName("name")]
     public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Chemin relatif de l'icône dans le répertoire d'uploads (ex : "jobs/guerrier.png").
+    /// Null si aucune icône n'a été uploadée.
+    /// </summary>
+    [JsonPropertyName("iconUrl")]
+    public string? IconUrl { get; set; } = null;
 }
 
 /// <summary>Modèle JSON d'un trait.</summary>

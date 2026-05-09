@@ -1,16 +1,31 @@
 using Sts.Domain.Character;
+using Sts.Domain.Repository;
 using STS.Web.Services;
 
 namespace STS.Web.ViewModels;
 
 /// <summary>ViewModel de la page liste des personnages.</summary>
-public sealed class CharactersViewModel(CharacterApiService api, AuthService auth)
+public sealed class CharactersViewModel(
+    CharacterApiService api,
+    AuthService auth,
+    JobRepository jobs)
 {
     public IReadOnlyList<Character> Characters { get; private set; } = [];
 
     /// <summary>URL absolue de l'image d'un personnage, ou null si aucune image.</summary>
     public string? ImageUrl(Character character) =>
         character.ImageUrl is null ? null : api.AbsoluteImageUrl(character.ImageUrl);
+
+    /// <summary>Nom affiché du job, ou l'id brut si introuvable.</summary>
+    public string JobName(string? jobId)
+        => jobId is null ? string.Empty : jobs.GetById(jobId)?.Name ?? jobId;
+
+    /// <summary>
+    /// URL de l'icône du job, telle que stockée dans la galerie d'images.
+    /// Null si le job n'existe pas ou n'a pas d'icône.
+    /// </summary>
+    public string? JobIconUrl(string? jobId)
+        => jobId is null ? null : jobs.GetById(jobId)?.IconUrl;
 
     public bool IsLoading { get; private set; }
     public string? Error { get; private set; }

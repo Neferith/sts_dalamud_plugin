@@ -9,5 +9,11 @@ public record Job(
     string Id,
 
     /// <summary>Nom affiché du job.</summary>
-    string Name
+    string Name,
+
+    /// <summary>
+    /// Chemin relatif de l'icône du job (ex : "jobs/machiniste.png").
+    /// Null si aucune icône n'a encore été uploadée.
+    /// </summary>
+    string? IconUrl = null
 );

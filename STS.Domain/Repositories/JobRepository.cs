@@ -29,7 +29,7 @@ public class DefaultJobRepository : JobRepository
     {
         var data = dataSource.Load();
         _cache = data.Jobs
-            .Select(j => new Job(j.Id, j.Name))
+            .Select(j => new Job(j.Id, j.Name, j.IconUrl))
             .ToDictionary(j => j.Id);
     }
 

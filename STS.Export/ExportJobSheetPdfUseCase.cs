@@ -13,7 +13,8 @@ public sealed class ExportJobSheetPdfUseCase(
     TraitRepository traits,
     JobRepository jobs,
     AbilityRepository abilities,
-    string uploadDir) : IExportJobSheetPdfUseCase
+    string uploadDir,
+    string imageStoragePath) : IExportJobSheetPdfUseCase
 {
     // ── Palette parchemin ─────────────────────────────────────────────────
     private const string Parchment = "#f7f0e0";
@@ -77,7 +78,9 @@ public sealed class ExportJobSheetPdfUseCase(
         string? OriginTraitName,
         Dictionary<string, int> EquippedAbilityMap,
         // Portrait
-        string? ImagePath
+        string? ImagePath,
+        // Icône du job
+        string? JobIconPath
     );
 
     // ─────────────────────────────────────────────────────────────────────
@@ -112,6 +115,10 @@ public sealed class ExportJobSheetPdfUseCase(
         var imagePath = character != null
             ? Directory.GetFiles(uploadDir, $"{character.Id}.*").FirstOrDefault()
             : null;
+        var baseUploadDir = Path.GetDirectoryName(uploadDir) ?? uploadDir;
+        var jobIconDir = Path.Combine(uploadDir, "jobs");
+        var jobIconPath = ResolveIconPath(job?.IconUrl);
+
 
         return new SheetContext(
             Job: job,
@@ -134,8 +141,26 @@ public sealed class ExportJobSheetPdfUseCase(
             OriginTraitName: originTraitName,
             EquippedAbilityMap: character?.EquippedAbilities
                                     .ToDictionary(e => e.AbilityId, e => e.Level) ?? [],
-            ImagePath: imagePath
+            ImagePath: imagePath,
+            JobIconPath: jobIconPath
         );
+    }
+
+
+    /// <summary>
+    /// Résout l'URL d'une icône de galerie en chemin fichier local.
+    /// Extrait le nom de fichier de l'URL et le cherche dans imageStoragePath.
+    /// </summary>
+    private string? ResolveIconPath(string? iconUrl)
+    {
+        if (iconUrl is null) return null;
+        try
+        {
+            var fileName = Path.GetFileName(new Uri(iconUrl).LocalPath);
+            var path = Path.Combine(imageStoragePath, fileName);
+            return File.Exists(path) ? path : null;
+        }
+        catch { return null; }
     }
 
     // ── Document ──────────────────────────────────────────────────────────
@@ -333,17 +358,53 @@ public sealed class ExportJobSheetPdfUseCase(
                 row.RelativeItem().Column(col =>
                 {
                     col.Item().Text(name).FontSize(26).Bold();
-                    col.Item().PaddingTop(2)
-                        .Text(sublabel).FontSize(7.5f).FontColor(InkLight)
-                        .LetterSpacing(0.12f);
+
+                    if (ctx.Character != null)
+                    {
+                        // Fiche personnage : label fixe + ligne job avec icône
+                        col.Item().PaddingTop(2)
+                            .Text("Nom du personnage")
+                            .FontSize(7.5f).FontColor(InkLight).LetterSpacing(0.12f);
+
+                        if (ctx.Job is not null)
+                        {
+                            col.Item().PaddingTop(5).Row(jobRow =>
+                            {
+                                if (ctx.JobIconPath is not null)
+                                {
+                                    jobRow.ConstantItem(16).Height(16)
+                                        .Image(ctx.JobIconPath).FitArea();
+                                    jobRow.ConstantItem(5);
+                                }
+                                jobRow.AutoItem()
+                                    .Text(ctx.Job.Name)
+                                    .FontSize(10).FontColor(Ink);
+                            });
+                        }
+                    }
+                    else
+                    {
+                        // Fiche vierge : sublabel standard
+                       // col.Item().PaddingTop(2)
+                         //   .Text($"Métier · {ctx.Job?.Name ?? ""}")
+                           // .FontSize(7.5f).FontColor(InkLight).LetterSpacing(0.12f);
+                    }
                 });
 
+                // Portrait (fiche personnage) — sans icône job ici
                 if (ctx.ImagePath is not null)
                 {
-                    row.ConstantItem(10); // espace
+                    row.ConstantItem(10);
                     row.ConstantItem(72).Height(72)
                         .Border(1).BorderColor(Ink)
                         .Image(ctx.ImagePath).FitArea();
+                }
+                // Fiche vierge : icône job dans la zone portrait
+                else if (ctx.JobIconPath is not null)
+                {
+                    row.ConstantItem(10);
+                    row.ConstantItem(60).Height(60)
+                        .Image(ctx.JobIconPath).FitArea();
                 }
             });
     }

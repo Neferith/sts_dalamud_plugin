@@ -78,7 +78,6 @@ public static class JobEndpoints
     {
         if (string.IsNullOrWhiteSpace(job.Id))
             return Results.BadRequest("L'identifiant du job est requis.");
-
         if (string.IsNullOrWhiteSpace(job.Name))
             return Results.BadRequest("Le nom du job est requis.");
 
