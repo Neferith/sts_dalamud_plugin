@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-using Sts.Domain.Content;
 using Sts.Domain.Content.Repositories;
 using Sts.Domain.Content.UseCases;
 using STS.Web;

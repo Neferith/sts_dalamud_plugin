@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
-    <Version>22.0.0.0</Version>
+    <Version>23.0.0.0</Version>
     <AssemblyVersion>$(Version)</AssemblyVersion>
   </PropertyGroup>
 </Project>
