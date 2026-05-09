@@ -203,11 +203,8 @@ else
     private bool    _downloading   = false;
     private string? _downloadError = null;
 
-   // private string _apiBase = "";
-
     protected override async Task OnInitializedAsync()
     {
-     //   _apiBase = Config["ApiBaseUrl"]?.TrimEnd('/') ?? "";
 
         try
         {
@@ -235,9 +232,6 @@ else
             _loading = false;
         }
     }
-
-    /// <summary>Construit l'URL absolue de l'icône d'un job via l'endpoint API.</summary>
-   // private string JobIconUrl(string jobId) => $"{_apiBase}/api/jobs/{jobId}/icon";
 
     private async Task DownloadBlankSheet()
     {

@@ -7,7 +7,7 @@ namespace Sts.Api.Endpoints;
 
 /// <summary>
 /// Endpoints CRUD pour les jobs STS.
-/// Tous les endpoints nécessitent une authentification JWT, sauf GET /{id}/icon.
+/// Tous les endpoints nécessitent une authentification JWT.
 /// </summary>
 public static class JobEndpoints
 {
@@ -52,8 +52,6 @@ public static class JobEndpoints
             .Produces<FileContentResult>()
             .Produces(StatusCodes.Status404NotFound);
     }
-
-    // ── Handlers CRUD ────────────────────────────────────────────────────────
 
     private static async Task<IResult> ExportPdf(string id, DataService dataService, IExportJobSheetPdfUseCase exportJobSheet)
     {

@@ -295,11 +295,6 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
-var logger = app.Logger;
-logger.LogError("Fonts embarquées : {Fonts}",
-    string.Join(", ", typeof(ExportJobSheetPdfUseCase).Assembly
-        .GetManifestResourceNames()));
-
 // Appliquer les migrations automatiquement au démarrage
 using (var scope = app.Services.CreateScope())
 {

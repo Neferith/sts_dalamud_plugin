@@ -117,11 +117,7 @@ public sealed class ExportJobSheetPdfUseCase(
             : null;
         var baseUploadDir = Path.GetDirectoryName(uploadDir) ?? uploadDir;
         var jobIconDir = Path.Combine(uploadDir, "jobs");
-        Console.WriteLine($"[ExportPdf] uploadDir={uploadDir}");
-        Console.WriteLine($"[ExportPdf] jobIconDir={jobIconDir} exists={Directory.Exists(jobIconDir)}");
-        Console.WriteLine($"[ExportPdf] job.Id={job?.Id} job.IconUrl={job?.IconUrl}");
         var jobIconPath = ResolveIconPath(job?.IconUrl);
-        Console.WriteLine($"[ExportPdf] jobIconPath={jobIconPath ?? "NULL"}");
 
 
         return new SheetContext(
