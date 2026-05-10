@@ -51,6 +51,9 @@ public class TraitDto
     [JsonPropertyName("effects")]
     public List<TraitEffectDto> Effects { get; set; } = [];
 
+    [JsonPropertyName("usageLimit")]
+    public string? UsageLimit { get; set; }
+
     public TraitDto Clone() => new()
     {
         Id            = Id,
@@ -60,6 +63,7 @@ public class TraitDto
         RequiredJobIds = RequiredJobIds is null ? null : [.. RequiredJobIds],
         ExclusiveGroup = ExclusiveGroup,
         Effects       = Effects.Select(e => e.Clone()).ToList(),
+        UsageLimit = UsageLimit
     };
 }
 
