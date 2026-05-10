@@ -20,10 +20,12 @@ public class JobDto
     [JsonPropertyName("name")]
     public string Name { get; set; } = "";
 
+    public string? Description { get; set; } = null;
+
     [JsonPropertyName("iconUrl")]
     public string? IconUrl { get; set; }
 
-    public JobDto Clone() => new() { Id = Id, Name = Name, IconUrl = IconUrl, };
+    public JobDto Clone() => new() { Id = Id, Name = Name, Description = Description, IconUrl = IconUrl, };
 }
 
 // ─── Traits ───────────────────────────────────────────────────────────────────
