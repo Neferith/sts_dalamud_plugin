@@ -5,6 +5,7 @@ using QuestPDF.Infrastructure;
 using Sts.Domain;
 using Sts.Domain.Character;
 using Sts.Domain.Repository;
+using System.Text.RegularExpressions;
 
 namespace STS.Export;
 
@@ -187,6 +188,7 @@ public sealed class ExportJobSheetPdfUseCase(
             col.Spacing(0);
             GuildBar(col.Item(), ctx);
             NameBar(col.Item(), ctx);
+            JobDescriptionSection(col.Item(), ctx);
             FieldsGrid(col.Item(), ctx);
             HistoireSection(col.Item(), ctx);
             TraitsSection(col.Item(), ctx);
@@ -759,6 +761,17 @@ public sealed class ExportJobSheetPdfUseCase(
             .Text(text.ToUpperInvariant())
             .FontSize(7.5f).Bold().FontColor(InkLight).LetterSpacing(0.13f);
 
+    private static void JobDescriptionSection(IContainer container, SheetContext ctx)
+    {
+        if (string.IsNullOrWhiteSpace(ctx.Job?.Description)) return;
+
+        container
+            .BorderBottom(1).BorderColor(LineColor)
+            .PaddingHorizontal(14).PaddingVertical(6)
+            .Text(StripMarkdown(ctx.Job.Description))
+            .FontSize(8.5f).Italic().FontColor(InkLight).LineHeight(1.5f);
+    }
+
     private static void FieldCell(IContainer container, string label, string value, string? sub = null) =>
         container
             .PaddingHorizontal(10).PaddingVertical(4)
@@ -912,4 +925,15 @@ public sealed class ExportJobSheetPdfUseCase(
         UsageLimit.ThreeTimesPerEvent => "3× par évén.",
         _ => string.Empty,
     };
+
+    private static string StripMarkdown(string? md)
+    {
+        if (string.IsNullOrWhiteSpace(md)) return string.Empty;
+        md = Regex.Replace(md, @"^#{1,6}\s+", "", RegexOptions.Multiline);
+        md = Regex.Replace(md, @"\*{1,3}(.+?)\*{1,3}", "$1", RegexOptions.Singleline);
+        md = Regex.Replace(md, @"_{1,3}(.+?)_{1,3}", "$1", RegexOptions.Singleline);
+        md = Regex.Replace(md, @"^---+\s*$", "", RegexOptions.Multiline);
+        md = Regex.Replace(md, @"\n{3,}", "\n\n");
+        return md.Trim();
+    }
 }
