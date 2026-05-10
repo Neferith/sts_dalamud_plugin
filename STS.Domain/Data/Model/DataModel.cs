@@ -62,6 +62,9 @@ public class TraitData
 
     [JsonPropertyName("effects")]
     public List<TraitEffectData> Effects { get; set; } = [];
+
+    [JsonPropertyName("usageLimit")]
+    public string? UsageLimit { get; set; } = null;
 }
 
 /// <summary>Modèle JSON d'un effet de trait.</summary>

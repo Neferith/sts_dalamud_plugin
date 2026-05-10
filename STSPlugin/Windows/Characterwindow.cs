@@ -500,6 +500,7 @@ public class CharacterWindow : Window, IDisposable
         {
             var t = _plugin.TraitRepository.GetById(tid); if (t is null) continue;
             ImGui.Text($"● {t.Name}"); ImGui.PushStyleColor(ImGuiCol.Text, ColMuted); ImGui.TextWrapped(t.Description); ImGui.PopStyleColor(); ImGui.Spacing();
+            if (t.UsageLimit != UsageLimit.None) { ImGui.SameLine(); ImGui.TextColored(ColWarn, UsageLimitLabel(t.UsageLimit)); }
         }
         ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
         DrawReadAbilities();

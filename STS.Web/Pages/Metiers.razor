@@ -116,6 +116,10 @@ else
                                 <div class="sts-card-header">
                                     <span class="sts-card-title">@trait.Name</span>
                                     <span class="sts-badge @BadgeClass(trait.Category)">@CategoryLabel(trait.Category)</span>
+                                    @if (!string.IsNullOrEmpty(trait.UsageLimit))
+                                    {
+                                        <span class="sts-badge sts-badge-weapon">@trait.UsageLimit</span>
+                                    }
                                 </div>
                                 <p class="sts-card-desc">@trait.Description</p>
                                 @if (trait.Effects.Count > 0)

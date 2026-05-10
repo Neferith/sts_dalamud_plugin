@@ -63,5 +63,6 @@ public record Trait(
     IReadOnlyList<string>? RequiredJobIds = null,
 
     string? ExclusiveGroup = null,
-    IReadOnlyList<TraitEffect>? Effects = null
+    IReadOnlyList<TraitEffect>? Effects = null,
+    UsageLimit UsageLimit = UsageLimit.None
 );
