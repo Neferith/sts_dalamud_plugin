@@ -111,6 +111,10 @@ else
                                     <span class="sts-badge sts-badge-job">@jobName</span>
                                 }
                             }
+                            @if (!string.IsNullOrEmpty(trait.UsageLimit))
+                            {
+                                <span class="sts-badge sts-badge-weapon">@trait.UsageLimit</span>
+                            }
                         </div>
                         <p class="sts-card-desc">@trait.Description</p>
                         @if (trait.Effects.Count > 0)

@@ -39,6 +39,16 @@
                 }
             </select>
         </div>
+        <div class="col-md-2">
+            <select class="form-select" @bind="_filterLimit">
+                <option value="">Toutes limites</option>
+                <option value="__has__">Avec limite</option>
+                @foreach (var ul in StsConstants.UsageLimits.Where(u => u != "None"))
+                {
+                    <option value="@ul">@ul</option>
+                }
+            </select>
+        </div>
         @if (_search.Length > 0 || _filterCategory.Length > 0 || _filterJob.Length > 0)
         {
             <div class="col-auto">
@@ -71,6 +81,7 @@
                         </th>
                         <th>Jobs requis</th>
                         <th>Effets</th>
+                        <th>Limite</th>
                         <th style="width:100px"></th>
                     </tr>
                 </thead>
@@ -94,6 +105,17 @@
                                 else { <span class="text-muted">—</span> }
                             </td>
                             <td><span class="badge bg-info text-dark">@trait.Effects.Count effet(s)</span></td>
+                            <td>
+                                @if (trait.UsageLimit is { Length: > 0 } limit && limit != "None")
+                                {
+                                    <span class="badge bg-warning text-dark">@limit</span>
+                                }
+                                else
+                                {
+
+                                    <span class="text-muted">—</span>
+                                }
+                            </td>
                             <td class="text-end">
                                 <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => OpenEdit(trait)" title="Modifier">✏</button>
                                 <button class="btn btn-sm btn-outline-danger" @onclick="() => Delete(trait)" title="Supprimer">✕</button>
@@ -132,7 +154,7 @@
                         <textarea class="form-control" rows="2" @bind="_form.Description" placeholder="Description affichée sur la fiche."></textarea>
                     </div>
                     <div class="row g-3 mb-3">
-                        <div class="col-6">
+                        <div class="col-4">
                             <label class="form-label">Catégorie</label>
                             <select class="form-select" @bind="_form.Category">
                                 @foreach (var cat in StsConstants.TraitCategories)
@@ -141,7 +163,16 @@
                                 }
                             </select>
                         </div>
-                        <div class="col-6">
+                        <div class="col-4">
+                            <label class="form-label">Limite d'utilisation</label>
+                            <select class="form-select" @bind="_form.UsageLimit">
+                                @foreach (var ul in StsConstants.UsageLimits)
+                                {
+                                    <option value="@ul">@ul</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-4">
                             <label class="form-label">Groupe exclusif <small class="text-muted">(optionnel)</small></label>
                             <input class="form-control font-monospace" @bind="_form.ExclusiveGroup" placeholder="ex: style_combat" />
                         </div>
@@ -242,7 +273,8 @@
     // ─── Filtres & tri ────────────────────────────────────────────────────────
     private string _search         = "";
     private string _filterCategory = "";
-    private string _filterJob      = "";
+    private string _filterJob = "";
+    private string _filterLimit = "";
     private string _sortBy         = "category";
     private bool   _sortAsc        = true;
 
@@ -264,6 +296,11 @@
             if (!string.IsNullOrWhiteSpace(_filterJob))
                 q = q.Where(t => t.RequiredJobIds?.Contains(_filterJob) == true);
 
+            if (_filterLimit == "__has__")
+                q = q.Where(t => t.UsageLimit is { Length: > 0 } ul && ul != "None");
+            else if (!string.IsNullOrWhiteSpace(_filterLimit))
+                q = q.Where(t => t.UsageLimit == _filterLimit);
+
             q = _sortBy switch
             {
                 "name"     => _sortAsc ? q.OrderBy(t => t.Name)     : q.OrderByDescending(t => t.Name),
@@ -283,7 +320,7 @@
 
     private string SortIcon(string col) => _sortBy != col ? " ⇅" : _sortAsc ? " ↑" : " ↓";
 
-    private void ResetFilters() { _search = ""; _filterCategory = ""; _filterJob = ""; }
+    private void ResetFilters() { _search = ""; _filterCategory = ""; _filterJob = ""; _filterLimit = ""; }
 
     // ─── Données ──────────────────────────────────────────────────────────────
     protected override async Task OnInitializedAsync()
