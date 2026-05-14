@@ -102,6 +102,9 @@ public class AbilityDto
     [JsonPropertyName("name")]
     public string Name { get; set; } = "";
 
+    [JsonPropertyName("description")]
+    public string? Description { get; set; } = null;
+
     [JsonPropertyName("category")]
     public string Category { get; set; } = "Job";
 
@@ -121,6 +124,7 @@ public class AbilityDto
     {
         Id            = Id,
         Name          = Name,
+        Description = Description,
         Category      = Category,
         RequiredJobIds = RequiredJobIds is null ? null : [.. RequiredJobIds],
         UsageLimit    = UsageLimit,

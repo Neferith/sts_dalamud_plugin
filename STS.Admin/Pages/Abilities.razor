@@ -1,4 +1,5 @@
 @page "/abilities"
+@using Sts.Admin.Utils
 @inject ApiClient Api
 @inject AuthService Auth
 @inject NavigationManager Nav
@@ -139,14 +140,26 @@
                 </div>
                 <div class="modal-body">
                     <div class="row g-3 mb-3">
-                        <div class="col-5">
-                            <label class="form-label">Identifiant</label>
-                            <input class="form-control font-monospace" @bind="_form.Id" disabled="@_editMode" placeholder="ex: tir_de_balles" />
-                        </div>
                         <div class="col-7">
                             <label class="form-label">Nom</label>
-                            <input class="form-control" @bind="_form.Name" placeholder="ex: Tir de balles" />
+                            <input class="form-control" 
+                            @bind="_form.Name" 
+                            @oninput="OnSectionNameChanged"
+                            placeholder="ex: Tir de balles" />
                         </div>
+                        <div class="col-5">
+                            <label class="form-label">Identifiant</label>
+                            <input class="form-control font-monospace" 
+                            @bind="_form.Id" 
+                            disabled="@_editMode" 
+                            placeholder="ex: tir_de_balles" />
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-12">
+                            <textarea class="form-control form-control-sm" rows="2"
+                                  @bind="_form.Description" placeholder="Description supplémentaire ou spécificité du job…"></textarea>
+                         </div>
                     </div>
                     <div class="row g-3 mb-3">
                         <div class="col-4">
@@ -318,6 +331,14 @@
     private void OpenEdit(AbilityDto ab)
     {
         _form = ab.Clone(); _selectedJobIds = [.. (_form.RequiredJobIds ?? [])]; _editMode = true; _showModal = true;
+    }
+
+    private void OnSectionNameChanged(ChangeEventArgs e)
+    {
+        var name = e.Value?.ToString() ?? "";
+        _form.Name = name;
+        if (!_editMode)
+            _form.Id = SlugUtils.GenerateSlug(name);
     }
 
     private void CloseModal() => _showModal = false;

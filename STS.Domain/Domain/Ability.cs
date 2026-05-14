@@ -40,6 +40,9 @@ public record Ability(
     /// </summary>
     IReadOnlyList<string>? RequiredJobIds = null,
 
+    /// <summary>Description et spécificités particulière de la compétence.</summary>
+    string? Description = null,
+
     UsageLimit UsageLimit = UsageLimit.None,
     int StartLevel = 1
 )

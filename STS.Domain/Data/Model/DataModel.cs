@@ -99,6 +99,9 @@ public class AbilityData
     [JsonPropertyName("name")]
     public string Name { get; set; } = string.Empty;
 
+    [JsonPropertyName("description")]
+    public string? Description { get; set; } = null;
+
     [JsonPropertyName("category")]
     public string Category { get; set; } = string.Empty;
 

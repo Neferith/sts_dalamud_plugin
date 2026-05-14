@@ -168,6 +168,12 @@ else
                                         @(isExpanded ? "▲" : "▼")
                                     </span>
                                 </div>
+                                @if (isExpanded && !string.IsNullOrWhiteSpace(ability.Description))
+                                {
+                                    <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 6px;">
+                                        <p class="sts-card-desc">@ability.Description</p>
+                                    </div>
+                                }
 
                                 @if (isExpanded && ability.Levels.Count > 0)
                                 {

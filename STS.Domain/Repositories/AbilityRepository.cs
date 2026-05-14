@@ -73,6 +73,7 @@ public class DefaultAbilityRepository : AbilityRepository
         return new Ability(
             Id: data.Id,
             Name: data.Name,
+            Description: data.Description,
             Category: ParseCategory(data.Category),
             Levels: data.Levels.Select(l => new AbilityLevel(l.Level, l.Description)).ToList(),
             RequiredJobIds: jobIds,
