@@ -161,6 +161,17 @@ builder.Services.AddScoped<IExportJobSheetPdfUseCase>(sp =>
         imageStoragePath); // même variable que IExportCharacterPdfUseCase
 });
 
+builder.Services.AddScoped<IExportDmSheetPdfUseCase>(sp =>
+{
+    var ds = sp.GetRequiredService<DataServiceDataSource>();
+    return new ExportDmSheetPdfUseCase(
+        new DefaultTraitRepository(ds),
+        new DefaultJobRepository(ds),
+        new DefaultAbilityRepository(ds),
+        uploadDir,
+        imageStoragePath); // même variable que IExportCharacterPdfUseCase
+});
+
 ExportJobSheetPdfUseCase.RegisterFonts();
 
 
