@@ -35,7 +35,6 @@ public sealed class ExportJobSheetPdfUseCase(
     {
         var assembly = typeof(ExportJobSheetPdfUseCase).Assembly;
 
-        // Mappe le nom de fichier (sans extension) vers le nom de famille QuestPDF
         var fontMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             ["IMFellEnglish-Regular"] = "IM Fell English",
@@ -45,7 +44,6 @@ public sealed class ExportJobSheetPdfUseCase(
         foreach (var resourceName in assembly.GetManifestResourceNames()
                      .Where(n => n.EndsWith(".ttf", StringComparison.OrdinalIgnoreCase)))
         {
-            // "STS.Export.Fonts.IMFellEnglish-Regular.ttf" → segments[^2] = "IMFellEnglish-Regular"
             var segments = resourceName.Split('.');
             var baseName = segments.Length >= 2 ? segments[^2] : resourceName;
 
@@ -61,26 +59,21 @@ public sealed class ExportJobSheetPdfUseCase(
     private sealed record SheetContext(
         Job? Job,
         Character? Character,
-        // Traits par catégorie
         List<Trait> JobTraits,
         List<Trait> ConnaissanceTraits,
         List<Trait> RoleDpsTraits,
         List<Trait> RoleTankTraits,
         List<Trait> RoleSoigneurTraits,
-        // Capacités par catégorie
         List<Ability> WeaponAbilities,
         List<Ability> JobAbilities,
         List<Ability> RoleDpsAbilities,
         List<Ability> RoleTankAbilities,
         List<Ability> RoleSoigneurAbilities,
-        // Lookups personnage (vides si fiche vierge)
         HashSet<string> EquippedTraitSet,
         string? OriginTraitId,
         string? OriginTraitName,
         Dictionary<string, int> EquippedAbilityMap,
-        // Portrait
         string? ImagePath,
-        // Icône du job
         string? JobIconPath
     );
 
@@ -116,10 +109,7 @@ public sealed class ExportJobSheetPdfUseCase(
         var imagePath = character != null
             ? Directory.GetFiles(uploadDir, $"{character.Id}.*").FirstOrDefault()
             : null;
-        var baseUploadDir = Path.GetDirectoryName(uploadDir) ?? uploadDir;
-        var jobIconDir = Path.Combine(uploadDir, "jobs");
         var jobIconPath = ResolveIconPath(job?.IconUrl);
-
 
         return new SheetContext(
             Job: job,
@@ -132,8 +122,8 @@ public sealed class ExportJobSheetPdfUseCase(
             RoleSoigneurTraits: [.. traits.GetByCategory(TraitCategory.RoleSoigneur)],
             WeaponAbilities: [.. abilities.GetWeapons().OrderBy(a => a.Name)],
             JobAbilities: [.. abilities.GetByCategory(AbilityCategory.Job)
-                                    .Where(a => a.RequiredJobIds?.Contains(jobId) == true)
-                                    .OrderBy(a => a.StartLevel)],
+                                        .Where(a => a.RequiredJobIds?.Contains(jobId) == true)
+                                        .OrderBy(a => a.StartLevel)],
             RoleDpsAbilities: [.. abilities.GetByCategory(AbilityCategory.RoleDps)],
             RoleTankAbilities: [.. abilities.GetByCategory(AbilityCategory.RoleTank)],
             RoleSoigneurAbilities: [.. abilities.GetByCategory(AbilityCategory.RoleSoigneur)],
@@ -147,11 +137,6 @@ public sealed class ExportJobSheetPdfUseCase(
         );
     }
 
-
-    /// <summary>
-    /// Résout l'URL d'une icône de galerie en chemin fichier local.
-    /// Extrait le nom de fichier de l'URL et le cherche dans imageStoragePath.
-    /// </summary>
     private string? ResolveIconPath(string? iconUrl)
     {
         if (iconUrl is null) return null;
@@ -169,20 +154,16 @@ public sealed class ExportJobSheetPdfUseCase(
     private Document BuildDocument(SheetContext ctx) =>
         Document.Create(container =>
         {
-            container.Page(page => BuildPage1(page, ctx));  // Header + Traits
-            container.Page(page => BuildPage2(page, ctx));  // Capacités (Armes, Job, Rôles)
-            container.Page(page => BuildPage3(page, ctx));  // Certifications + Inventaire
+            container.Page(page => BuildPage1(page, ctx));
+            container.Page(page => BuildPage2(page, ctx));
+            container.Page(page => BuildPage3(page, ctx));
         });
 
     // ── PAGE 1 : Header + Traits ──────────────────────────────────────────
 
     private static void BuildPage1(PageDescriptor page, SheetContext ctx)
     {
-        page.Size(PageSizes.A4);
-        page.Margin(1.6f, Unit.Centimetre);
-        page.Background(Parchment);
-        page.DefaultTextStyle(t => t.FontFamily(FontSerif).FontSize(9.5f).FontColor(Ink));
-
+        ApplyPageDefaults(page);
         page.Content().Border(2).BorderColor(Ink).Column(col =>
         {
             col.Spacing(0);
@@ -193,7 +174,6 @@ public sealed class ExportJobSheetPdfUseCase(
             HistoireSection(col.Item(), ctx);
             TraitsSection(col.Item(), ctx);
         });
-
         PageFooter(page, ctx);
     }
 
@@ -201,18 +181,13 @@ public sealed class ExportJobSheetPdfUseCase(
 
     private static void BuildPage2(PageDescriptor page, SheetContext ctx)
     {
-        page.Size(PageSizes.A4);
-        page.Margin(1.6f, Unit.Centimetre);
-        page.Background(Parchment);
-        page.DefaultTextStyle(t => t.FontFamily(FontSerif).FontSize(9.5f).FontColor(Ink));
-
+        ApplyPageDefaults(page);
         page.Content().Border(2).BorderColor(Ink).Column(col =>
         {
             col.Spacing(0);
             GuildBarSection(col.Item(), ctx, "Capacités");
             col.Item().Element(e => SectionBanner(e, "Capacités"));
 
-            // ── Armes & Métier ────────────────────────────────────────────
             col.Item().Row(banner =>
             {
                 banner.RelativeItem()
@@ -238,7 +213,6 @@ public sealed class ExportJobSheetPdfUseCase(
                     .Column(left =>
                         AbilityGroup(left, "Maîtrises d'armes", ctx.WeaponAbilities,
                             ctx.EquippedAbilityMap));
-
                 row.RelativeItem()
                     .Padding(8)
                     .Column(right =>
@@ -249,7 +223,6 @@ public sealed class ExportJobSheetPdfUseCase(
                     });
             });
 
-            // ── Rôles ─────────────────────────────────────────────────────
             col.Item().Row(banner =>
             {
                 banner.RelativeItem()
@@ -278,7 +251,6 @@ public sealed class ExportJobSheetPdfUseCase(
                             AbilityGroup(left, "Rôle DPS", ctx.RoleDpsAbilities,
                                 ctx.EquippedAbilityMap);
                     });
-
                 row.RelativeItem()
                     .Padding(8)
                     .Column(right =>
@@ -292,7 +264,6 @@ public sealed class ExportJobSheetPdfUseCase(
                     });
             });
         });
-
         PageFooter(page, ctx);
     }
 
@@ -300,11 +271,7 @@ public sealed class ExportJobSheetPdfUseCase(
 
     private void BuildPage3(PageDescriptor page, SheetContext ctx)
     {
-        page.Size(PageSizes.A4);
-        page.Margin(1.6f, Unit.Centimetre);
-        page.Background(Parchment);
-        page.DefaultTextStyle(t => t.FontFamily(FontSerif).FontSize(9.5f).FontColor(Ink));
-
+        ApplyPageDefaults(page);
         page.Content().Border(2).BorderColor(Ink).Column(col =>
         {
             col.Spacing(0);
@@ -312,7 +279,6 @@ public sealed class ExportJobSheetPdfUseCase(
             CertificationsSection(col.Item(), ctx);
             InventaireSection(col.Item(), ctx);
         });
-
         PageFooter(page, ctx);
     }
 
@@ -340,7 +306,8 @@ public sealed class ExportJobSheetPdfUseCase(
             .PaddingHorizontal(12).PaddingVertical(3)
             .Row(row =>
             {
-                row.RelativeItem().Text($"La Nouvelle Lune · STS — {charName}")
+                row.RelativeItem()
+                    .Text($"La Nouvelle Lune · STS — {charName}")
                     .FontSize(7.5f).Italic().FontColor(InkLight);
                 row.AutoItem().Text(section)
                     .FontSize(7.5f).Bold().FontColor(InkLight).LetterSpacing(0.08f);
@@ -350,7 +317,6 @@ public sealed class ExportJobSheetPdfUseCase(
     private static void NameBar(IContainer container, SheetContext ctx)
     {
         var name = ctx.Character?.Name ?? ctx.Job?.Name ?? "—";
-        var sublabel = ctx.Character != null ? "Nom du personnage" : $"Job · {ctx.Job?.Name ?? ""}";
 
         container
             .BorderBottom(2).BorderColor(Ink)
@@ -363,7 +329,6 @@ public sealed class ExportJobSheetPdfUseCase(
 
                     if (ctx.Character != null)
                     {
-                        // Fiche personnage : label fixe + ligne job avec icône
                         col.Item().PaddingTop(2)
                             .Text("Nom du personnage")
                             .FontSize(7.5f).FontColor(InkLight).LetterSpacing(0.12f);
@@ -384,16 +349,8 @@ public sealed class ExportJobSheetPdfUseCase(
                             });
                         }
                     }
-                    else
-                    {
-                        // Fiche vierge : sublabel standard
-                       // col.Item().PaddingTop(2)
-                         //   .Text($"Métier · {ctx.Job?.Name ?? ""}")
-                           // .FontSize(7.5f).FontColor(InkLight).LetterSpacing(0.12f);
-                    }
                 });
 
-                // Portrait (fiche personnage) — sans icône job ici
                 if (ctx.ImagePath is not null)
                 {
                     row.ConstantItem(10);
@@ -401,7 +358,6 @@ public sealed class ExportJobSheetPdfUseCase(
                         .Border(1).BorderColor(Ink)
                         .Image(ctx.ImagePath).FitArea();
                 }
-                // Fiche vierge : icône job dans la zone portrait
                 else if (ctx.JobIconPath is not null)
                 {
                     row.ConstantItem(10);
@@ -426,23 +382,16 @@ public sealed class ExportJobSheetPdfUseCase(
 
         container.BorderBottom(2).BorderColor(Ink).Column(rows =>
         {
-            // Rangée 1 : Race · Rang · Palier
             rows.Item().Row(row =>
             {
-                FieldCell(row.RelativeItem(2)
-                    .BorderRight(1).BorderColor(Ink), "RACE", RaceVal());
-                FieldCell(row.RelativeItem(2)
-                    .BorderRight(1).BorderColor(Ink), "RANG", RangVal());
+                FieldCell(row.RelativeItem(2).BorderRight(1).BorderColor(Ink), "RACE", RaceVal());
+                FieldCell(row.RelativeItem(2).BorderRight(1).BorderColor(Ink), "RANG", RangVal());
                 FieldCell(row.RelativeItem(2), "PALIER", PalierVal());
             });
-
-            // Rangée 2 : Rerolls · Réputation · Points
             rows.Item().BorderTop(1).BorderColor(LineColor).Row(row =>
             {
-                FieldCell(row.RelativeItem(2)
-                    .BorderRight(1).BorderColor(Ink), "REROLLS", RerollVal());
-                FieldCell(row.RelativeItem(2)
-                    .BorderRight(1).BorderColor(Ink), "RÉPUTATION", RepVal());
+                FieldCell(row.RelativeItem(2).BorderRight(1).BorderColor(Ink), "REROLLS", RerollVal());
+                FieldCell(row.RelativeItem(2).BorderRight(1).BorderColor(Ink), "RÉPUTATION", RepVal());
                 FieldCell(row.RelativeItem(2), "POINTS DE COMPÉTENCE", PtsVal(),
                     sub: PtsSub());
             });
@@ -461,14 +410,12 @@ public sealed class ExportJobSheetPdfUseCase(
 
                 if (ctx.Character != null && !string.IsNullOrWhiteSpace(ctx.Character.Histoire))
                 {
-                    // Fiche remplie : texte compact, auto-dimensionné, pas de lignes vides
                     col.Item().PaddingTop(4)
                         .Text(ctx.Character.Histoire.Trim())
                         .FontSize(8.5f).Italic().FontColor(Ink).LineHeight(1.5f);
                 }
                 else
                 {
-                    // Fiche vierge : 4 lignes à remplir
                     col.Item().PaddingTop(4).Column(lines =>
                     {
                         for (int i = 0; i < 4; i++)
@@ -486,7 +433,7 @@ public sealed class ExportJobSheetPdfUseCase(
         {
             col.Item().Element(e => SectionBanner(e, "Traits", topBorder: true));
 
-            // Champ unique Trait d'origine — pleine largeur
+            // Trait d'origine — pleine largeur
             col.Item()
                 .BorderBottom(1).BorderColor(LineColor)
                 .PaddingHorizontal(12).PaddingVertical(5)
@@ -503,7 +450,7 @@ public sealed class ExportJobSheetPdfUseCase(
                         .FontSize(10).FontColor(Ink);
                 });
 
-            // ── Sous-section Rôles (2 colonnes) ──────────────────────────
+            // Rôles (2 colonnes)
             col.Item()
                 .Background("#ede6d4")
                 .BorderBottom(0.5f).BorderColor(LineColor)
@@ -519,7 +466,6 @@ public sealed class ExportJobSheetPdfUseCase(
                     .Column(left =>
                         TraitGroup(left, "DPS", ctx.RoleDpsTraits,
                             t => ctx.EquippedTraitSet.Contains(t.Id)));
-
                 row.RelativeItem()
                     .Padding(7)
                     .Column(right =>
@@ -533,7 +479,7 @@ public sealed class ExportJobSheetPdfUseCase(
                     });
             });
 
-            // ── Sous-section Connaissance & Métier (2 colonnes) ──────────
+            // Connaissance & Métier (2 colonnes)
             col.Item()
                 .Background("#ede6d4")
                 .BorderBottom(0.5f).BorderColor(LineColor)
@@ -552,7 +498,6 @@ public sealed class ExportJobSheetPdfUseCase(
                             TraitGroup(left, "Connaissance", ctx.ConnaissanceTraits,
                                 t => ctx.EquippedTraitSet.Contains(t.Id));
                     });
-
                 row.RelativeItem()
                     .Padding(7)
                     .Column(right =>
@@ -566,7 +511,7 @@ public sealed class ExportJobSheetPdfUseCase(
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    // SECTIONS — PAGE 4
+    // SECTIONS — PAGE 3
     // ══════════════════════════════════════════════════════════════════════
 
     private void CertificationsSection(IContainer container, SheetContext ctx)
@@ -581,7 +526,6 @@ public sealed class ExportJobSheetPdfUseCase(
 
                 col.Item().PaddingHorizontal(12).PaddingTop(6).PaddingBottom(4).Column(inner =>
                 {
-                    // En-tête colonnes
                     inner.Item().BorderBottom(1.5f).BorderColor(Ink)
                         .PaddingBottom(3).Row(hdr =>
                         {
@@ -593,7 +537,6 @@ public sealed class ExportJobSheetPdfUseCase(
                                 .FontSize(7.5f).FontColor(InkLight).LetterSpacing(0.12f);
                         });
 
-                    // Certifications existantes
                     foreach (var cert in ctx.Character?.Certifications ?? [])
                     {
                         inner.Item().BorderBottom(0.5f).BorderColor(LineColor)
@@ -604,7 +547,6 @@ public sealed class ExportJobSheetPdfUseCase(
                                     txt.Span("★ ").FontSize(9).FontColor(AmberInk);
                                     txt.Span(cert.Name).FontSize(10);
                                 });
-
                                 r.RelativeItem(6).Text(txt =>
                                 {
                                     txt.Span("→ ").FontSize(9).FontColor(AmberInk);
@@ -619,14 +561,13 @@ public sealed class ExportJobSheetPdfUseCase(
                                         txt.Span(a?.Name ?? cert.LinkedAbilityId).FontSize(9.5f);
                                     }
                                 });
-
                                 r.ConstantItem(50).AlignRight()
                                     .Text(cert.FreePoints > 0 ? $"+{cert.FreePoints}" : "—")
-                                    .FontSize(10).Bold().FontColor(cert.FreePoints > 0 ? AmberInk : InkLight);
+                                    .FontSize(10).Bold()
+                                    .FontColor(cert.FreePoints > 0 ? AmberInk : InkLight);
                             });
                     }
 
-                    // Lignes vides
                     for (int i = 0; i < emptySlots; i++)
                         inner.Item().BorderBottom(0.5f).BorderColor(LineColor)
                             .PaddingVertical(3).Height(20);
@@ -644,7 +585,6 @@ public sealed class ExportJobSheetPdfUseCase(
 
             col.Item().PaddingHorizontal(12).PaddingTop(6).PaddingBottom(8).Column(inner =>
             {
-                // En-tête
                 inner.Item().BorderBottom(1.5f).BorderColor(Ink)
                     .PaddingBottom(3).Row(hdr =>
                     {
@@ -654,13 +594,12 @@ public sealed class ExportJobSheetPdfUseCase(
                             .FontSize(7.5f).FontColor(InkLight).LetterSpacing(0.12f);
                     });
 
-                var items = ctx.Character?.Inventory
-                    .OrderBy(i => i.SortIndex).ToList() ?? [];
+                var items = ctx.Character?.Inventory.OrderBy(i => i.SortIndex).ToList() ?? [];
 
                 foreach (var item in items)
                 {
                     bool equipped = ctx.Character?.MainHandItemId == item.Id
-                                 || ctx.Character?.OffHandItemId == item.Id;
+                                  || ctx.Character?.OffHandItemId == item.Id;
                     var typeLabel = item.Category == ItemCategory.Weapon ? "Arme" : "Équipement";
 
                     inner.Item().BorderBottom(0.5f).BorderColor(LineColor)
@@ -670,8 +609,7 @@ public sealed class ExportJobSheetPdfUseCase(
                             {
                                 if (equipped)
                                 {
-                                    nr.ConstantItem(8).Height(8)
-                                        .Svg(_ => EquipDotSvg());
+                                    nr.ConstantItem(8).Height(8).Svg(_ => EquipDotSvg());
                                     nr.ConstantItem(4);
                                 }
                                 nr.RelativeItem().Text(item.Name).FontSize(10);
@@ -681,16 +619,13 @@ public sealed class ExportJobSheetPdfUseCase(
                         });
                 }
 
-                // Lignes vides
                 for (int i = 0; i < emptySlots; i++)
                     inner.Item().BorderBottom(0.5f).BorderColor(LineColor)
                         .PaddingVertical(3).Height(20);
 
-                // Légende
                 inner.Item().PaddingTop(4).Row(leg =>
                 {
-                    leg.ConstantItem(8).Height(8)
-                        .Svg(_ => EquipDotSvg());
+                    leg.ConstantItem(8).Height(8).Svg(_ => EquipDotSvg());
                     leg.ConstantItem(5);
                     leg.AutoItem().Text("= objet équipé en main")
                         .FontSize(7.5f).Italic().FontColor(InkLight);
@@ -734,7 +669,7 @@ public sealed class ExportJobSheetPdfUseCase(
             {
                 int maxLevel = a.Levels.Max(l => l.Level);
                 int acquired = equippedMap.TryGetValue(a.Id, out var lv) ? lv : 0;
-                AbilityRow(inner.Item(), a.Name, a.StartLevel, maxLevel, acquired, a.UsageLimit);
+                AbilityRow(inner.Item(), a, maxLevel, acquired);
             }
         });
     }
@@ -747,7 +682,6 @@ public sealed class ExportJobSheetPdfUseCase(
     {
         var c = container;
         if (topBorder) c = c.BorderTop(2).BorderColor(Ink);
-
         c.Background(Ink)
             .PaddingHorizontal(12).PaddingVertical(3)
             .Text(text.ToUpperInvariant())
@@ -764,7 +698,6 @@ public sealed class ExportJobSheetPdfUseCase(
     private static void JobDescriptionSection(IContainer container, SheetContext ctx)
     {
         if (string.IsNullOrWhiteSpace(ctx.Job?.Description)) return;
-
         container
             .BorderBottom(1).BorderColor(LineColor)
             .PaddingHorizontal(14).PaddingVertical(6)
@@ -777,13 +710,10 @@ public sealed class ExportJobSheetPdfUseCase(
             .PaddingHorizontal(10).PaddingVertical(4)
             .Column(c =>
             {
-                c.Item().Text(label)
-                    .FontSize(7.5f).FontColor(InkLight).LetterSpacing(0.12f);
-                c.Item().PaddingTop(2).Text(value)
-                    .FontSize(13).Bold();
+                c.Item().Text(label).FontSize(7.5f).FontColor(InkLight).LetterSpacing(0.12f);
+                c.Item().PaddingTop(2).Text(value).FontSize(13).Bold();
                 if (sub != null)
-                    c.Item().Text(sub)
-                        .FontSize(8).Italic().FontColor(InkLight);
+                    c.Item().Text(sub).FontSize(8).Italic().FontColor(InkLight);
             });
 
     private static void TraitRow(IContainer container, string name, bool isChecked) =>
@@ -792,22 +722,14 @@ public sealed class ExportJobSheetPdfUseCase(
             .PaddingVertical(2)
             .Row(row =>
             {
-                row.ConstantItem(11).Height(11)
-                    .Svg(_ => CheckboxSvg(isChecked));
+                row.ConstantItem(11).Height(11).Svg(_ => CheckboxSvg(isChecked));
                 row.ConstantItem(6);
                 row.RelativeItem()
-                    .Text(name)
-                    .FontSize(10)
+                    .Text(name).FontSize(10)
                     .FontColor(isChecked ? Ink : InkLight);
             });
 
-    private static void AbilityRow(
-        IContainer container,
-        string name,
-        int startLevel,
-        int maxLevel,
-        int acquired,
-        UsageLimit usageLimit)
+    private static void AbilityRow(IContainer container, Ability ability, int maxLevel, int acquired)
     {
         const float dotSize = 13f;
         const float gap = 3f;
@@ -817,37 +739,41 @@ public sealed class ExportJobSheetPdfUseCase(
             .PaddingVertical(2.5f)
             .Row(row =>
             {
-                // Ronds numérotés (SVG, pas de dépendance SkiaSharp)
                 for (int lvl = 1; lvl <= maxLevel; lvl++)
                 {
-                    if (lvl < startLevel)
+                    if (lvl < ability.StartLevel)
                     {
-                        row.ConstantItem(dotSize); // espace vide
+                        row.ConstantItem(dotSize);
                     }
                     else
                     {
                         bool filled = lvl <= acquired;
                         int lvlCopy = lvl;
+                        // Layers : cercle SVG + chiffre natif QuestPDF (cross-platform)
                         row.ConstantItem(dotSize).Height(dotSize)
-                            .Svg(_ => DotSvg(dotSize, lvlCopy, filled));
+                            .Layers(layers =>
+                            {
+                                layers.Layer().Svg(_ => CircleOnlySvg(dotSize, filled));
+                                layers.PrimaryLayer().AlignCenter().AlignMiddle()
+                                    .Text(lvlCopy.ToString()).FontSize(7).Bold()
+                                    .FontColor(filled ? Parchment : Ink);
+                            });
                     }
                     if (lvl < maxLevel) row.ConstantItem(gap);
                 }
 
                 row.ConstantItem(6);
-
                 row.RelativeItem()
-                    .Text(name)
-                    .FontSize(10)
+                    .Text(ability.Name).FontSize(10)
                     .FontColor(acquired > 0 ? Ink : InkLight);
 
-                if (usageLimit != UsageLimit.None)
+                if (ability.UsageLimit != UsageLimit.None)
                 {
                     row.ConstantItem(4);
                     row.AutoItem()
                         .Border(0.5f).BorderColor(AmberInk)
                         .PaddingHorizontal(5).PaddingVertical(1)
-                        .Text(UsageLimitLabel(usageLimit))
+                        .Text(UsageLimitLabel(ability.UsageLimit))
                         .FontSize(7.5f).FontColor(AmberInk);
                 }
             });
@@ -871,28 +797,25 @@ public sealed class ExportJobSheetPdfUseCase(
             });
 
     // ══════════════════════════════════════════════════════════════════════
-    // HELPERS — SVG (pas de dépendance SkiaSharp)
+    // HELPERS — SVG
     // ══════════════════════════════════════════════════════════════════════
 
-    /// <summary>Cercle numéroté pour la progression d'une capacité.</summary>
-    private static string DotSvg(float size, int level, bool filled)
+    /// <summary>
+    /// Cercle SVG sans texte. Le chiffre est rendu en natif QuestPDF via Layers
+    /// pour garantir le bon rendu cross-platform (Linux / Docker).
+    /// </summary>
+    private static string CircleOnlySvg(float size, bool filled)
     {
-        float cx = size / 2f;
-        float cy = size / 2f;
-        float r = size / 2f - 1.5f;
+        float cx = size / 2f, cy = size / 2f, r = size / 2f - 1.5f;
         var fill = filled ? Ink : "none";
-        var text = filled ? Parchment : Ink;
         return $"""
             <svg xmlns='http://www.w3.org/2000/svg' width='{size}' height='{size}'>
               <circle cx='{cx:F1}' cy='{cy:F1}' r='{r:F1}'
                       fill='{fill}' stroke='{Ink}' stroke-width='1.5'/>
-              <text x='{cx:F1}' y='{cy + 2.5f:F1}'
-                    text-anchor='middle' font-size='7' font-weight='bold' fill='{text}'>{level}</text>
             </svg>
             """;
     }
 
-    /// <summary>Case à cocher carrée.</summary>
     private static string CheckboxSvg(bool isChecked)
     {
         var fill = isChecked ? Ink : "none";
@@ -904,7 +827,6 @@ public sealed class ExportJobSheetPdfUseCase(
             """;
     }
 
-    /// <summary>Point plein pour indiquer un objet équipé.</summary>
     private static string EquipDotSvg() =>
         $"""
         <svg xmlns='http://www.w3.org/2000/svg' width='8' height='8'>
@@ -913,8 +835,16 @@ public sealed class ExportJobSheetPdfUseCase(
         """;
 
     // ══════════════════════════════════════════════════════════════════════
-    // HELPERS — LABELS
+    // HELPERS — LABELS & TEXTE
     // ══════════════════════════════════════════════════════════════════════
+
+    private static void ApplyPageDefaults(PageDescriptor page)
+    {
+        page.Size(PageSizes.A4);
+        page.Margin(1.6f, Unit.Centimetre);
+        page.Background(Parchment);
+        page.DefaultTextStyle(t => t.FontFamily(FontSerif).FontSize(9.5f).FontColor(Ink));
+    }
 
     private static string UsageLimitLabel(UsageLimit limit) => limit switch
     {

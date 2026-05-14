@@ -29,20 +29,17 @@ public sealed class ExportDmSheetPdfUseCase(
     private sealed record DmContext(
         Job? Job,
         Character Character,
-        // Traits équipés uniquement, par catégorie
         Trait? OriginTrait,
         List<Trait> EquippedRoleDpsTraits,
         List<Trait> EquippedRoleTankTraits,
         List<Trait> EquippedRoleSoigneurTraits,
         List<Trait> EquippedConnaissanceTraits,
         List<Trait> EquippedJobTraits,
-        // Capacités acquises uniquement : (ability, niveauAcquis)
         List<(Ability Ability, int Level)> EquippedWeaponAbilities,
         List<(Ability Ability, int Level)> EquippedJobAbilities,
         List<(Ability Ability, int Level)> EquippedRoleDpsAbilities,
         List<(Ability Ability, int Level)> EquippedRoleTankAbilities,
         List<(Ability Ability, int Level)> EquippedRoleSoigneurAbilities,
-        // Médias
         string? ImagePath,
         string? JobIconPath
     );
@@ -66,43 +63,37 @@ public sealed class ExportDmSheetPdfUseCase(
         var equippedMap = character.EquippedAbilities
                             .ToDictionary(e => e.AbilityId, e => e.Level);
 
-        Trait? originTrait = character.OriginTraitId != null
-            ? traits.GetById(character.OriginTraitId)
-            : null;
-
-        // Filtre traits équipés pour une catégorie donnée
         List<Trait> FilterTraits(TraitCategory cat, Func<Trait, bool>? extra = null) =>
             traits.GetByCategory(cat)
                   .Where(t => equippedSet.Contains(t.Id) && (extra == null || extra(t)))
                   .ToList();
 
-        // Filtre capacités acquises pour une catégorie donnée
         List<(Ability, int)> FilterAbilities(AbilityCategory cat, Func<Ability, bool>? extra = null) =>
             abilities.GetByCategory(cat)
                      .Where(a => equippedMap.ContainsKey(a.Id) && (extra == null || extra(a)))
                      .Select(a => (a, equippedMap[a.Id]))
                      .ToList();
 
-        var acquiredWeapons = abilities.GetWeapons()
-            .Where(a => equippedMap.ContainsKey(a.Id))
-            .Select(a => (a, equippedMap[a.Id]))
-            .OrderBy(x => x.a.Name)
-            .ToList();
-
         return new DmContext(
             Job: job,
             Character: character,
-            OriginTrait: originTrait,
+            OriginTrait: character.OriginTraitId != null
+                ? traits.GetById(character.OriginTraitId)
+                : null,
             EquippedRoleDpsTraits: FilterTraits(TraitCategory.RoleDps),
             EquippedRoleTankTraits: FilterTraits(TraitCategory.RoleTank),
             EquippedRoleSoigneurTraits: FilterTraits(TraitCategory.RoleSoigneur),
             EquippedConnaissanceTraits: FilterTraits(TraitCategory.Connaissance),
             EquippedJobTraits: FilterTraits(TraitCategory.Job,
-                                              t => t.RequiredJobIds?.Contains(jobId) == true),
-            EquippedWeaponAbilities: acquiredWeapons,
+                                            t => t.RequiredJobIds?.Contains(jobId) == true),
+            EquippedWeaponAbilities: abilities.GetWeapons()
+                .Where(a => equippedMap.ContainsKey(a.Id))
+                .Select(a => (a, equippedMap[a.Id]))
+                .OrderBy(x => x.a.Name)
+                .ToList(),
             EquippedJobAbilities: FilterAbilities(AbilityCategory.Job,
-                                              a => a.RequiredJobIds?.Contains(jobId) == true)
-                                              .OrderBy(x => x.Item1.StartLevel).ToList(),
+                                      a => a.RequiredJobIds?.Contains(jobId) == true)
+                                      .OrderBy(x => x.Item1.StartLevel).ToList(),
             EquippedRoleDpsAbilities: FilterAbilities(AbilityCategory.RoleDps),
             EquippedRoleTankAbilities: FilterAbilities(AbilityCategory.RoleTank),
             EquippedRoleSoigneurAbilities: FilterAbilities(AbilityCategory.RoleSoigneur),
@@ -128,9 +119,9 @@ public sealed class ExportDmSheetPdfUseCase(
     private Document BuildDocument(DmContext ctx) =>
         Document.Create(container =>
         {
-            container.Page(page => BuildPage1(page, ctx));  // Header + Traits
-            container.Page(page => BuildPage2(page, ctx));  // Capacités
-            container.Page(page => BuildPage3(page, ctx));  // Certifications + Inventaire
+            container.Page(page => BuildPage1(page, ctx));
+            container.Page(page => BuildPage2(page, ctx));
+            container.Page(page => BuildPage3(page, ctx));
         });
 
     // ══════════════════════════════════════════════════════════════════════
@@ -166,20 +157,12 @@ public sealed class ExportDmSheetPdfUseCase(
             GuildBarSection(col.Item(), ctx.Character.Name, "Capacités");
             col.Item().Element(e => SectionBanner(e, "Capacités"));
 
-            RenderAbilityGroup(col, "MAÎTRISES D'ARMES",
-                ctx.EquippedWeaponAbilities, isLast: false);
-
+            RenderAbilityGroup(col, "MAÎTRISES D'ARMES", ctx.EquippedWeaponAbilities);
             RenderAbilityGroup(col, (ctx.Job?.Name ?? "Métier").ToUpperInvariant(),
-                ctx.EquippedJobAbilities, isLast: false);
-
-            RenderAbilityGroup(col, "RÔLE DPS",
-                ctx.EquippedRoleDpsAbilities, isLast: false);
-
-            RenderAbilityGroup(col, "RÔLE TANK",
-                ctx.EquippedRoleTankAbilities, isLast: false);
-
-            RenderAbilityGroup(col, "RÔLE SOIGNEUR",
-                ctx.EquippedRoleSoigneurAbilities, isLast: true);
+                                                                  ctx.EquippedJobAbilities);
+            RenderAbilityGroup(col, "RÔLE DPS", ctx.EquippedRoleDpsAbilities);
+            RenderAbilityGroup(col, "RÔLE TANK", ctx.EquippedRoleTankAbilities);
+            RenderAbilityGroup(col, "RÔLE SOIGNEUR", ctx.EquippedRoleSoigneurAbilities);
         });
         PageFooter(page, ctx);
     }
@@ -187,8 +170,7 @@ public sealed class ExportDmSheetPdfUseCase(
     private static void RenderAbilityGroup(
         ColumnDescriptor col,
         string label,
-        List<(Ability Ability, int Level)> list,
-        bool isLast)
+        List<(Ability Ability, int Level)> list)
     {
         if (list.Count == 0) return;
 
@@ -199,10 +181,7 @@ public sealed class ExportDmSheetPdfUseCase(
             .Text(label)
             .FontSize(7.5f).Bold().FontColor(InkLight).LetterSpacing(0.13f);
 
-        var section = col.Item();
-        if (!isLast) section = section.BorderBottom(1).BorderColor(Ink);
-
-        section.Padding(8).Column(c =>
+        col.Item().BorderBottom(1).BorderColor(Ink).Padding(8).Column(c =>
         {
             foreach (var (ability, level) in list)
                 AbilityDmRow(c.Item(), ability, level);
@@ -361,28 +340,25 @@ public sealed class ExportDmSheetPdfUseCase(
     private static void TraitsSection(IContainer container, DmContext ctx)
     {
         var roleTraits = ctx.EquippedRoleDpsTraits
-                              .Concat(ctx.EquippedRoleTankTraits)
-                              .Concat(ctx.EquippedRoleSoigneurTraits)
-                              .ToList();
+            .Concat(ctx.EquippedRoleTankTraits)
+            .Concat(ctx.EquippedRoleSoigneurTraits)
+            .ToList();
         var connMetierTraits = ctx.EquippedConnaissanceTraits
-                                  .Concat(ctx.EquippedJobTraits)
-                                  .ToList();
+            .Concat(ctx.EquippedJobTraits)
+            .ToList();
 
         bool hasAny = ctx.OriginTrait is not null
                    || roleTraits.Count > 0
                    || connMetierTraits.Count > 0;
-
         if (!hasAny) return;
 
         container.Column(col =>
         {
             col.Item().Element(e => SectionBanner(e, "Traits", topBorder: true));
 
-            // Trait d'origine — pleine largeur
             if (ctx.OriginTrait is not null)
                 TraitDmRow(col.Item(), ctx.OriginTrait, isOrigin: true);
 
-            // Rôles
             if (roleTraits.Count > 0)
             {
                 col.Item()
@@ -391,12 +367,10 @@ public sealed class ExportDmSheetPdfUseCase(
                     .PaddingHorizontal(12).PaddingVertical(3)
                     .Text("RÔLES")
                     .FontSize(7.5f).Bold().FontColor(InkLight).LetterSpacing(0.13f);
-
                 foreach (var t in roleTraits)
                     TraitDmRow(col.Item(), t);
             }
 
-            // Connaissance & Métier
             if (connMetierTraits.Count > 0)
             {
                 col.Item()
@@ -405,7 +379,6 @@ public sealed class ExportDmSheetPdfUseCase(
                     .PaddingHorizontal(12).PaddingVertical(3)
                     .Text("CONNAISSANCE & MÉTIER")
                     .FontSize(7.5f).Bold().FontColor(InkLight).LetterSpacing(0.13f);
-
                 foreach (var t in connMetierTraits)
                     TraitDmRow(col.Item(), t);
             }
@@ -450,7 +423,6 @@ public sealed class ExportDmSheetPdfUseCase(
                                     txt.Span("★ ").FontSize(9).FontColor(AmberInk);
                                     txt.Span(cert.Name).FontSize(10);
                                 });
-
                                 r.RelativeItem(6).Text(txt =>
                                 {
                                     txt.Span("→ ").FontSize(9).FontColor(AmberInk);
@@ -465,7 +437,6 @@ public sealed class ExportDmSheetPdfUseCase(
                                         txt.Span(a?.Name ?? cert.LinkedAbilityId).FontSize(9.5f);
                                     }
                                 });
-
                                 r.ConstantItem(50).AlignRight()
                                     .Text(cert.FreePoints > 0 ? $"+{cert.FreePoints}" : "—")
                                     .FontSize(10).Bold()
@@ -499,7 +470,7 @@ public sealed class ExportDmSheetPdfUseCase(
                 foreach (var item in items)
                 {
                     bool equipped = ctx.Character.MainHandItemId == item.Id
-                                    || ctx.Character.OffHandItemId == item.Id;
+                                  || ctx.Character.OffHandItemId == item.Id;
                     var typeLabel = item.Category == ItemCategory.Weapon ? "Arme" : "Équipement";
 
                     inner.Item().BorderBottom(0.5f).BorderColor(LineColor)
@@ -541,7 +512,6 @@ public sealed class ExportDmSheetPdfUseCase(
             .PaddingHorizontal(12).PaddingVertical(5)
             .Column(col =>
             {
-                // Nom + badge usage
                 col.Item().Row(row =>
                 {
                     row.RelativeItem().Text(txt =>
@@ -549,7 +519,6 @@ public sealed class ExportDmSheetPdfUseCase(
                         if (isOrigin) txt.Span("✦ ").FontSize(9).FontColor(AmberInk);
                         txt.Span(trait.Name).FontSize(10).Bold();
                     });
-
                     if (trait.UsageLimit != UsageLimit.None)
                     {
                         row.AutoItem()
@@ -560,7 +529,6 @@ public sealed class ExportDmSheetPdfUseCase(
                     }
                 });
 
-                // Description
                 if (!string.IsNullOrWhiteSpace(trait.Description))
                 {
                     col.Item().PaddingTop(3)
@@ -589,13 +557,22 @@ public sealed class ExportDmSheetPdfUseCase(
                     for (int lvl = 1; lvl <= ability.MaxLevel; lvl++)
                     {
                         if (lvl < ability.StartLevel)
+                        {
                             row.ConstantItem(dotSize);
+                        }
                         else
                         {
                             bool filled = lvl <= acquiredLevel;
                             int lvlCopy = lvl;
+                            // Layers : cercle SVG + chiffre natif QuestPDF (cross-platform)
                             row.ConstantItem(dotSize).Height(dotSize)
-                                .Svg(_ => DotSvg(dotSize, lvlCopy, filled));
+                                .Layers(layers =>
+                                {
+                                    layers.Layer().Svg(_ => CircleOnlySvg(dotSize, filled));
+                                    layers.PrimaryLayer().AlignCenter().AlignMiddle()
+                                        .Text(lvlCopy.ToString()).FontSize(7).Bold()
+                                        .FontColor(filled ? Parchment : Ink);
+                                });
                         }
                         if (lvl < ability.MaxLevel) row.ConstantItem(gap);
                     }
@@ -614,7 +591,7 @@ public sealed class ExportDmSheetPdfUseCase(
                     }
                 });
 
-                // Description globale de la capacité
+                // Description globale
                 if (!string.IsNullOrWhiteSpace(ability.Description))
                 {
                     col.Item().PaddingTop(3)
@@ -622,15 +599,22 @@ public sealed class ExportDmSheetPdfUseCase(
                         .FontSize(8.5f).Italic().FontColor(InkLight).LineHeight(1.4f);
                 }
 
-                // Description de chaque niveau acquis
+                // Description par niveau acquis
                 foreach (var lvlData in ability.Levels
                     .Where(l => l.Level <= acquiredLevel && !string.IsNullOrWhiteSpace(l.Description)))
                 {
                     int lvlCopy = lvlData.Level;
                     col.Item().PaddingTop(4).Row(r =>
                     {
+                        // Layers : cercle SVG + chiffre natif QuestPDF (cross-platform)
                         r.ConstantItem(dotSize).Height(dotSize)
-                            .Svg(_ => DotSvg(dotSize, lvlCopy, filled: true));
+                            .Layers(layers =>
+                            {
+                                layers.Layer().Svg(_ => CircleOnlySvg(dotSize, filled: true));
+                                layers.PrimaryLayer().AlignCenter().AlignMiddle()
+                                    .Text(lvlCopy.ToString()).FontSize(7).Bold()
+                                    .FontColor(Parchment);
+                            });
                         r.ConstantItem(6);
                         r.RelativeItem()
                             .Text(StripMarkdown(lvlData.Description))
@@ -662,8 +646,7 @@ public sealed class ExportDmSheetPdfUseCase(
             .FontSize(8).Bold().FontColor(Parchment).LetterSpacing(0.16f);
     }
 
-    private static void FieldCell(
-        IContainer container, string label, string value, string? sub = null) =>
+    private static void FieldCell(IContainer container, string label, string value, string? sub = null) =>
         container
             .PaddingHorizontal(10).PaddingVertical(4)
             .Column(c =>
@@ -691,17 +674,22 @@ public sealed class ExportDmSheetPdfUseCase(
                 });
             });
 
-    private static string DotSvg(float size, int level, bool filled)
+    // ══════════════════════════════════════════════════════════════════════
+    // HELPERS — SVG
+    // ══════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Cercle SVG sans texte. Le chiffre est rendu en natif QuestPDF via Layers
+    /// pour garantir le bon rendu cross-platform (Linux / Docker).
+    /// </summary>
+    private static string CircleOnlySvg(float size, bool filled)
     {
         float cx = size / 2f, cy = size / 2f, r = size / 2f - 1.5f;
         var fill = filled ? Ink : "none";
-        var text = filled ? Parchment : Ink;
         return $"""
             <svg xmlns='http://www.w3.org/2000/svg' width='{size}' height='{size}'>
               <circle cx='{cx:F1}' cy='{cy:F1}' r='{r:F1}'
                       fill='{fill}' stroke='{Ink}' stroke-width='1.5'/>
-              <text x='{cx:F1}' y='{cy + 2.5f:F1}'
-                    text-anchor='middle' font-size='7' font-weight='bold' fill='{text}'>{level}</text>
             </svg>
             """;
     }
@@ -712,6 +700,10 @@ public sealed class ExportDmSheetPdfUseCase(
           <circle cx='4' cy='4' r='3' fill='{Ink}'/>
         </svg>
         """;
+
+    // ══════════════════════════════════════════════════════════════════════
+    // HELPERS — LABELS & TEXTE
+    // ══════════════════════════════════════════════════════════════════════
 
     private static string UsageLimitLabel(UsageLimit limit) => limit switch
     {
