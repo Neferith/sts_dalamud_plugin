@@ -361,7 +361,7 @@
 
         _form.RequiredJobIds = _selectedJobIds.Count > 0 ? [.. _selectedJobIds] : null;
         if (_form.UsageLimit == "None") _form.UsageLimit = null;
-        for (var i = 0; i < _form.Levels.Count; i++) _form.Levels[i].Level = i + 1;
+        for (var i = 0; i < _form.Levels.Count; i++) _form.Levels[i].Level = i + _form.StartLevel;
 
         _saving = true;
         try
