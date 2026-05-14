@@ -1,4 +1,5 @@
 @page "/regles"
+@using Sts.Web.Helpers
 @using Markdig
 @using Sts.Domain.Content
 @inject HttpClient Http
@@ -56,7 +57,7 @@ else
             {
                 <h1>@_activePost.Title</h1>
                 <div class="rules-markdown">
-                    @((MarkupString)RenderMarkdown(_activePost.Content))
+                    @((MarkupString)MarkdownHelper.Render(_activePost.Content))
                 </div>
             }
         </article>
@@ -65,8 +66,8 @@ else
 }
 
 @code {
-    private const string SplitMarker = "---split---";
-    private const string ImageMarker = "---image---";
+   // private const string SplitMarker = "---split---";
+    //private const string ImageMarker = "---image---";
 
     // ── Pipeline Markdig (extensions courantes : tables, listes de tâches…) ──
     private static readonly MarkdownPipeline _pipeline =
@@ -100,7 +101,7 @@ else
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
-    private static string RenderMarkdown(string? content)
+   /* private static string RenderMarkdown(string? content)
     {
         if (string.IsNullOrWhiteSpace(content))
             return string.Empty;
@@ -130,7 +131,7 @@ else
             return text;
 
         return $"{text}\n\n![]({imageUrl})";
-    }
+    }*/
 
     private static string PostAnchor(RulesSection section, RulesPost post) =>
         $"{section.Id}-{post.Id}";

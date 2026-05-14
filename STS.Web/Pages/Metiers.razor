@@ -1,5 +1,6 @@
 @page "/metiers"
 @using Sts.Domain.DataSource
+@using Sts.Web.Helpers
 @inject StsDataService DataService
 @inject CharacterApiService CharacterApi
 @inject IJSRuntime JS
@@ -88,6 +89,13 @@ else
                                 <span class="sts-card-meta-dot" style="align-self: center;"></span>
                                 <span>@(_abilitiesByJob.TryGetValue(_selectedJob.Id, out var ac) ? ac.Count : 0) capacité(s)</span>
                             </div>
+                            @if (!string.IsNullOrWhiteSpace(_selectedJob.Description))
+                            {
+                                <div class="sts-job-description">
+                                    @((MarkupString)MarkdownHelper.Render(_selectedJob.Description))
+                                </div>
+                            }
+
                         </div>
                     </div>
 
