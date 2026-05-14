@@ -242,7 +242,7 @@ public static class CharacterEndpoints
         group.MapGet("/{id:guid}/export/fiche", async (
             Guid id,
             IGetCharacterByIdUseCase getById,
-            IExportJobSheetPdfUseCase exportJobSheet,
+            IExportDmSheetPdfUseCase exportDmSheet,
             ClaimsPrincipal user) =>
         {
             var character = await getById.ExecuteAsync(id);
@@ -251,11 +251,11 @@ public static class CharacterEndpoints
             if (!user.IsInRole("admin") && character.UserId != GetUserId(user))
                 return Results.Forbid();
 
-            var pdfBytes = await exportJobSheet.ExecuteAsync(character);
+            var pdfBytes = await exportDmSheet.ExecuteAsync(character);
             var safeName = character.Name.Replace(" ", "_");
             return Results.File(pdfBytes, "application/pdf", $"{safeName}_fiche.pdf");
         })
-        .WithName("ExportCharacterJobSheet")
+        .WithName("ExportCharacterDmSheet")
         .WithSummary("Exporte la fiche parchemin remplie du personnage au format PDF.");
     }
 
